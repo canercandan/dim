@@ -13,6 +13,9 @@
 #ifndef BOOST_MPI_COMMUNICATOR_HPP
 #define BOOST_MPI_COMMUNICATOR_HPP
 
+#define _MPI_PERSISTENT_ // enables send_init operators only
+//#define _MPI_PERSISTENT_RECV_ // enables recv_init operators only
+
 #include <boost/mpi/config.hpp>
 #include <boost/mpi/exception.hpp>
 #include <boost/optional.hpp>
@@ -270,6 +273,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   void send(int dest, int tag, const T& value) const;
 
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request send_init(int dest, int tag, const T& value) const;
+#endif // !_MPI_PERSISTENT_
+
   /**
    *  @brief Send the skeleton of an object.
    *
@@ -301,6 +309,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   void send(int dest, int tag, const skeleton_proxy<T>& proxy) const;
 
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request send_init(int dest, int tag, const skeleton_proxy<T>& proxy) const;
+#endif // !_MPI_PERSISTENT_
+
   /**
    *  @brief Send an array of values to another process.
    *
@@ -331,6 +344,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   void send(int dest, int tag, const T* values, int n) const;
 
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request send_init(int dest, int tag, const T* values, int n) const;
+#endif // !_MPI_PERSISTENT_
+
   /**
    *  @brief Send a message to another process without any data.
    *
@@ -347,6 +365,12 @@ class BOOST_MPI_DECL communicator
    *
    */
   void send(int dest, int tag) const;
+
+// #ifdef _MPI_PERSISTENT_
+  request send_init(int dest, int tag) const;
+
+  void start(request& req) const;
+// #endif // !_MPI_PERSISTENT_
 
   /**
    * @brief Receive data from a remote process.
@@ -382,6 +406,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   status recv(int source, int tag, T& value) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request recv_init(int source, int tag, T& value) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
   /**
    *  @brief Receive a skeleton from a remote process.
    *
@@ -407,6 +436,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   status recv(int source, int tag, const skeleton_proxy<T>& proxy) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request recv_init(int source, int tag, const skeleton_proxy<T>& proxy) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
   /**
    *  @brief Receive a skeleton from a remote process.
    *
@@ -431,6 +465,11 @@ class BOOST_MPI_DECL communicator
    */
   template<typename T>
   status recv(int source, int tag, skeleton_proxy<T>& proxy) const;
+
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request recv_init(int source, int tag, skeleton_proxy<T>& proxy) const;
+#endif // !_MPI_PERSISTENT_RECV_
 
   /**
    * @brief Receive an array of values from a remote process.
@@ -464,6 +503,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   status recv(int source, int tag, T* values, int n) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request recv_init(int source, int tag, T* values, int n) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
   /**
    *  @brief Receive a message from a remote process without any data.
    *
@@ -484,6 +528,10 @@ class BOOST_MPI_DECL communicator
    *  @returns Information about the received message.
    */
   status recv(int source, int tag) const;
+
+#ifdef _MPI_PERSISTENT_RECV_
+  request recv_init(int source, int tag) const;
+#endif // !_MPI_PERSISTENT_RECV_
 
   /**
    *  @brief Send a message to a remote process without blocking.
@@ -887,6 +935,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   void send_impl(int dest, int tag, const T& value, mpl::true_) const;
 
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request send_init_impl(int dest, int tag, const T& value, mpl::true_) const;
+#endif // !_MPI_PERSISTENT_
+
   /**
    * INTERNAL ONLY
    *
@@ -897,6 +950,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   void send_impl(int dest, int tag, const T& value, mpl::false_) const;
 
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request send_init_impl(int dest, int tag, const T& value, mpl::false_) const;
+#endif // !_MPI_PERSISTENT_
+
   /**
    * INTERNAL ONLY
    *
@@ -906,6 +964,12 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   void 
   array_send_impl(int dest, int tag, const T* values, int n, mpl::true_) const;
+
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request 
+  array_send_init_impl(int dest, int tag, const T* values, int n, mpl::true_) const;
+#endif // !_MPI_PERSISTENT_
 
   /**
    * INTERNAL ONLY
@@ -918,6 +982,13 @@ class BOOST_MPI_DECL communicator
   void 
   array_send_impl(int dest, int tag, const T* values, int n, 
                   mpl::false_) const;
+
+#ifdef _MPI_PERSISTENT_
+  template<typename T>
+  request 
+  array_send_init_impl(int dest, int tag, const T* values, int n, 
+                  mpl::false_) const;
+#endif // !_MPI_PERSISTENT_
 
   /**
    * INTERNAL ONLY
@@ -970,6 +1041,11 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   status recv_impl(int source, int tag, T& value, mpl::true_) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request recv_init_impl(int source, int tag, T& value, mpl::true_) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
   /**
    * INTERNAL ONLY
    *
@@ -979,6 +1055,11 @@ class BOOST_MPI_DECL communicator
    */
   template<typename T>
   status recv_impl(int source, int tag, T& value, mpl::false_) const;
+
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request recv_init_impl(int source, int tag, T& value, mpl::false_) const;
+#endif // !_MPI_PERSISTENT_RECV_
 
   /**
    * INTERNAL ONLY
@@ -990,6 +1071,12 @@ class BOOST_MPI_DECL communicator
   status 
   array_recv_impl(int source, int tag, T* values, int n, mpl::true_) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request 
+  array_recv_init_impl(int source, int tag, T* values, int n, mpl::true_) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
   /**
    * INTERNAL ONLY
    *
@@ -1000,6 +1087,12 @@ class BOOST_MPI_DECL communicator
   template<typename T>
   status 
   array_recv_impl(int source, int tag, T* values, int n, mpl::false_) const;
+
+#ifdef _MPI_PERSISTENT_RECV_
+  template<typename T>
+  request 
+  array_recv_init_impl(int source, int tag, T* values, int n, mpl::false_) const;
+#endif // !_MPI_PERSISTENT_RECV_
 
   /**
    * INTERNAL ONLY
@@ -1112,6 +1205,19 @@ communicator::send_impl(int dest, int tag, const T& value, mpl::true_) const
                           dest, tag, MPI_Comm(*this)));
 }
 
+#ifdef _MPI_PERSISTENT_
+template<typename T>
+request
+communicator::send_init_impl(int dest, int tag, const T& value, mpl::true_) const
+{
+  request req;
+  BOOST_MPI_CHECK_RESULT(MPI_Send_init,
+                         (const_cast<T*>(&value), 1, get_mpi_datatype<T>(value),
+                          dest, tag, MPI_Comm(*this), &req.m_requests[0]));
+  return req;
+}
+#endif // !_MPI_PERSISTENT_
+
 // We're sending a type that does not have an associated MPI
 // datatype, so it must be serialized then sent as MPI_PACKED data,
 // to be deserialized on the receiver side.
@@ -1124,6 +1230,19 @@ communicator::send_impl(int dest, int tag, const T& value, mpl::false_) const
   send(dest, tag, oa);
 }
 
+#ifdef _MPI_PERSISTENT_
+template<typename T>
+request
+communicator::send_init_impl(int dest, int tag, const T& value, mpl::false_) const
+{
+  shared_ptr<packed_oarchive> archive(new packed_oarchive(*this));
+  *archive << value;
+  request result = send_init(dest, tag, *archive);
+  result.m_data = archive;
+  return result;
+}
+#endif // !_MPI_PERSISTENT_
+
 // Single-element receive may either send the element directly or
 // serialize it via a buffer.
 template<typename T>
@@ -1131,6 +1250,14 @@ void communicator::send(int dest, int tag, const T& value) const
 {
   this->send_impl(dest, tag, value, is_mpi_datatype<T>());
 }
+
+#ifdef _MPI_PERSISTENT_
+template<typename T>
+request communicator::send_init(int dest, int tag, const T& value) const
+{
+  return this->send_init_impl(dest, tag, value, is_mpi_datatype<T>());
+}
+#endif // !_MPI_PERSISTENT_
 
 // We're sending an array of a type that has an associated MPI
 // datatype, so we map directly to that datatype.
@@ -1145,6 +1272,21 @@ communicator::array_send_impl(int dest, int tag, const T* values, int n,
                           dest, tag, MPI_Comm(*this)));
 }
 
+#ifdef _MPI_PERSISTENT_
+template<typename T>
+request
+communicator::array_send_init_impl(int dest, int tag, const T* values, int n,
+                              mpl::true_) const
+{
+  request req;
+  BOOST_MPI_CHECK_RESULT(MPI_Send_init,
+                         (const_cast<T*>(values), n, 
+                          get_mpi_datatype<T>(*values),
+                          dest, tag, MPI_Comm(*this), &req.m_requests[0]));
+  return req;
+}
+#endif // !_MPI_PERSISTENT_
+
 // We're sending an array of a type that does not have an associated
 // MPI datatype, so it must be serialized then sent as MPI_PACKED
 // data, to be deserialized on the receiver side.
@@ -1158,12 +1300,34 @@ communicator::array_send_impl(int dest, int tag, const T* values, int n,
   send(dest, tag, oa);
 }
 
+#ifdef _MPI_PERSISTENT_
+template<typename T>
+request
+communicator::array_send_init_impl(int dest, int tag, const T* values, int n,
+				   mpl::false_) const
+{
+  shared_ptr<packed_oarchive> archive(new packed_oarchive(*this));
+  *archive << n << boost::serialization::make_array(values, n);
+  request result = send_init(dest, tag, *archive);
+  result.m_data = archive;
+  return result;
+}
+#endif // !_MPI_PERSISTENT_
+
 // Array send must send the elements directly
 template<typename T>
 void communicator::send(int dest, int tag, const T* values, int n) const
 {
   this->array_send_impl(dest, tag, values, n, is_mpi_datatype<T>());
 }
+
+#ifdef _MPI_PERSISTENT_
+template<typename T>
+request communicator::send_init(int dest, int tag, const T* values, int n) const
+{
+  return this->array_send_init_impl(dest, tag, values, n, is_mpi_datatype<T>());
+}
+#endif // !_MPI_PERSISTENT_
 
 // We're receiving a type that has an associated MPI datatype, so we
 // map directly to that datatype.
@@ -1179,6 +1343,20 @@ status communicator::recv_impl(int source, int tag, T& value, mpl::true_) const
   return stat;
 }
 
+#ifdef _MPI_PERSISTENT_RECV_
+template<typename T>
+request communicator::recv_init_impl(int source, int tag, T& value, mpl::true_) const
+{
+  status stat;
+
+  BOOST_MPI_CHECK_RESULT(MPI_Recv_init,
+                         (const_cast<T*>(&value), 1, 
+                          get_mpi_datatype<T>(value),
+                          source, tag, MPI_Comm(*this), &stat.m_status));
+  return stat;
+}
+#endif // !_MPI_PERSISTENT_RECV_
+
 template<typename T>
 status
 communicator::recv_impl(int source, int tag, T& value, mpl::false_) const
@@ -1193,6 +1371,22 @@ communicator::recv_impl(int source, int tag, T& value, mpl::false_) const
   return stat;
 }
 
+#ifdef _MPI_PERSISTENT_RECV_
+template<typename T>
+request
+communicator::recv_init_impl(int source, int tag, T& value, mpl::false_) const
+{
+  // Receive the message
+  packed_iarchive ia(*this);
+  status stat = recv_init(source, tag, ia);
+
+  // Deserialize the data in the message
+  ia >> value;
+
+  return stat;
+}
+#endif // !_MPI_PERSISTENT_RECV_
+
 // Single-element receive may either receive the element directly or
 // deserialize it from a buffer.
 template<typename T>
@@ -1200,6 +1394,14 @@ status communicator::recv(int source, int tag, T& value) const
 {
   return this->recv_impl(source, tag, value, is_mpi_datatype<T>());
 }
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<typename T>
+request communicator::recv_init(int source, int tag, T& value) const
+{
+  return this->recv_init_impl(source, tag, value, is_mpi_datatype<T>());
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 template<typename T>
 status 
@@ -1213,6 +1415,21 @@ communicator::array_recv_impl(int source, int tag, T* values, int n,
                           source, tag, MPI_Comm(*this), &stat.m_status));
   return stat;
 }
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<typename T>
+request 
+communicator::array_recv_init_impl(int source, int tag, T* values, int n, 
+				   mpl::true_) const
+{
+  status stat;
+  BOOST_MPI_CHECK_RESULT(MPI_Recv_init,
+                         (const_cast<T*>(values), n, 
+                          get_mpi_datatype<T>(*values),
+                          source, tag, MPI_Comm(*this), &stat.m_status));
+  return stat;
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 template<typename T>
 status
@@ -1240,12 +1457,48 @@ communicator::array_recv_impl(int source, int tag, T* values, int n,
   return stat;
 }
 
+#ifdef _MPI_PERSISTENT_RECV_
+template<typename T>
+request
+communicator::array_recv_init_impl(int source, int tag, T* values, int n, 
+				   mpl::false_) const
+{
+  // Receive the message
+  packed_iarchive ia(*this);
+  status stat = recv_init(source, tag, ia);
+
+  // Determine how much data we are going to receive
+  int count;
+  ia >> count;
+
+  // Deserialize the data in the message
+  boost::serialization::array<T> arr(values, count > n? n : count);
+  ia >> arr;
+
+  if (count > n) {
+    boost::throw_exception(
+      std::range_error("communicator::recv: message receive overflow"));
+  }
+
+  stat.m_count = count;
+  return stat;
+}
+#endif // !_MPI_PERSISTENT_RECV_
+
 // Array receive must receive the elements directly into a buffer.
 template<typename T>
 status communicator::recv(int source, int tag, T* values, int n) const
 {
   return this->array_recv_impl(source, tag, values, n, is_mpi_datatype<T>());
 }
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<typename T>
+request communicator::recv_init(int source, int tag, T* values, int n) const
+{
+  return this->array_recv_init_impl(source, tag, values, n, is_mpi_datatype<T>());
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 // We're sending a type that has an associated MPI datatype, so we
 // map directly to that datatype.
@@ -1609,6 +1862,13 @@ BOOST_MPI_DECL void
 communicator::send<packed_oarchive>(int dest, int tag,
                                     const packed_oarchive& ar) const;
 
+#ifdef _MPI_PERSISTENT_
+template<>
+BOOST_MPI_DECL request
+communicator::send_init<packed_oarchive>(int dest, int tag,
+					 const packed_oarchive& ar) const;
+#endif // !_MPI_PERSISTENT_
+
 /**
  * INTERNAL ONLY
  */
@@ -1617,12 +1877,25 @@ BOOST_MPI_DECL void
 communicator::send<packed_skeleton_oarchive>
   (int dest, int tag, const packed_skeleton_oarchive& ar) const;
 
+#ifdef _MPI_PERSISTENT_
+template<>
+BOOST_MPI_DECL request
+communicator::send_init<packed_skeleton_oarchive>
+(int dest, int tag, const packed_skeleton_oarchive& ar) const;
+#endif // !_MPI_PERSISTENT_
+
 /**
  * INTERNAL ONLY
  */
 template<>
 BOOST_MPI_DECL void
 communicator::send<content>(int dest, int tag, const content& c) const;
+
+#ifdef _MPI_PERSISTENT_
+template<>
+BOOST_MPI_DECL request
+communicator::send_init<content>(int dest, int tag, const content& c) const;
+#endif // !_MPI_PERSISTENT_
 
 /**
  * INTERNAL ONLY
@@ -1632,6 +1905,13 @@ BOOST_MPI_DECL status
 communicator::recv<packed_iarchive>(int source, int tag,
                                     packed_iarchive& ar) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+BOOST_MPI_DECL request
+communicator::recv_init<packed_iarchive>(int source, int tag,
+					 packed_iarchive& ar) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
 /**
  * INTERNAL ONLY
  */
@@ -1640,6 +1920,13 @@ BOOST_MPI_DECL status
 communicator::recv<packed_skeleton_iarchive>
   (int source, int tag, packed_skeleton_iarchive& ar) const;
 
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+BOOST_MPI_DECL request
+communicator::recv_init<packed_skeleton_iarchive>
+  (int source, int tag, packed_skeleton_iarchive& ar) const;
+#endif // !_MPI_PERSISTENT_RECV_
+
 /**
  * INTERNAL ONLY
  */
@@ -1647,6 +1934,13 @@ template<>
 BOOST_MPI_DECL status
 communicator::recv<const content>(int source, int tag,
                                   const content& c) const;
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+BOOST_MPI_DECL request
+communicator::recv_init<const content>(int source, int tag,
+                                  const content& c) const;
+#endif // !_MPI_PERSISTENT_RECV_
 
 /**
  * INTERNAL ONLY
@@ -1657,7 +1951,17 @@ communicator::recv<content>(int source, int tag,
                                   content& c) const
 {
   return recv<const content>(source,tag,c);
-}                                  
+}
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+inline request
+communicator::recv_init<content>(int source, int tag,
+				 content& c) const
+{
+  return recv_init<const content>(source,tag,c);
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 /**
  * INTERNAL ONLY

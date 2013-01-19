@@ -94,6 +94,23 @@ void communicator::send(int dest, int tag) const
                           dest, tag, MPI_Comm(*this)));
 }
 
+// #ifdef _MPI_PERSISTENT_
+request communicator::send_init(int dest, int tag) const
+{
+  request req;
+  BOOST_MPI_CHECK_RESULT(MPI_Send_init,
+                         (MPI_BOTTOM, 0, MPI_PACKED,
+                          dest, tag, MPI_Comm(*this),
+			  &req.m_requests[0]));
+  return req;
+}
+
+void communicator::start(request& req) const
+{
+  BOOST_MPI_CHECK_RESULT(MPI_Start, (&req.m_requests[0]));
+}
+// #endif // !_MPI_PERSISTENT_
+
 status communicator::recv(int source, int tag) const
 {
   status stat;
@@ -102,6 +119,18 @@ status communicator::recv(int source, int tag) const
                           source, tag, MPI_Comm(*this), &stat.m_status));
   return stat;
 }
+
+#ifdef _MPI_PERSISTENT_RECV_
+request communicator::recv_init(int source, int tag) const
+{
+  request req;
+  BOOST_MPI_CHECK_RESULT(MPI_Recv_init,
+                         (MPI_BOTTOM, 0, MPI_PACKED,
+                          source, tag, MPI_Comm(*this),
+			  &req.m_requests[0]));
+  return req;
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 optional<status> communicator::iprobe(int source, int tag) const
 {
@@ -195,6 +224,19 @@ communicator::send<packed_oarchive>(int dest, int tag,
   detail::packed_archive_send(MPI_Comm(*this), dest, tag, ar);
 }
 
+#ifdef _MPI_PERSISTENT_
+template<>
+request
+communicator::send_init<packed_oarchive>(int dest, int tag,
+                                    const packed_oarchive& ar) const
+{
+  request req;
+  detail::packed_archive_isend(MPI_Comm(*this), dest, tag, ar,
+			       &req.m_requests[0] ,2);
+  return req;
+}
+#endif // !_MPI_PERSISTENT_
+
 template<>
 void
 communicator::send<packed_skeleton_oarchive>
@@ -203,6 +245,16 @@ communicator::send<packed_skeleton_oarchive>
   this->send(dest, tag, ar.get_skeleton());
 }
 
+#ifdef _MPI_PERSISTENT_
+template<>
+request
+communicator::send_init<packed_skeleton_oarchive>
+  (int dest, int tag, const packed_skeleton_oarchive& ar) const
+{
+  return this->send_init(dest, tag, ar.get_skeleton());
+}
+#endif // !_MPI_PERSISTENT_
+
 template<>
 void communicator::send<content>(int dest, int tag, const content& c) const
 {
@@ -210,6 +262,19 @@ void communicator::send<content>(int dest, int tag, const content& c) const
                          (MPI_BOTTOM, 1, c.get_mpi_datatype(),
                           dest, tag, MPI_Comm(*this)));
 }
+
+#ifdef _MPI_PERSISTENT_
+template<>
+request communicator::send_init<content>(int dest, int tag, const content& c) const
+{
+  request req;
+  BOOST_MPI_CHECK_RESULT(MPI_Send_init,
+                         (MPI_BOTTOM, 1, c.get_mpi_datatype(),
+                          dest, tag, MPI_Comm(*this),
+			  &req.m_requests[0]));
+  return req;
+}
+#endif // !_MPI_PERSISTENT_
 
 template<>
 status
@@ -222,6 +287,17 @@ communicator::recv<packed_iarchive>(int source, int tag,
   return stat;
 }
 
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+request
+communicator::recv_init<packed_iarchive>(int source, int tag,
+					 packed_iarchive& ar) const
+{
+    return detail::packed_archive_recv_init(MPI_Comm(*this), source, tag, ar,
+					    stat.m_status);
+}
+#endif // !_MPI_PERSISTENT_RECV_
+
 template<>
 status
 communicator::recv<packed_skeleton_iarchive>
@@ -229,6 +305,16 @@ communicator::recv<packed_skeleton_iarchive>
 {
   return this->recv(source, tag, ar.get_skeleton());
 }
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+request
+communicator::recv_init<packed_skeleton_iarchive>
+  (int source, int tag, packed_skeleton_iarchive& ar) const
+{
+  return this->recv_init(source, tag, ar.get_skeleton());
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 template<>
 status
@@ -240,6 +326,19 @@ communicator::recv<const content>(int source, int tag, const content& c) const
                           source, tag, MPI_Comm(*this), &stat.m_status));
   return stat;
 }
+
+#ifdef _MPI_PERSISTENT_RECV_
+template<>
+request
+communicator::recv_init<const content>(int source, int tag, const content& c) const
+{
+  request req;
+  BOOST_MPI_CHECK_RESULT(MPI_Recv_init,
+                         (MPI_BOTTOM, 1, c.get_mpi_datatype(),
+                          source, tag, MPI_Comm(*this), &stat.m_status));
+  return req;
+}
+#endif // !_MPI_PERSISTENT_RECV_
 
 /*************************************************************
  * non-blocking send/recv                                    *
