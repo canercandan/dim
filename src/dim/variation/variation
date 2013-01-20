@@ -17,4 +17,18 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _VARIATION_
+#define _VARIATION_
+
+/*************************
+ * Main variation header file *
+ *************************/
+
+#include "OpContainer.h"
+#include "GenOp.h"
+
+#endif // !_VARIATION_
+
+// Local Variables:
+// mode: C++
+// End:

@@ -17,4 +17,18 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _EVALUATION_
+#define _EVALUATION_
+
+/*******************************
+ * Main evaluation header file *
+ *******************************/
+
+#include "OneMax.h"
+#include "NKLandscapes.h"
+
+#endif // !_EVALUATION_
+
+// Local Variables:
+// mode: C++
+// End:

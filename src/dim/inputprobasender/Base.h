@@ -17,4 +17,25 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _INPUTPROBASENDER_BASE_H_
+#define _INPUTPROBASENDER_BASE_H_
+
+#include <dim/core/IslandOperator.h>
+
+namespace dim
+{
+    namespace inputprobasender
+    {
+	template <typename EOT>
+	class Base : public core::IslandOperator<EOT>
+	{
+	public:
+	    Base() : core::IslandOperator<EOT>(5) {}
+
+	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	};
+    }
+}
+
+#endif /* _INPUTPROBASENDER_BASE_H_ */

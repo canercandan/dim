@@ -17,4 +17,28 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _UTILS_FIXEDVALUE_H_
+#define _UTILS_FIXEDVALUE_H_
+
+#include <eo>
+
+#include "Updater.h"
+
+namespace dim
+{
+    namespace utils
+    {
+
+	template < typename T >
+	class FixedValue : public Updater, public eoValueParam<T>
+	{
+	public:
+	    FixedValue( T value = 0, std::string label = "Value" ) : eoValueParam<T>(value, label) {}
+
+	    virtual void operator()() { /* nothing to do */ }
+	};
+
+    } // !utils
+} // !dim
+
+#endif /* _UTILS_FIXEDVALUE_H_ */

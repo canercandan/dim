@@ -17,4 +17,14 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _MIGRATOR_
+#define _MIGRATOR_
+
+#include "Base.h"
+#include "Easy.h"
+
+#endif // !_MIGRATOR_
+
+// Local Variables:
+// mode: C++
+// End:

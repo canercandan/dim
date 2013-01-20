@@ -17,4 +17,38 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _UTILS_OUTPUTSIZEPERISLAND_H_
+#define _UTILS_OUTPUTSIZEPERISLAND_H_
+
+#include <string>
+
+#include "Stat.h"
+
+namespace dim
+{
+    namespace utils
+    {
+
+	template < typename EOT >
+	class OutputSizePerIsland : public Stat<EOT, size_t>
+	{
+	public:
+	    OutputSizePerIsland( size_t isl, std::string _description = "Output size per island" )
+		: Stat<EOT, size_t>(0, _description), _isl(isl)
+	    {}
+
+	    void operator()(const core::Pop<EOT>& _pop)
+	    {
+		if (_pop.getOutputSizes().empty()) { return; }
+
+		this->value() = _pop.getOutputSizes()[this->_isl];
+	    }
+
+	private:
+	    size_t _isl;
+	};
+
+    } // !utils
+} // !dim
+
+#endif /* _UTILS_OUTPUTSIZEPERISLAND_H_ */

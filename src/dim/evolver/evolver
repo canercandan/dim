@@ -17,4 +17,14 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _EVOLVER_
+#define _EVOLVER_
+
+#include "Base.h"
+#include "Easy.h"
+
+#endif // !_EVOLVER_
+
+// Local Variables:
+// mode: C++
+// End:

@@ -17,4 +17,39 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _ALGO_EASYLS_H_
+#define _ALGO_EASYLS_H_
+
+#include <dim/variation/OpContainer.h>
+#include <dim/core/Populator.h>
+
+namespace dim
+{
+    namespace algo
+    {
+
+	template <class EOT>
+	class EasyLS: public variation::SequentialOp<EOT>
+	{
+	public:
+	    EasyLS(unsigned nbIter = 100) : _nbIter(nbIter) {}
+
+	    /// The class name.
+	    virtual std::string className() const { return "EasyLS"; }
+
+	    void apply(core::Populator<EOT>& pop)
+	    {
+		for ( unsigned i = 0; i < _nbIter; ++i )
+		    {
+			variation::SequentialOp<EOT>::apply( pop );
+		    }
+	    }
+
+	private:
+	    unsigned _nbIter;
+	};
+
+    } // !algo
+} // !dim
+
+#endif // !_ALGO_EASYLS_H_

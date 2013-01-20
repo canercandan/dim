@@ -17,4 +17,15 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _INITIALIZATION_
+#define _INITIALIZATION_
+
+/***********************************
+ * Main initialization header file *
+ ***********************************/
+
+#endif // !_INITIALIZATION_
+
+// Local Variables:
+// mode: C++
+// End:

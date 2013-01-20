@@ -17,4 +17,43 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _CORE_
+#define _CORE_
+
+/*************************
+ * Main core header file *
+ *************************/
+
+#include "Thread.h"
+#include "Matrix.h"
+#include "Vector.h"
+#include "Bit.h"
+#include "Pop.h"
+#include "Populator.h"
+#include "ParallelContext.h"
+
+#include "Object.h"
+#include "Persistent.h"
+#include "Printable.h"
+
+// #include "FunctorBase.h"
+// #include "F.h"
+// #include "UF.h"
+// #include "BF.h"
+// #include "TF.h"
+// #include "ConstF.h"
+// #include "ConstUF.h"
+// #include "ConstBF.h"
+// #include "ConstTF.h"
+
+// #include "FunctorStore.h"
+// #include "State.h"
+
+#include "IslandData.h"
+#include "IslandOperator.h"
+
+#endif // !_CORE_
+
+// Local Variables:
+// mode: C++
+// End:

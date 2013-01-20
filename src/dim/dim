@@ -13,17 +13,33 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Authors: Caner Candan <caner@candan.fr>, http://caner.candan.fr
+ * Authors:
+ * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _dim_
-#define _dim_
+#ifndef _DIM_
+#define _DIM_
 
 /************************
  * Main dim header file *
  ************************/
 
-#endif // !_dim_
+#include "algo/algo"
+#include "controler/controler"
+#include "core/core"
+#include "do_make/do_make"
+#include "evaluation/evaluation"
+#include "evolver/evolver"
+#include "feedbacker/feedbacker"
+#include "initialization/initialization"
+#include "inputprobasender/inputprobasender"
+#include "memorizer/memorizer"
+#include "migrator/migrator"
+#include "utils/utils"
+#include "variation/variation"
+#include "vectorupdater/vectorupdater"
+
+#endif // !_DIM_
 
 // Local Variables:
 // mode: C++

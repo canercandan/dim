@@ -17,4 +17,17 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _SELECTION_
+#define _SELECTION_
+
+/*************************
+ * Main selection header file *
+ *************************/
+
+#include "SelectOne.h"
+
+#endif // !_SELECTION_
+
+// Local Variables:
+// mode: C++
+// End:

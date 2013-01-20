@@ -17,4 +17,39 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _MEMORIZER_EASY_H_
+#define _MEMORIZER_EASY_H_
+
+#include "Base.h"
+
+namespace dim
+{
+    namespace memorizer
+    {
+
+	template <typename EOT>
+	class Easy : public Base<EOT>
+	{
+	public:
+	    void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+	    {
+		for (auto &ind : pop)
+		    {
+			ind.addIsland(this->rank());
+		    }
+	    }
+
+	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+	    {
+		for (auto &indi : pop)
+		    {
+			indi.addFitness();
+			indi.addIsland(this->rank());
+		    }
+	    }
+	};
+
+    } // !memorizer
+} // !dim
+
+#endif /* _MEMORIZER_EASY_H_ */

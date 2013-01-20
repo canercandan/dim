@@ -17,4 +17,30 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _UTILS_
+#define _UTILS_
+
+/*************************
+ * Main utils header file *
+ *************************/
+
+#include "Stat.h"
+#include "FixedValue.h"
+#include "OutputSizePerIsland.h"
+#include "GetMigrationProbability.h"
+#include "FuncPtrStat.h"
+#include "StatFunctions.h"
+#include "CheckPoint.h"
+#include "Updater.h"
+#include "Monitor.h"
+#include "FileMonitor.h"
+#include "StdoutMonitor.h"
+#include "OStreamMonitor.h"
+#include "TimeCounter.h"
+#include "GenCounter.h"
+
+#endif // !_UTILS_
+
+// Local Variables:
+// mode: C++
+// End:

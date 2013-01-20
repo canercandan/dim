@@ -17,4 +17,33 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _CORE_PARALLELCONTEXT_H_
+#define _CORE_PARALLELCONTEXT_H_
+
+#include <boost/mpi.hpp>
+
+namespace dim
+{
+    namespace core
+    {
+
+	class ParallelContext
+	{
+	public:
+	    ParallelContext(size_t tag = 0) : _tag(tag) {}
+	    virtual ~ParallelContext() {}
+
+	    inline size_t size() const { return this->_world.size(); }
+	    inline size_t rank() const { return this->_world.rank(); }
+	    inline boost::mpi::communicator& world() { return this->_world; }
+	    inline size_t tag() const { return _tag; }
+
+	private:
+	    const size_t _tag = 0;
+	    boost::mpi::communicator _world;
+	};
+
+    } // !core
+} // !dim
+
+#endif /* _CORE_PARALLELCONTEXT_H_ */

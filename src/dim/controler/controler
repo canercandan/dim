@@ -17,4 +17,15 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _CONTROLER_
+#define _CONTROLER_
+
+/*************************
+ * Main controler header file *
+ *************************/
+
+#endif // !_CONTROLER_
+
+// Local Variables:
+// mode: C++
+// End:

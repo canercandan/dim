@@ -17,4 +17,36 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _EVALUATION_ONEMAX_H_
+#define _EVALUATION_ONEMAX_H_
+
+#include <eoEvalFunc.h>
+
+namespace dim
+{
+    namespace evaluation
+    {
+
+	template< class EOT >
+	class OneMax : public eoEvalFunc<EOT>
+	{
+	public:
+	    /**
+	     * Count the number of 1 in a bitString
+	     * @param _sol the solution to evaluate
+	     */
+	    void operator() (EOT& _sol)
+	    {
+		unsigned int sum = 0;
+		for (auto i : _sol)
+		    {
+			sum += i;
+		    }
+		_sol.fitness(sum);
+	    }
+	};
+
+    } // !evaluation
+} // !dim
+
+#endif /* _EVALUATION_ONEMAX_H_ */

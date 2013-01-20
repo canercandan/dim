@@ -17,4 +17,25 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _EVOLVER_BASE_H_
+#define _EVOLVER_BASE_H_
+
+#include <dim/core/IslandOperator.h>
+
+namespace dim
+{
+    namespace evolver
+    {
+
+	template <typename EOT>
+	class Base : public core::IslandOperator<EOT>
+	{
+	public:
+	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	};
+
+    } // !evolver
+} // !dim
+
+#endif /* _EVOLVER_BASE_H_ */

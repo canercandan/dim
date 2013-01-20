@@ -17,4 +17,22 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _DO_MAKE_
+#define _DO_MAKE_
+
+/***********************
+ * Main do header file *
+ ***********************/
+
+#include "continuator.h"
+#include "checkpoint.h"
+#include "algo_scalar.h"
+#include "detail/pop.h"
+#include "ga/ga.h"
+#include "ls_op.h"
+
+#endif // !_DO_MAKE_
+
+// Local Variables:
+// mode: C++
+// End:

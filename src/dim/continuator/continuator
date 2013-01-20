@@ -17,4 +17,31 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _CONTINUATOR_
+#define _CONTINUATOR_
+
+/** @defgroup Continuators Stopping criteria
+ *
+ * A stopping criterion is called a "continue". This is a functor that is called at each generation end
+ * and that return true if one should stop the search.
+ *
+ *  @ingroup Utilities
+ */
+
+/********************************
+ * Main continuator header file *
+ ********************************/
+
+#include "Base.h"
+#include "Combined.h"
+#include "Fit.h"
+#include "Gen.h"
+#include "SteadyFit.h"
+#include "Eval.h"
+#include "CtrlC.h"
+
+#endif // !_CONTINUATOR_
+
+// Local Variables:
+// mode: C++
+// End:

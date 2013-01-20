@@ -17,4 +17,14 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _MEMORIZER_
+#define _MEMORIZER_
+
+#include "Base.h"
+#include "Easy.h"
+
+#endif // !_MEMORIZER_
+
+// Local Variables:
+// mode: C++
+// End:

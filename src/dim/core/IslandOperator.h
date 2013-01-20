@@ -17,4 +17,30 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _CORE_ISLANDOPERATOR_H_
+#define _CORE_ISLANDOPERATOR_H_
+
+#include "ParallelContext.h"
+#include "BF.h"
+#include "Pop.h"
+#include "IslandData.h"
+
+namespace dim
+{
+    namespace core
+    {
+
+	template <typename EOT>
+	class IslandOperator : public BF<Pop<EOT>&, IslandData<EOT>&>, public ParallelContext
+	{
+	public:
+	    IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
+
+	    virtual void firstCall(Pop<EOT>&, IslandData<EOT>&) = 0;
+	    virtual void lastCall(Pop<EOT>&, IslandData<EOT>&) = 0;
+	};
+
+    } // !core
+} // !dim
+
+#endif /* _CORE_ISLANDOPERATOR_H_ */

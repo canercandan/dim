@@ -17,4 +17,46 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _EVOLVER_EASY_H_
+#define _EVOLVER_EASY_H_
+
+#include "Base.h"
+
+namespace dim
+{
+    namespace evolver
+    {
+
+	template <typename EOT>
+	class Easy : public Base<EOT>
+	{
+	public:
+	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op) : _eval(eval), _op(op) {}
+
+	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+	    {
+		for (auto &ind : pop)
+		    {
+			EOT candidate = ind;
+
+			_op( candidate );
+
+			candidate.invalidate();
+			_eval( candidate );
+
+			if ( candidate.fitness() > ind.fitness() )
+			    {
+				ind = candidate;
+			    }
+		    }
+	    }
+
+	private:
+	    eoEvalFunc<EOT>& _eval;
+	    eoMonOp<EOT>& _op;
+	};
+
+    } // !evolver
+} // !dim
+
+#endif /* _EVOLVER_EASY_H_ */

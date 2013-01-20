@@ -17,4 +17,24 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _MEMORIZER_BASE_H_
+#define _MEMORIZER_BASE_H_
+
+#include <dim/core/IslandOperator.h>
+
+namespace dim
+{
+    namespace memorizer
+    {
+
+	template <typename EOT>
+	class Base : public core::IslandOperator<EOT>
+	{
+	public:
+	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	};
+
+    } // !memorizer
+} // !dim
+
+#endif /* _MEMORIZER_BASE_H_ */

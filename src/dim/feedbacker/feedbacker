@@ -17,4 +17,14 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _FEEDBACKER_
+#define _FEEDBACKER_
+
+#include "Base.h"
+#include "Easy.h"
+
+#endif // !_FEEDBACKER_
+
+// Local Variables:
+// mode: C++
+// End:

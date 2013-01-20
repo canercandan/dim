@@ -17,4 +17,31 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#include "dim"
+#ifndef _ALGO_
+#define _ALGO_
+
+/**
+   @defgroup Algorithms Algorithms
+
+   In EO, an algorithm is a functor that takes one or several solutions to an optimization
+   problem as arguments, and iteratively modify them with the help of operators.
+
+   Generally, an EO object is built by assembling together @ref Operators in an algorithm instance,
+   and then calling the algorithm's operator() on an initial population (an eoPop). The algorithm will then
+   manipulate the solutions within the population to search for the problem's optimum.
+*/
+
+/*************************
+ * Main algo header file *
+ *************************/
+
+#include "Base.h"
+#include "EasyIsland.h"
+#include "EasyLS.h"
+// #include "EasyEA.h" // have some issues to fix
+
+#endif // !_ALGO_
+
+// Local Variables:
+// mode: C++
+// End:
