@@ -38,6 +38,10 @@ SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 # ENDIF()
 
 FIND_PACKAGE(EO COMPONENTS ga mpi serial)
+ADD_DEFINITIONS(-DDEPRECATED_MESSAGES) # disable warning deprecated function messages
+ADD_DEFINITIONS(-DWITH_MPI)
+ADD_DEFINITIONS(-DWITH_BOOST)
+
 FIND_PACKAGE(ParadisEO-MO)
 FIND_PACKAGE(Gnuplot)
 FIND_PACKAGE(MPI)
@@ -46,6 +50,14 @@ INCLUDE_DIRECTORIES(${EO_INCLUDE_DIRS} ${ParadisEO-MO_INCLUDE_DIRS} /Dev/paradis
 # INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
 LINK_DIRECTORIES(${EO_LIBRARY_DIRS})
 
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
+
+SET(Boost_USE_STATIC_LIBS ON)
+FIND_PACKAGE(Boost COMPONENTS serialization)
+
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} contrib ${MPI_CXX_INCLUDE_PATH})
+LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
+
 ######################################################################################
 
 
@@ -53,7 +65,6 @@ LINK_DIRECTORIES(${EO_LIBRARY_DIRS})
 ### 4) Set compiler definitions
 ######################################################################################
 
-ADD_DEFINITIONS(-DDEPRECATED_MESSAGES) # disable warning deprecated function messages
 # ADD_DEFINITIONS(-DHAVE_GNUPLOT -DHAVE_MATPLOT)
 
 IF(UNIX)
@@ -61,6 +72,7 @@ IF(UNIX)
   ADD_DEFINITIONS( -Wall -W -Wextra )
   # ADD_DEFINITIONS( -Weffc++)
   # ADD_DEFINITIONS( -g3 )
+  ADD_DEFINITIONS(-std=c++11)
 ENDIF()
 
 ######################################################################################
@@ -84,6 +96,7 @@ ENDIF (ENABLE_CMAKE_TESTING)
 ### 6) Now where we go ?
 ######################################################################################
 
+ADD_SUBDIRECTORY(contrib)
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(application)
 ADD_SUBDIRECTORY(test)
