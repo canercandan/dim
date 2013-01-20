@@ -30,10 +30,19 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
+	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+	    {
+		_reqs.resize( this->size() );
+
+		for (size_t i = 0; i < this->size(); ++i)
+		    {
+			if (i == this->rank()) { continue; }
+			_reqs[i] = this->world().send_init( i, this->tag(), data.proba[i] );
+		    }
+	    }
+
 	    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 	    {
-		std::vector< boost::mpi::request > reqs;
-
 		/***********************************
 		 * Send vecProbaRet to all islands *
 		 ***********************************/
@@ -41,7 +50,7 @@ namespace dim
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
 			if (i == this->rank()) { continue; }
-			reqs.push_back( this->world().isend( i, this->tag(), data.proba[i] ) );
+			this->world().start( _reqs[i] );
 		    }
 
 		// for island itself because of the MPI communication optimizing.
@@ -51,18 +60,24 @@ namespace dim
 		 * Receive probaret from all islands *
 		 **************************************/
 
+		std::vector< boost::mpi::request > recv_reqs;
+
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
 			if (i == this->rank()) { continue; }
-			reqs.push_back( this->world().irecv( i, this->tag(), data.probaret[i] ) );
+			recv_reqs.push_back( this->world().irecv( i, this->tag(), data.probaret[i] ) );
 		    }
 
 		/****************************
 		 * Process all MPI requests *
 		 ****************************/
 
-		boost::mpi::wait_all( reqs.begin(), reqs.end() );
+		boost::mpi::wait_all( _reqs.begin(), _reqs.end() );
+		boost::mpi::wait_all( recv_reqs.begin(), recv_reqs.end() );
 	    }
+
+	private:
+	    std::vector< boost::mpi::request > _reqs;
 	};
     }
 }
