@@ -34,17 +34,26 @@ namespace dim
 	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
 	    {
 		_outputSizes.resize( this->size(), 0 );
+		_reqs.resize( this->size() );
+		_pops.resize( this->size() );
+
+		for (size_t i = 0; i < this->size(); ++i)
+		    {
+			if (i == this->rank()) { continue; }
+			_reqs[i] = this->world().send_init( i, this->tag(), _pops[i] );
+		    }
 	    }
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
-		std::vector< boost::mpi::request > reqs;
-
 		/***********************************
 		 * Send individuals to all islands *
 		 ***********************************/
 		{
-		    std::vector< dim::core::Pop<EOT> > pops( this->size() );
+		    for (auto &pop : _pops)
+			{
+			    pop.clear();
+			}
 
 		    /*************
 		     * Selection *
@@ -62,7 +71,7 @@ namespace dim
 				}
 			    --j;
 
-			    pops[j].push_back(indi);
+			    _pops[j].push_back(indi);
 			}
 
 		    size_t outputSize = 0;
@@ -70,8 +79,8 @@ namespace dim
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
 			    if (i == this->rank()) { continue; }
-			    _outputSizes[i] = pops[i].size();
-			    outputSize += pops[i].size();
+			    _outputSizes[i] = _pops[i].size();
+			    outputSize += _pops[i].size();
 			}
 
 		    pop.setOutputSizes( _outputSizes );
@@ -82,16 +91,18 @@ namespace dim
 		    for ( size_t i = 0; i < this->size(); ++i )
 			{
 			    if (i == this->rank()) { continue; }
-			    reqs.push_back( this->world().isend( i, this->tag(), pops[i] ) );
+			    this->world().start( _reqs[i] );
 			}
 
-		    for (auto &indi : pops[this->rank()])
+		    dim::core::Pop<EOT>& newpop = _pops[this->rank()];
+		    for (auto &indi : newpop)
 			{
 			    pop.push_back( indi );
 			}
 		}
 
-		std::vector< dim::core::Pop<EOT> > pops( this->size() );
+		std::vector< dim::core::Pop<EOT> > recv_pops( this->size() );
+		std::vector< boost::mpi::request > recv_reqs;
 
 		/****************************************
 		 * Receive individuals from all islands *
@@ -100,7 +111,7 @@ namespace dim
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
 			    if (i == this->rank()) { continue; }
-			    reqs.push_back( this->world().irecv( i, this->tag(), pops[i] ) );
+			    recv_reqs.push_back( this->world().irecv( i, this->tag(), recv_pops[i] ) );
 			}
 		}
 
@@ -108,7 +119,8 @@ namespace dim
 		 * Process all MPI requests *
 		 ****************************/
 
-		boost::mpi::wait_all( reqs.begin(), reqs.end() );
+		boost::mpi::wait_all( _reqs.begin(), _reqs.end() );
+		boost::mpi::wait_all( recv_reqs.begin(), recv_reqs.end() );
 
 		/*********************
 		 * Update population *
@@ -120,12 +132,13 @@ namespace dim
 			{
 			    if (i == this->rank()) { continue; }
 
-			    for (auto &indi : pops[i])
+			    dim::core::Pop<EOT>& newpop = recv_pops[i];
+			    for (auto &indi : newpop)
 				{
 				    pop.push_back( indi );
 				}
 
-			    inputSize += pops[i].size();
+			    inputSize += newpop.size();
 			}
 
 		    pop.setInputSize( inputSize );
@@ -134,6 +147,8 @@ namespace dim
 
 	private:
 	    std::vector< size_t > _outputSizes;
+	    std::vector< dim::core::Pop<EOT> > _pops;
+	    std::vector< boost::mpi::request > _reqs;
 	};
     }
 }
