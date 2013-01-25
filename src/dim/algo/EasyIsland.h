@@ -70,7 +70,7 @@ namespace dim
 
 			_evolve(pop, data);
 			_feedback(pop, data);
-			_probasend(pop, data);
+			_probasend(pop, data); // juste pour stat
 			_update(pop, data);
 			_memorize(pop, data);
 			_migrate(pop, data);

@@ -4,5 +4,6 @@
 
 ADD_SUBDIRECTORY(OneMax)
 ADD_SUBDIRECTORY(NKLandscapes)
+ADD_SUBDIRECTORY(TSP)
 
 ######################################################################################

@@ -36,6 +36,7 @@
 #include "memorizer/memorizer"
 #include "migrator/migrator"
 #include "utils/utils"
+#include "representation/representation"
 #include "variation/variation"
 #include "vectorupdater/vectorupdater"
 

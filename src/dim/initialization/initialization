@@ -24,6 +24,8 @@
  * Main initialization header file *
  ***********************************/
 
+#include "Route.h"
+
 #endif // !_INITIALIZATION_
 
 // Local Variables:

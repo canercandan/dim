@@ -128,7 +128,7 @@ namespace dim
 		    {
 			std::ostringstream ss;
 			ss << "P" << RANK << "to" << i;
-			utils::GetMigrationProbability& migProba = _state.storeFunctor( new utils::GetMigrationProbability( data.proba, i, ss.str() ) );
+			utils::GetMigrationProbability<EOT>& migProba = _state.storeFunctor( new utils::GetMigrationProbability<EOT>( data.proba, i, ss.str() ) );
 			checkpoint.add(migProba);
 			fileMonitor.add(migProba);
 			if (printBest) { stdMonitor->add(migProba); }
@@ -136,7 +136,7 @@ namespace dim
 
 		std::ostringstream ss_proba;
 		ss_proba << "P" << RANK << "to*";
-		utils::GetMigrationProbabilityRet& migProbaRet = _state.storeFunctor( new utils::GetMigrationProbabilityRet( data.probaret, ss_proba.str() ) );
+		utils::GetMigrationProbabilityRet<EOT>& migProbaRet = _state.storeFunctor( new utils::GetMigrationProbabilityRet<EOT>( data.probaret, ss_proba.str() ) );
 		checkpoint.add(migProbaRet);
 		fileMonitor.add(migProbaRet);
 		if (printBest) { stdMonitor->add(migProbaRet); }

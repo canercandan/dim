@@ -24,11 +24,10 @@
 using namespace std;
 using namespace boost::mpi;
 using namespace boost;
-// using namespace boost::numeric/*::ublas*/;
 
-typedef dim::core::Bit<double> EOT;
+using EOT = dim::representation::Route<float>;
 
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
     /******************************
      * Initialisation de MPI + EO *
@@ -78,19 +77,18 @@ int main(int argc, char *argv[])
      * Déclaration des composants EO *
      *********************************/
 
-    unsigned chromSize = parser.getORcreateParam(unsigned(1500), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
-    eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
+    dim::initialization::Graph::load( /*tspInstance.c_str()*/ "benchs/ali535.tsp" ); // Instance
+    dim::initialization::Route<float> init ; // Sol. Random Init.
 
-    // string nklInstance =  parser.getORcreateParam(string(), "nklInstance", "filename of the instance for NK-L problem", 0, "Problem").value();
+    string tspInstance =  parser.getORcreateParam(string(), "tspInstance", "filename of the instance for TSP problem", 0, "Problem").value();
 
-    dim::evaluation::OneMax<EOT> mainEval;
-    // my::nkLandscapesEval<EOT> mainEval;
+    dim::evaluation::Route<float> mainEval;
     eoEvalFuncCounter<EOT> eval(mainEval);
 
     /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
-    dim::core::Pop<EOT>& pop = dim::do_make::pop(parser, state, init);
+    dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
-    /*double targetFitness = */parser.getORcreateParam(double(chromSize), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
+    /*double targetFitness = */parser.getORcreateParam(double(10), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
     dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 
     dim::core::IslandData<EOT> data;
@@ -105,30 +103,17 @@ int main(int argc, char *argv[])
     make_verbose(parser);
     make_help(parser);
 
-    // mainEval.load(nklInstance.c_str()); // nklandscapeseval specific
-
     /****************************************
      * Distribution des opérateurs aux iles *
      ****************************************/
 
     eoMonOp<EOT>* ptMon = NULL;
-    if ( RANK == 0 )
-    	{
-    	    eo::log << eo::logging << RANK << ": bitflip ";
-    	    ptMon = new eoBitMutation<EOT>( 1, true );
-    	}
-    else
-	{
-	    eo::log << eo::logging << RANK << ": kflip(" << (RANK-1) * 2 + 1 << ") ";
-	    ptMon = new eoDetPermutBitFlip<EOT>( (RANK-1) * 2 + 1 );
-	}
-    eo::log << eo::logging << endl;
-    eo::log.flush();
+    ptMon = new dim::variation::CitySwap<float>;
     state.storeFunctor(ptMon);
 
-    /**********************************
-     * Déclaration des composants DIM *
-     **********************************/
+    // /**********************************
+    //  * Déclaration des composants DIM *
+    //  **********************************/
 
     dim::evolver::Easy<EOT> evolver( eval, *ptMon );
     dim::feedbacker::Easy<EOT> feedbacker;
@@ -147,36 +132,34 @@ int main(int argc, char *argv[])
      ******************************************************************************/
 
     dim::core::MigrationMatrix<EOT> probabilities( ALL );
-    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
-
-    // ublas::matrix< double > m(ALL, ALL);
+    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame ); 
 
     if ( 0 == RANK )
-	{
-	    initmatrix( probabilities );
-	    std::cout << probabilities;
-	    data.proba = probabilities(RANK);
-	    for (size_t j = 0; j < ALL; ++j)
-		{
-		    data.probaret[j] = probabilities(j, RANK);
-		}
+    	{
+    	    initmatrix( probabilities );
+    	    std::cout << probabilities;
+    	    data.proba = probabilities(RANK);
+    	    for (size_t j = 0; j < ALL; ++j)
+    		{
+    		    data.probaret[j] = probabilities(j, RANK);
+    		}
 
-	    for (size_t i = 1; i < ALL; ++i)
-		{
-		    world.send( i, 100, probabilities(i) );
-		    std::vector< typename EOT::Fitness > probaRetIsl( ALL );
-		    for (size_t j = 0; j < ALL; ++j)
-			{
-			    probaRetIsl[j] = probabilities(j,i);
-			}
-		    world.send( i, 101, probaRetIsl );
-		}
-	}
+    	    for (size_t i = 1; i < ALL; ++i)
+    		{
+    		    world.send( i, 100, probabilities(i) );
+    		    std::vector< typename EOT::Fitness > probaRetIsl( ALL );
+    		    for (size_t j = 0; j < ALL; ++j)
+    			{
+    			    probaRetIsl[j] = probabilities(j,i);
+    			}
+    		    world.send( i, 101, probaRetIsl );
+    		}
+    	}
     else
-	{
-	    world.recv( 0, 100, data.proba );
-	    world.recv( 0, 101, data.probaret );
-	}
+    	{
+    	    world.recv( 0, 100, data.proba );
+    	    world.recv( 0, 101, data.probaret );
+    	}
 
     /******************************************
      * Get the population size of all islands *
@@ -185,11 +168,13 @@ int main(int argc, char *argv[])
     world.barrier();
     dim::utils::print_sum(pop);
 
+    cout << "size: " << dim::initialization::Graph::size() << endl;
+
     apply<EOT>(eval, pop);
 
     island( pop, data );
 
     world.abort(0);
 
-    return 0;
+    return 0 ;
 }

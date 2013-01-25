@@ -85,10 +85,11 @@ namespace dim
 	    unsigned rSize;              // row size (== number of columns!)
 	};
 
-	class MigrationMatrix : public SquareMatrix< double >
+	template <typename EOT>
+	class MigrationMatrix : public SquareMatrix< typename EOT::Fitness >
 	{
 	public:
-	    MigrationMatrix(unsigned s = 0) : SquareMatrix< double >(s) {}
+	    MigrationMatrix(unsigned s = 0) : SquareMatrix< typename EOT::Fitness >(s) {}
 
 	    virtual void printOn(std::ostream & os) const
 	    {
@@ -120,7 +121,7 @@ namespace dim
 		os << std::endl;
 		os << "sum";
 
-		double sum;
+		typename EOT::Fitness sum;
 
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
@@ -135,14 +136,15 @@ namespace dim
 	    }
 	};
 
-	class InitMatrix : public eoUF< SquareMatrix<double>&, void >
+	template <typename EOT>
+	class InitMatrix : public eoUF< SquareMatrix<typename EOT::Fitness>&, void >
 	{
 	public:
-	    InitMatrix(bool initG = false, double same = 90) : _initG(initG), _same(same) {}
+	    InitMatrix(bool initG = false, typename EOT::Fitness same = 90) : _initG(initG), _same(same) {}
 
-	    void operator()(SquareMatrix<double>& matrix)
+	    void operator()(SquareMatrix<typename EOT::Fitness>& matrix)
 	    {
-		double sum;
+		typename EOT::Fitness sum;
 
 		for (size_t i = 0; i < matrix.size(); ++i)
 		    {
@@ -179,7 +181,7 @@ namespace dim
 
 	private:
 	    bool _initG;
-	    double _same;
+	    typename EOT::Fitness _same;
 	};
 
     } // !core

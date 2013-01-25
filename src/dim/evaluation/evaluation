@@ -26,6 +26,7 @@
 
 #include "OneMax.h"
 #include "NKLandscapes.h"
+#include "Route.h"
 
 #endif // !_EVALUATION_
 

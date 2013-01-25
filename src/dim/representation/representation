@@ -17,18 +17,16 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_
-#define _VARIATION_
+#ifndef _REPRESENTATION_
+#define _REPRESENTATION_
 
-/*************************
- * Main variation header file *
- *************************/
+/***********************************
+ * Main representation header file *
+ ***********************************/
 
-#include "OpContainer.h"
-#include "GenOp.h"
-#include "CitySwap.h"
+#include "Route.h"
 
-#endif // !_VARIATION_
+#endif // !_REPRESENTATION_
 
 // Local Variables:
 // mode: C++
