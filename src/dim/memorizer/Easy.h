@@ -26,29 +26,62 @@ namespace dim
 {
     namespace memorizer
     {
-
-	template <typename EOT>
-	class Easy : public Base<EOT>
+	namespace sync
 	{
-	public:
-	    void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		for (auto &ind : pop)
-		    {
-			ind.addIsland(this->rank());
-		    }
-	    }
+	    public:
+		void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		{
+		    for (auto &ind : pop)
+			{
+			    ind.addIsland(this->rank());
+			}
+		}
 
-	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		{
+		    for (auto &indi : pop)
+			{
+			    indi.addFitness();
+			    indi.addIsland(this->rank());
+			}
+		}
+	    };
+	} // !sync
+
+	namespace async
+	{
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		for (auto &indi : pop)
-		    {
-			indi.addFitness();
-			indi.addIsland(this->rank());
-		    }
-	    }
-	};
+	    public:
+		void firstCompute(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		{
+		    for (auto &ind : pop)
+			{
+			    ind.addIsland(this->rank());
+			}
+		}
 
+		void compute(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		{
+		    if (pop.empty()) { return; }
+
+		    for (auto &indi : pop)
+			{
+			    indi.addFitness();
+			    indi.addIsland(this->rank());
+			}
+		}
+
+		void communicate(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		{
+		    // empty
+		}
+	    };
+	} // !async
     } // !memorizer
 } // !dim
 
