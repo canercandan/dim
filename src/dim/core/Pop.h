@@ -407,8 +407,8 @@ public:
 	}
 
 private:
-	size_t inputSize;
-	size_t outputSize;
+	size_t inputSize = 0;
+	size_t outputSize = 0;
 	std::vector<size_t> outputSizes;
 
 }; // class Pop
