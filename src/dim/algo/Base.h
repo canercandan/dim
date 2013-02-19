@@ -31,7 +31,6 @@ namespace dim
 {
     namespace algo
     {
-
 	/**
 	   This is the base class for population-transforming algorithms. There
 	   is only one operator defined, which takes a population and does stuff to
@@ -41,14 +40,31 @@ namespace dim
 
 	   @ingroup Algorithms
 	*/
-	template< class EOT >
-	class Base : public core::IslandOperator<EOT>
-	{
-	public:
-	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	};
 
+	namespace sync
+	{
+	    template< class EOT >
+	    class Base : public core::sync::IslandOperator<EOT>
+	    {
+	    public:
+		virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+		virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    };
+	} // !sync
+
+	namespace async
+	{
+	    template< class EOT >
+	    class Base : public core::async::IslandOperator<EOT>
+	    {
+	    public:
+		virtual void firstCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+		virtual void lastCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+
+		virtual void firstCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+		virtual void lastCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    };
+	} // !async
     } // !algo
 } // !dim
 
