@@ -85,6 +85,7 @@ namespace dim
 		{
 		    pt_cv->wait(lk);
 		    std::cout << "C "; std::cout.flush();
+		    // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 		}
 	}
 
