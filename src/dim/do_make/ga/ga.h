@@ -89,13 +89,13 @@ namespace dim
 
 
 	// the algo
-	algo::Base<core::Bit<double> >&  algo_scalar(eoParser& _parser, eoState& _state, eoEvalFunc<core::Bit<double> >& _eval, continuator::Base<core::Bit<double> >& _ccontinue, variation::GenOp<core::Bit<double> >& _op, eoDistance<core::Bit<double> >* _dist = NULL);
+	algo::sync::Base<core::Bit<double> >&  algo_scalar(eoParser& _parser, eoState& _state, eoEvalFunc<core::Bit<double> >& _eval, continuator::Base<core::Bit<double> >& _ccontinue, variation::GenOp<core::Bit<double> >& _op, eoDistance<core::Bit<double> >* _dist = NULL);
 
-	algo::Base<core::Bit<eoMinimizingFitness> >&  algo_scalar(eoParser& _parser, eoState& _state, eoEvalFunc<core::Bit<eoMinimizingFitness> >& _eval, continuator::Base<core::Bit<eoMinimizingFitness> >& _ccontinue, variation::GenOp<core::Bit<eoMinimizingFitness> >& _op, eoDistance<core::Bit<eoMinimizingFitness> >* _dist = NULL);
+	algo::sync::Base<core::Bit<eoMinimizingFitness> >&  algo_scalar(eoParser& _parser, eoState& _state, eoEvalFunc<core::Bit<eoMinimizingFitness> >& _eval, continuator::Base<core::Bit<eoMinimizingFitness> >& _ccontinue, variation::GenOp<core::Bit<eoMinimizingFitness> >& _op, eoDistance<core::Bit<eoMinimizingFitness> >* _dist = NULL);
 
 	// run
-	void run_ea(algo::Base<core::Bit<double> >& _ga, core::Pop<core::Bit<double> >& _pop);
-	void run_ea(algo::Base<core::Bit<eoMinimizingFitness> >& _ga, core::Pop<core::Bit<eoMinimizingFitness> >& _pop);
+	void run_ea(algo::sync::Base<core::Bit<double> >& _ga, core::Pop<core::Bit<double> >& _pop);
+	void run_ea(algo::sync::Base<core::Bit<eoMinimizingFitness> >& _ga, core::Pop<core::Bit<eoMinimizingFitness> >& _pop);
 
 	// end of parameter input (+ .status + help)
 	// that one is not templatized
