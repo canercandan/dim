@@ -28,6 +28,7 @@
 #include "Matrix.h"
 #include "Vector.h"
 #include "Bit.h"
+#include "Int.h"
 #include "Pop.h"
 #include "Populator.h"
 #include "ParallelContext.h"
