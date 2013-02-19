@@ -26,59 +26,124 @@ namespace dim
 {
     namespace inputprobasender
     {
-	template <typename EOT>
-	class Easy : public Base<EOT>
+	namespace sync
 	{
-	public:
-	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		_reqs.resize( this->size() );
+	    public:
+		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		{
+		    _reqs.resize( this->size() );
 
-		for (size_t i = 0; i < this->size(); ++i)
-		    {
-			if (i == this->rank()) { continue; }
-			_reqs[i] = this->world().send_init( i, this->tag(), data.proba[i] );
-		    }
-	    }
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+			    _reqs[i] = this->world().send_init( i, this->tag(), data.proba[i] );
+			}
+		}
 
-	    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		{
+		    /***********************************
+		     * Send vecProbaRet to all islands *
+		     ***********************************/
+
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+			    this->world().start( _reqs[i] );
+			}
+
+		    // for island itself because of the MPI communication optimizing.
+		    data.probaret[this->rank()] = data.proba[this->rank()];
+
+		    /**************************************
+		     * Receive probaret from all islands *
+		     **************************************/
+
+		    std::vector< boost::mpi::request > recv_reqs;
+
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+			    recv_reqs.push_back( this->world().irecv( i, this->tag(), data.probaret[i] ) );
+			}
+
+		    /****************************
+		     * Process all MPI requests *
+		     ****************************/
+
+		    boost::mpi::wait_all( _reqs.begin(), _reqs.end() );
+		    boost::mpi::wait_all( recv_reqs.begin(), recv_reqs.end() );
+		}
+
+	    private:
+		std::vector< boost::mpi::request > _reqs;
+	    };
+	} // !sync
+
+	namespace async
+	{
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		/***********************************
-		 * Send vecProbaRet to all islands *
-		 ***********************************/
+	    public:
+		virtual void firstCompute(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		{
+		    _reqs.resize( this->size() );
 
-		for (size_t i = 0; i < this->size(); ++i)
-		    {
-			if (i == this->rank()) { continue; }
-			this->world().start( _reqs[i] );
-		    }
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+			    _reqs[i] = this->world().send_init( i, this->tag(), data.proba[i] );
+			}
+		}
 
-		// for island itself because of the MPI communication optimizing.
-		data.probaret[this->rank()] = data.proba[this->rank()];
+		void compute(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		{
+		    /***********************************
+		     * Send vecProbaRet to all islands *
+		     ***********************************/
 
-		/**************************************
-		 * Receive probaret from all islands *
-		 **************************************/
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+			    this->world().start( _reqs[i] );
+			}
 
-		std::vector< boost::mpi::request > recv_reqs;
+		    // for island itself because of the MPI communication optimizing.
+		    data.probaret[this->rank()] = data.proba[this->rank()];
 
-		for (size_t i = 0; i < this->size(); ++i)
-		    {
-			if (i == this->rank()) { continue; }
-			recv_reqs.push_back( this->world().irecv( i, this->tag(), data.probaret[i] ) );
-		    }
+		    /**************************************
+		     * Receive probaret from all islands *
+		     **************************************/
 
-		/****************************
-		 * Process all MPI requests *
-		 ****************************/
+		    std::vector< boost::mpi::request > recv_reqs;
 
-		boost::mpi::wait_all( _reqs.begin(), _reqs.end() );
-		boost::mpi::wait_all( recv_reqs.begin(), recv_reqs.end() );
-	    }
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+			    recv_reqs.push_back( this->world().irecv( i, this->tag(), data.probaret[i] ) );
+			}
 
-	private:
-	    std::vector< boost::mpi::request > _reqs;
-	};
+		    /****************************
+		     * Process all MPI requests *
+		     ****************************/
+
+		    boost::mpi::wait_all( _reqs.begin(), _reqs.end() );
+		    boost::mpi::wait_all( recv_reqs.begin(), recv_reqs.end() );
+		}
+
+		void communicate(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		{
+		    // empty
+		}
+
+	    private:
+		std::vector< boost::mpi::request > _reqs;
+	    };
+	} // !async
     }
 }
 
