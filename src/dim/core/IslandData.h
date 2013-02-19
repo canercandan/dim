@@ -21,6 +21,9 @@
 #define _CORE_ISLANDDATA_H_
 
 #include <vector>
+#include <queue>
+#include <mutex>
+
 #include "ParallelContext.h"
 
 namespace dim
@@ -31,14 +34,16 @@ namespace dim
 	template <typename EOT>
 	struct IslandData : public ParallelContext
 	{
-	    // IslandData() : feedbacks(ParallelContext::size(), 0),
-	    // 		   proba(ParallelContext::size(), 0),
-	    // 		   probaret(ParallelContext::size(), 0)
-	    // {}
-
 	    std::vector< typename EOT::Fitness > feedbacks = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
 	    std::vector< typename EOT::Fitness > proba = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
 	    std::vector< typename EOT::Fitness > probaret = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
+
+	    std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > > feedbackerSendingQueuesVector = std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > >( ParallelContext::size() );
+	    std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > > feedbackerReceivingQueuesVector = std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > >( ParallelContext::size() );
+
+	    std::vector< std::pair< std::mutex, std::queue<EOT> > > migratorSendingQueuesVector = std::vector< std::pair< std::mutex, std::queue<EOT> > >( ParallelContext::size() );
+	    std::vector< std::pair< std::mutex, std::queue<EOT> > > migratorReceivingQueuesVector = std::vector< std::pair< std::mutex, std::queue<EOT> > >( ParallelContext::size() );
+
 	};
 
     } // !core
