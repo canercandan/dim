@@ -53,6 +53,44 @@ namespace dim
 	template < typename EOT > size_t getPopInputSize(const core::Pop< EOT >& pop) { return pop.getInputSize(); }
 	template < typename EOT > size_t getPopOutputSize(const core::Pop< EOT >& pop) { return pop.getOutputSize(); }
 
+	template < typename EOT >
+	class GetMigratorSendingQueueSize : public eoUF<const core::Pop<EOT>&, size_t>
+	{
+	public:
+	    GetMigratorSendingQueueSize(core::IslandData<EOT>& data) : _data(data) {}
+
+	    size_t operator() ( const core::Pop<EOT>& )
+	    {
+		auto& immPair = _data.migratorSendingQueuesVector[_data.rank()];
+		immPair.first.lock();
+		size_t res = immPair.second.size();
+		immPair.first.unlock();
+		return res;
+	    }
+
+	private:
+	    core::IslandData<EOT>& _data;
+	};
+
+	template < typename EOT >
+	class GetMigratorReceivingQueueSize : public eoUF<const core::Pop<EOT>&, size_t>
+	{
+	public:
+	    GetMigratorReceivingQueueSize(core::IslandData<EOT>& data) : _data(data) {}
+
+	    size_t operator() ( const core::Pop<EOT>& )
+	    {
+		auto& immPair = _data.migratorReceivingQueuesVector[_data.rank()];
+		immPair.first.lock();
+		size_t res = immPair.second.size();
+		immPair.first.unlock();
+		return res;
+	    }
+
+	private:
+	    core::IslandData<EOT>& _data;
+	};
+
     } // !utils
 } // !dim
 
