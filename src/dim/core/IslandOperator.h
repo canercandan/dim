@@ -29,17 +29,37 @@ namespace dim
 {
     namespace core
     {
-
-	template <typename EOT>
-	class IslandOperator : public BF<Pop<EOT>&, IslandData<EOT>&>, public ParallelContext
+	namespace sync
 	{
-	public:
-	    IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
+	    template <typename EOT>
+	    class IslandOperator : public BF<Pop<EOT>&, IslandData<EOT>&>, public ParallelContext
+	    {
+	    public:
+		IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
 
-	    virtual void firstCall(Pop<EOT>&, IslandData<EOT>&) = 0;
-	    virtual void lastCall(Pop<EOT>&, IslandData<EOT>&) = 0;
-	};
+		virtual void firstCall(Pop<EOT>&, IslandData<EOT>&) = 0;
+		virtual void lastCall(Pop<EOT>&, IslandData<EOT>&) = 0;
+	    };
+	} // !sync
 
+	namespace async
+	{
+	    template <typename EOT>
+	    class IslandOperator : public ParallelContext
+	    {
+	    public:
+		IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
+
+		virtual void firstCompute(Pop<EOT>&, IslandData<EOT>&) = 0;
+		virtual void lastCompute(Pop<EOT>&, IslandData<EOT>&) = 0;
+
+		virtual void firstCommunicate(Pop<EOT>&, IslandData<EOT>&) = 0;
+		virtual void lastCommunicate(Pop<EOT>&, IslandData<EOT>&) = 0;
+
+		virtual void compute(Pop<EOT>&, IslandData<EOT>&) = 0;
+		virtual void communicate(Pop<EOT>&, IslandData<EOT>&) = 0;
+	    };
+	} // !async
     } // !core
 } // !dim
 
