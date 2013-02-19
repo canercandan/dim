@@ -166,6 +166,12 @@ namespace dim
 	    AverageStat(double _value, std::string _desc) : Stat<EOT, double>(_value, _desc) {}
 
 	    virtual void operator()(const core::Pop<EOT>& _pop){
+		if (_pop.empty())
+		    {
+			eo::log << eo::logging << "AverageStat: Population empty\n";
+			return;
+		    }
+
 		doit(_pop, Fitness()); // specializations for scalar and std::vector
 	    }
 
@@ -557,7 +563,8 @@ namespace dim
 		: Stat<EOT, Fitness>(Fitness(), _description) {}
 
 	    static Fitness sumFitness(double _sum, const EOT& _eot){
-		_sum += _eot.fitness() / _eot.getLastFitness();
+		double last = _eot.getLastFitness() > 0 ? _eot.getLastFitness() : 1;
+		_sum += _eot.fitness() / last;
 		return _sum;
 	    }
 
