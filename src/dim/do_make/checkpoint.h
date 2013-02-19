@@ -27,8 +27,6 @@
 #ifndef _DO_MAKE_CHECKPOINT_H_
 #define _DO_MAKE_CHECKPOINT_H_
 
-#include <boost/mpi.hpp>
-
 #include <eo>
 #include <string>
 #include <iostream>
@@ -44,11 +42,8 @@ namespace dim
 	    template <class EOT>
 	    utils::CheckPoint<EOT>& checkpoint(eoParser& _parser, eoState& _state, continuator::Base<EOT>& _continue, core::IslandData<EOT>& data )
 	    {
-
-		// Need to know a few MPI data
-		boost::mpi::communicator world;
-		const size_t ALL = world.size();
-		const size_t RANK = world.rank();
+		const size_t ALL = data.size();
+		const size_t RANK = data.rank();
 
 		bool printBest = _parser.createParam(false, "printBestStat", "Print Best/avg/stdev every gen.", '\0', "Output").value();
 		std::string monitorPrefix = _parser.createParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
@@ -77,17 +72,33 @@ namespace dim
 		fileMonitor.add(tCounter);
 		if (printBest) { stdMonitor->add(tCounter); }
 
-		utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
-		checkpoint.add(genCounter);
-		fileMonitor.add(genCounter);
-		if (printBest) { stdMonitor->add(genCounter); }
+		// utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
+		// checkpoint.add(genCounter);
+		// fileMonitor.add(genCounter);
+		// if (printBest) { stdMonitor->add(genCounter); }
 
-		std::ostringstream ss_size;
-		ss_size << "nb_individual_isl" << RANK;
-		utils::FuncPtrStat<EOT, size_t>& popSizeStat = utils::makeFuncPtrStat( utils::getPopSize<EOT>, _state, ss_size.str() );
-		checkpoint.add(popSizeStat);
-		fileMonitor.add(popSizeStat);
-		if (printBest) { stdMonitor->add(popSizeStat); }
+		// std::ostringstream ss_size;
+		// ss_size << "nb_individual_isl" << RANK;
+		// utils::FuncPtrStat<EOT, size_t>& popSizeStat = utils::makeFuncPtrStat( utils::getPopSize<EOT>, _state, ss_size.str() );
+		// checkpoint.add(popSizeStat);
+		// fileMonitor.add(popSizeStat);
+		// if (printBest) { stdMonitor->add(popSizeStat); }
+
+		// std::ostringstream ss_sending_queue_size;
+		// ss_sending_queue_size << "sending_queue_size_isl" << RANK;
+		// utils::GetMigratorSendingQueueSize<EOT>& sendingQueueSizeFunc = _state.storeFunctor( new utils::GetMigratorSendingQueueSize<EOT>( data ) );
+		// utils::FunctorStat<EOT, size_t>& sendingQueueSizeStat = utils::makeFunctorStat( sendingQueueSizeFunc, _state, ss_sending_queue_size.str() );
+		// checkpoint.add(sendingQueueSizeStat);
+		// fileMonitor.add(sendingQueueSizeStat);
+		// if (printBest) { stdMonitor->add(sendingQueueSizeStat); }
+
+		std::ostringstream ss_receiving_queue_size;
+		ss_receiving_queue_size << "receiving_queue_size_isl" << RANK;
+		utils::GetMigratorReceivingQueueSize<EOT>& receivingQueueSizeFunc = _state.storeFunctor( new utils::GetMigratorReceivingQueueSize<EOT>( data ) );
+		utils::FunctorStat<EOT, size_t>& receivingQueueSizeStat = utils::makeFunctorStat( receivingQueueSizeFunc, _state, ss_receiving_queue_size.str() );
+		checkpoint.add(receivingQueueSizeStat);
+		fileMonitor.add(receivingQueueSizeStat);
+		if (printBest) { stdMonitor->add(receivingQueueSizeStat); }
 
 		std::ostringstream ss_avg;
 		ss_avg << "avg_ones_isl" << RANK;
