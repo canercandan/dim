@@ -36,9 +36,7 @@
  *************************/
 
 #include "Base.h"
-#include "EasyIsland.h"
-#include "EasyLS.h"
-// #include "EasyEA.h" // have some issues to fix
+#include "Easy.h"
 
 #endif // !_ALGO_
 
