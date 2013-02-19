@@ -26,15 +26,34 @@ namespace dim
 {
     namespace inputprobasender
     {
-	template <typename EOT>
-	class Base : public core::IslandOperator<EOT>
+	namespace sync
 	{
-	public:
-	    Base() : core::IslandOperator<EOT>(5) {}
+	    template <typename EOT>
+	    class Base : public core::sync::IslandOperator<EOT>
+	    {
+	    public:
+		Base() : core::sync::IslandOperator<EOT>(5) {}
 
-	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	};
+		virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+		virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    };
+	} // !sync
+
+	namespace async
+	{
+	    template <typename EOT>
+	    class Base : public core::async::IslandOperator<EOT>
+	    {
+	    public:
+		Base() : core::async::IslandOperator<EOT>(5) {}
+
+		virtual void firstCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+		virtual void lastCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+
+		virtual void firstCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+		virtual void lastCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    };
+	} // !async
     }
 }
 
