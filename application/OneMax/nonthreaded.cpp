@@ -19,6 +19,7 @@
 
 #include <boost/mpi.hpp>
 #include <eo>
+#include <ga.h>
 #include <dim/dim>
 
 using namespace std;
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
      * Déclaration des composants EO *
      *********************************/
 
-    unsigned chromSize = parser.getORcreateParam(unsigned(1500), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
+    unsigned chromSize = parser.getORcreateParam(unsigned(1000), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
     eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
 
     // string nklInstance =  parser.getORcreateParam(string(), "nklInstance", "filename of the instance for NK-L problem", 0, "Problem").value();
@@ -130,13 +131,13 @@ int main(int argc, char *argv[])
      * Déclaration des composants DIM *
      **********************************/
 
-    dim::evolver::Easy<EOT> evolver( eval, *ptMon );
-    dim::feedbacker::Easy<EOT> feedbacker;
-    dim::inputprobasender::Easy<EOT> probasender;
-    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
-    dim::memorizer::Easy<EOT> memorizer;
-    dim::migrator::Easy<EOT> migrator;
-    dim::algo::EasyIsland<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
+    dim::evolver::sync::Easy<EOT> evolver( eval, *ptMon );
+    dim::feedbacker::sync::Easy<EOT> feedbacker;
+    dim::inputprobasender::sync::Easy<EOT> probasender;
+    dim::vectorupdater::sync::Easy<EOT> updater(alpha, beta);
+    dim::memorizer::sync::Easy<EOT> memorizer;
+    dim::migrator::sync::Easy<EOT> migrator;
+    dim::algo::sync::Easy<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
