@@ -26,36 +26,76 @@ namespace dim
 {
     namespace evolver
     {
-
-	template <typename EOT>
-	class Easy : public Base<EOT>
+	namespace sync
 	{
-	public:
-	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op) : _eval(eval), _op(op) {}
-
-	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		for (auto &ind : pop)
-		    {
-			EOT candidate = ind;
+	    public:
+		Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op) : _eval(eval), _op(op) {}
 
-			_op( candidate );
+		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		{
+		    for (auto &ind : pop)
+			{
+			    EOT candidate = ind;
 
-			candidate.invalidate();
-			_eval( candidate );
+			    _op( candidate );
 
-			if ( candidate.fitness() > ind.fitness() )
-			    {
-				ind = candidate;
-			    }
-		    }
-	    }
+			    candidate.invalidate();
+			    _eval( candidate );
 
-	private:
-	    eoEvalFunc<EOT>& _eval;
-	    eoMonOp<EOT>& _op;
-	};
+			    if ( candidate.fitness() > ind.fitness() )
+				{
+				    ind = candidate;
+				}
+			}
+		}
 
+	    private:
+		eoEvalFunc<EOT>& _eval;
+		eoMonOp<EOT>& _op;
+	    };
+	} // !sync
+
+	namespace async
+	{
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
+	    {
+	    public:
+		Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op) : _eval(eval), _op(op) {}
+
+		void compute(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
+		{
+		    if (pop.empty()) { return; }
+
+		    for (auto &ind : pop)
+			{
+			    EOT candidate = ind;
+
+			    _op( candidate );
+
+			    candidate.invalidate();
+			    _eval( candidate );
+
+			    if ( candidate.fitness() > ind.fitness() )
+				{
+				    ind = candidate;
+				}
+			}
+		}
+
+		void communicate(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		{
+		    // empty
+		}
+
+	    private:
+		eoEvalFunc<EOT>& _eval;
+		eoMonOp<EOT>& _op;
+	    };
+	} // !async
     } // !evolver
 } // !dim
 
