@@ -36,7 +36,6 @@ namespace dim
 	{
 	    std::vector< typename EOT::Fitness > feedbacks = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
 	    std::vector< typename EOT::Fitness > proba = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
-	    std::vector< typename EOT::Fitness > probaret = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
 
 	    std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > > feedbackerSendingQueuesVector = std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > >( ParallelContext::size() );
 	    std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > > feedbackerReceivingQueuesVector = std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > >( ParallelContext::size() );

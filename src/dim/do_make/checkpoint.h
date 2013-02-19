@@ -145,12 +145,13 @@ namespace dim
 			if (printBest) { stdMonitor->add(migProba); }
 		    }
 
+		// TODO: just added temporarely to make statistic scripts working, but HAVE TO be removed
 		std::ostringstream ss_proba;
-		ss_proba << "P" << RANK << "to*";
-		utils::GetMigrationProbabilityRet<EOT>& migProbaRet = _state.storeFunctor( new utils::GetMigrationProbabilityRet<EOT>( data.probaret, ss_proba.str() ) );
-		checkpoint.add(migProbaRet);
+		ss_proba << "P" << "*to" << RANK;
+		utils::FixedValue<unsigned int>& migProbaRet = _state.storeFunctor( new utils::FixedValue<unsigned int>( 0, ss_proba.str() ) );
 		fileMonitor.add(migProbaRet);
 		if (printBest) { stdMonitor->add(migProbaRet); }
+		// END TODO
 
 		for (size_t i = 0; i < ALL; ++i)
 		    {

@@ -133,11 +133,10 @@ int main(int argc, char *argv[])
 
     dim::evolver::sync::Easy<EOT> evolver( eval, *ptMon );
     dim::feedbacker::sync::Easy<EOT> feedbacker;
-    dim::inputprobasender::sync::Easy<EOT> probasender;
     dim::vectorupdater::sync::Easy<EOT> updater(alpha, beta);
     dim::memorizer::sync::Easy<EOT> memorizer;
     dim::migrator::sync::Easy<EOT> migrator;
-    dim::algo::sync::Easy<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
+    dim::algo::sync::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
@@ -157,26 +156,15 @@ int main(int argc, char *argv[])
 	    initmatrix( probabilities );
 	    std::cout << probabilities;
 	    data.proba = probabilities(RANK);
-	    for (size_t j = 0; j < ALL; ++j)
-		{
-		    data.probaret[j] = probabilities(j, RANK);
-		}
 
 	    for (size_t i = 1; i < ALL; ++i)
 		{
 		    world.send( i, 100, probabilities(i) );
-		    std::vector< typename EOT::Fitness > probaRetIsl( ALL );
-		    for (size_t j = 0; j < ALL; ++j)
-			{
-			    probaRetIsl[j] = probabilities(j,i);
-			}
-		    world.send( i, 101, probaRetIsl );
 		}
 	}
     else
 	{
 	    world.recv( 0, 100, data.proba );
-	    world.recv( 0, 101, data.probaret );
 	}
 
     /******************************************

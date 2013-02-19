@@ -28,7 +28,7 @@ using namespace std;
 using namespace boost::mpi;
 using namespace boost;
 
-using EOT = dim::representation::Route<float>;
+using EOT = dim::representation::Route<double>;
 
 int main (int argc, char *argv[])
 {
@@ -81,11 +81,11 @@ int main (int argc, char *argv[])
      *********************************/
 
     dim::initialization::Graph::load( /*tspInstance.c_str()*/ "benchs/ali535.tsp" ); // Instance
-    dim::initialization::Route<float> init ; // Sol. Random Init.
+    dim::initialization::Route<double> init ; // Sol. Random Init.
 
     string tspInstance =  parser.getORcreateParam(string(), "tspInstance", "filename of the instance for TSP problem", 0, "Problem").value();
 
-    dim::evaluation::Route<float> mainEval;
+    dim::evaluation::Route<double> mainEval;
     eoEvalFuncCounter<EOT> eval(mainEval);
 
     /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
@@ -113,7 +113,7 @@ int main (int argc, char *argv[])
     eoMonOp<EOT>* ptMon = NULL;
     if ( 0 == RANK )
 	{
-	    // ptMon = new dim::variation::CitySwap<float>;
+	    // ptMon = new dim::variation::CitySwap<double>;
 	    ptMon = new eoSwapMutation<EOT>(1);
 	}
     else if ( 1 == RANK )
@@ -136,11 +136,10 @@ int main (int argc, char *argv[])
 
     dim::evolver::async::Easy<EOT> evolver( eval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
-    dim::inputprobasender::async::Easy<EOT> probasender;
     dim::vectorupdater::async::Easy<EOT> updater(alpha, beta);
     dim::memorizer::async::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
-    dim::algo::async::Easy<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
+    dim::algo::async::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
@@ -151,33 +150,22 @@ int main (int argc, char *argv[])
      ******************************************************************************/
 
     dim::core::MigrationMatrix<EOT> probabilities( ALL );
-    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame ); 
+    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
 
     if ( 0 == RANK )
     	{
     	    initmatrix( probabilities );
     	    std::cout << probabilities;
     	    data.proba = probabilities(RANK);
-    	    for (size_t j = 0; j < ALL; ++j)
-    		{
-    		    data.probaret[j] = probabilities(j, RANK);
-    		}
 
     	    for (size_t i = 1; i < ALL; ++i)
     		{
     		    world.send( i, 100, probabilities(i) );
-    		    std::vector< typename EOT::Fitness > probaRetIsl( ALL );
-    		    for (size_t j = 0; j < ALL; ++j)
-    			{
-    			    probaRetIsl[j] = probabilities(j,i);
-    			}
-    		    world.send( i, 101, probaRetIsl );
     		}
     	}
     else
     	{
     	    world.recv( 0, 100, data.proba );
-    	    world.recv( 0, 101, data.probaret );
     	}
 
     /******************************************

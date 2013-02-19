@@ -173,7 +173,7 @@ namespace dim
 			     *************/
 
 			    std::vector< size_t > outputSizes( this->size(), 0 );
-			    size_t outputSize = 0;
+			    // size_t outputSize = 0;
 
 			    for (auto& ind : pop)
 				{

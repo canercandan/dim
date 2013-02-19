@@ -30,7 +30,7 @@
 #include <dim/utils/utils>
 #include <dim/evolver/evolver>
 #include <dim/feedbacker/feedbacker>
-#include <dim/inputprobasender/inputprobasender>
+// #include <dim/inputprobasender/inputprobasender>
 #include <dim/vectorupdater/vectorupdater>
 #include <dim/memorizer/memorizer>
 #include <dim/migrator/migrator>
@@ -47,9 +47,9 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(_dummyEvolve), _feedback(_dummyFeedback), _probasend(_dummyProbaSend), _update(_dummyUpdate), _memorize(_dummyMemorize), _migrate(_dummyMigrate) {}
+		Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(_dummyEvolve), _feedback(_dummyFeedback), _update(_dummyUpdate), _memorize(_dummyMemorize), _migrate(_dummyMigrate) {}
 
-		Easy(evolver::sync::Base<EOT>& evolver, feedbacker::sync::Base<EOT>& feedbacker, inputprobasender::sync::Base<EOT>& probasender, dim::vectorupdater::sync::Base<EOT>& updater, dim::memorizer::sync::Base<EOT>& memorizer, migrator::sync::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _probasend(probasender), _update(updater), _memorize(memorizer), _migrate(migrator) {}
+		Easy(evolver::sync::Base<EOT>& evolver, feedbacker::sync::Base<EOT>& feedbacker, dim::vectorupdater::sync::Base<EOT>& updater, dim::memorizer::sync::Base<EOT>& memorizer, migrator::sync::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator) {}
 
 		virtual ~Easy() {}
 
@@ -61,7 +61,6 @@ namespace dim
 
 		    _evolve.firstCall(pop, data);
 		    _feedback.firstCall(pop, data);
-		    _probasend.firstCall(pop, data);
 		    _update.firstCall(pop, data);
 		    _memorize.firstCall(pop, data);
 		    _migrate.firstCall(pop, data);
@@ -72,7 +71,6 @@ namespace dim
 
 			    _evolve(pop, data);
 			    _feedback(pop, data);
-			    _probasend(pop, data); // juste pour stat
 			    _update(pop, data);
 			    _memorize(pop, data);
 			    _migrate(pop, data);
@@ -84,7 +82,6 @@ namespace dim
 
 		    _evolve.lastCall(pop, data);
 		    _feedback.lastCall(pop, data);
-		    _probasend.lastCall(pop, data);
 		    _update.lastCall(pop, data);
 		    _memorize.lastCall(pop, data);
 		    _migrate.lastCall(pop, data);
@@ -93,7 +90,6 @@ namespace dim
 	    private:
 		struct DummyEvolver : public evolver::sync::Base<EOT> { void operator()(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyEvolve;
 		struct DummyFeedbacker : public feedbacker::sync::Base<EOT> { void operator()(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyFeedback;
-		struct DummyInputProbaSender : public inputprobasender::sync::Base<EOT> { void operator()(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyProbaSend;
 		struct DummyVectorUpdater : public vectorupdater::sync::Base<EOT> { void operator()(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyUpdate;
 		struct DummyMemorizer : public memorizer::sync::Base<EOT> { void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}; void operator()(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyMemorize;
 		struct DummyMigrator : public migrator::sync::Base<EOT> { void operator()(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyMigrate;
@@ -101,7 +97,6 @@ namespace dim
 		utils::CheckPoint<EOT>& _checkpoint;
 		evolver::sync::Base<EOT>& _evolve;
 		feedbacker::sync::Base<EOT>& _feedback;
-		inputprobasender::sync::Base<EOT>& _probasend;
 		vectorupdater::sync::Base<EOT>& _update;
 		memorizer::sync::Base<EOT>& _memorize;
 		migrator::sync::Base<EOT>& _migrate;
@@ -117,9 +112,9 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(_dummyEvolve), _feedback(_dummyFeedback), _probasend(_dummyProbaSend), _update(_dummyUpdate), _memorize(_dummyMemorize), _migrate(_dummyMigrate), _tocontinue(true) {}
+		Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(_dummyEvolve), _feedback(_dummyFeedback), _update(_dummyUpdate), _memorize(_dummyMemorize), _migrate(_dummyMigrate), _tocontinue(true) {}
 
-		Easy(evolver::async::Base<EOT>& evolver, feedbacker::async::Base<EOT>& feedbacker, inputprobasender::async::Base<EOT>& probasender, dim::vectorupdater::async::Base<EOT>& updater, dim::memorizer::async::Base<EOT>& memorizer, migrator::async::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _probasend(probasender), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true) {}
+		Easy(evolver::async::Base<EOT>& evolver, feedbacker::async::Base<EOT>& feedbacker, dim::vectorupdater::async::Base<EOT>& updater, dim::memorizer::async::Base<EOT>& memorizer, migrator::async::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true) {}
 
 		virtual ~Easy() {}
 
@@ -127,7 +122,6 @@ namespace dim
 		{
 		    _evolve.firstCompute(pop, data);
 		    _feedback.firstCompute(pop, data);
-		    _probasend.firstCompute(pop, data);
 		    _update.firstCompute(pop, data);
 		    _memorize.firstCompute(pop, data);
 		    _migrate.firstCompute(pop, data);
@@ -139,7 +133,6 @@ namespace dim
 
 			    _evolve.compute(pop, data);
 			    _feedback.compute(pop, data);
-			    _probasend.compute(pop, data); // juste pour stat
 			    _update.compute(pop, data);
 			    _memorize.compute(pop, data);
 			    _migrate.compute(pop, data);
@@ -147,7 +140,6 @@ namespace dim
 
 		    _evolve.lastCompute(pop, data);
 		    _feedback.lastCompute(pop, data);
-		    _probasend.lastCompute(pop, data);
 		    _update.lastCompute(pop, data);
 		    _memorize.lastCompute(pop, data);
 		    _migrate.lastCompute(pop, data);
@@ -157,7 +149,6 @@ namespace dim
 		{
 		    _evolve.firstCommunicate(pop, data);
 		    _feedback.firstCommunicate(pop, data);
-		    _probasend.firstCommunicate(pop, data);
 		    _update.firstCommunicate(pop, data);
 		    _memorize.firstCommunicate(pop, data);
 		    _migrate.firstCommunicate(pop, data);
@@ -170,7 +161,6 @@ namespace dim
 
 			    _evolve.communicate(pop, data);
 			    _feedback.communicate(pop, data);
-			    _probasend.communicate(pop, data); // juste pour stat
 			    _update.communicate(pop, data);
 			    _memorize.communicate(pop, data);
 			    _migrate.communicate(pop, data);
@@ -206,7 +196,6 @@ namespace dim
 
 		    _evolve.lastCommunicate(pop, data);
 		    _feedback.lastCommunicate(pop, data);
-		    _probasend.lastCommunicate(pop, data);
 		    _update.lastCommunicate(pop, data);
 		    _memorize.lastCommunicate(pop, data);
 		    _migrate.lastCommunicate(pop, data);
@@ -264,7 +253,6 @@ namespace dim
 
 		struct DummyEvolver : public evolver::async::Base<EOT> { void compute(core::Pop<EOT>&, core::IslandData<EOT>&) {} void communicate(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyEvolve;
 		struct DummyFeedbacker : public feedbacker::async::Base<EOT> { void compute(core::Pop<EOT>&, core::IslandData<EOT>&) {} void communicate(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyFeedback;
-		struct DummyInputProbaSender : public inputprobasender::async::Base<EOT> { void compute(core::Pop<EOT>&, core::IslandData<EOT>&) {} void communicate(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyProbaSend;
 		struct DummyVectorUpdater : public vectorupdater::async::Base<EOT> { void compute(core::Pop<EOT>&, core::IslandData<EOT>&) {} void communicate(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyUpdate;
 		struct DummyMemorizer : public memorizer::async::Base<EOT> { void firstCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}; void compute(core::Pop<EOT>&, core::IslandData<EOT>&) {} void communicate(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyMemorize;
 		struct DummyMigrator : public migrator::async::Base<EOT> { void compute(core::Pop<EOT>&, core::IslandData<EOT>&) {} void communicate(core::Pop<EOT>&, core::IslandData<EOT>&) {} } _dummyMigrate;
@@ -273,7 +261,6 @@ namespace dim
 		utils::CheckPoint<EOT>& _checkpoint;
 		evolver::async::Base<EOT>& _evolve;
 		feedbacker::async::Base<EOT>& _feedback;
-		inputprobasender::async::Base<EOT>& _probasend;
 		vectorupdater::async::Base<EOT>& _update;
 		memorizer::async::Base<EOT>& _memorize;
 		migrator::async::Base<EOT>& _migrate;

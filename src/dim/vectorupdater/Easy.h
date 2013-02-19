@@ -225,7 +225,7 @@ namespace dim
 		    // _of << std::accumulate(data.proba.begin(), data.proba.end(), 0., positive_add< typename EOT::Fitness >) << " "; _of.flush();
 
 		    typename EOT::Fitness sum_multi = 0;
-		    for (int i = 0; i < this->size(); ++i)
+		    for (size_t i = 0; i < this->size(); ++i)
 			{
 			    sum_multi += data.proba[i] * proportionalFeedbacks[i] / 1000;
 			    // _of << data.proba[i] << " * " << proportionalFeedbacks[i] << " / 1000 = " << data.proba[i] * proportionalFeedbacks[i] / 1000 << std::endl; _of.flush();

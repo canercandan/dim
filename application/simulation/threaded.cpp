@@ -42,7 +42,7 @@ public:
     /// The class name.
     virtual std::string className() const { return "SimulatedOp"; }
 
-    bool operator()(EOT& sol)
+    bool operator()(EOT&)
     {
 	std::this_thread::sleep_for(std::chrono::microseconds( _timeout ));
 	return true;
@@ -201,18 +201,16 @@ int main (int argc, char *argv[])
     dim::evolver::async::Easy<EOT> evolver( eval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
     feedbacker.popSize = popSize;
-    // dim::inputprobasender::async::Easy<EOT> probasender;
     dim::vectorupdater::async::Easy<EOT> updater(alpha, beta);
     dim::memorizer::async::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
 
     // dim::algo::async::Easy<EOT>::DummyEvolver evolver;
     // dim::algo::async::Easy<EOT>::DummyFeedbacker feedbacker;
-    dim::algo::async::Easy<EOT>::DummyInputProbaSender probasender;
     // dim::algo::async::Easy<EOT>::DummyVectorUpdater updater;
     // dim::algo::async::Easy<EOT>::DummyMemorizer memorizer;
 
-    dim::algo::async::Easy<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
+    dim::algo::async::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
@@ -230,26 +228,15 @@ int main (int argc, char *argv[])
     	    initmatrix( probabilities );
     	    std::cout << probabilities;
     	    data.proba = probabilities(RANK);
-    	    for (size_t j = 0; j < ALL; ++j)
-    		{
-    		    data.probaret[j] = probabilities(j, RANK);
-    		}
 
     	    for (size_t i = 1; i < ALL; ++i)
     		{
     		    world.send( i, 100, probabilities(i) );
-    		    std::vector< typename EOT::Fitness > probaRetIsl( ALL );
-    		    for (size_t j = 0; j < ALL; ++j)
-    			{
-    			    probaRetIsl[j] = probabilities(j,i);
-    			}
-    		    world.send( i, 101, probaRetIsl );
     		}
     	}
     else
     	{
     	    world.recv( 0, 100, data.proba );
-    	    world.recv( 0, 101, data.probaret );
     	}
 
     /******************************************

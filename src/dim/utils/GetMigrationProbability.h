@@ -47,27 +47,6 @@ namespace dim
 	};
 
 	template <typename EOT>
-	class GetMigrationProbabilityRet : public Updater, public eoValueParam<typename EOT::Fitness>
-	{
-	public:
-	    GetMigrationProbabilityRet( const std::vector< typename EOT::Fitness >& vecProbaRet, std::string label = "Value" )
-		: eoValueParam<typename EOT::Fitness>(0, label), _vecProbaRet(vecProbaRet) {}
-
-	    virtual void operator()()
-	    {
-		this->value() = 0;
-		for (auto i : _vecProbaRet)
-		    {
-			this->value() = this->value() + i;
-		    }
-		this->value() = this->value() / 10;
-	    }
-
-	private:
-	    const std::vector< typename EOT::Fitness >& _vecProbaRet;
-	};
-
-	template <typename EOT>
 	class GetSumVectorProbability : public Updater, public eoValueParam<typename EOT::Fitness>
 	{
 	public:
