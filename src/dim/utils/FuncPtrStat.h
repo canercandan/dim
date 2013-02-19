@@ -75,10 +75,10 @@ namespace dim
 	 * @ingroup Stats
 	 */
 	template <class EOT, class T>
-	class eoFunctorStat : public Stat<EOT, T>
+	class FunctorStat : public Stat<EOT, T>
 	{
 	public :
-	    eoFunctorStat(eoUF< const core::Pop<EOT>&, T >& f, std::string _description = "functor")
+	    FunctorStat(eoUF< const core::Pop<EOT>&, T >& f, std::string _description = "functor")
 		: Stat<EOT, T>(T(), _description), func(f)
 	    {}
 
@@ -96,9 +96,9 @@ namespace dim
 	 * @ingroup Stats
 	 */
 	template <class EOT, class T>
-	eoFunctorStat<EOT, T>& makeFunctorStat( eoUF< const core::Pop<EOT>&, T >& func, eoFunctorStore& store, std::string description = "func") {
+	FunctorStat<EOT, T>& makeFunctorStat( eoUF< const core::Pop<EOT>&, T >& func, eoFunctorStore& store, std::string description = "func") {
 	    return store.storeFunctor(
-				      new eoFunctorStat<EOT, T>( func, description)
+				      new FunctorStat<EOT, T>( func, description)
 				      );
 	}
 
