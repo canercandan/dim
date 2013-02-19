@@ -291,9 +291,6 @@ namespace dim
 			}
 		}
 
-	    public:
-		size_t popSize = 0;
-
 	    private:
 		std::ofstream _of_comm, _of_algo;
 		std::ofstream _of_comm_data, _of_algo_data;
