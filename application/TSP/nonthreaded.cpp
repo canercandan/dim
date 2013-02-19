@@ -19,6 +19,9 @@
 
 #include <boost/mpi.hpp>
 #include <eo>
+#include <eoSwapMutation.h>
+#include <eoShiftMutation.h>
+#include <eoTwoOptMutation.h>
 #include <dim/dim>
 
 using namespace std;
@@ -108,20 +111,36 @@ int main (int argc, char *argv[])
      ****************************************/
 
     eoMonOp<EOT>* ptMon = NULL;
-    ptMon = new dim::variation::CitySwap<float>;
+    if ( 0 == RANK )
+	{
+	    // ptMon = new dim::variation::CitySwap<float>;
+	    ptMon = new eoSwapMutation<EOT>(1);
+	}
+    else if ( 1 == RANK )
+	{
+	    ptMon = new eoSwapMutation<EOT>(2);
+	}
+    else if ( 2 == RANK )
+	{
+	    ptMon = new eoShiftMutation<EOT>;
+	}
+    else if ( 3 == RANK )
+	{
+	    ptMon = new eoTwoOptMutation<EOT>;
+	}
     state.storeFunctor(ptMon);
 
     // /**********************************
     //  * Déclaration des composants DIM *
     //  **********************************/
 
-    dim::evolver::Easy<EOT> evolver( eval, *ptMon );
-    dim::feedbacker::Easy<EOT> feedbacker;
-    dim::inputprobasender::Easy<EOT> probasender;
-    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
-    dim::memorizer::Easy<EOT> memorizer;
-    dim::migrator::Easy<EOT> migrator;
-    dim::algo::EasyIsland<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
+    dim::evolver::sync::Easy<EOT> evolver( eval, *ptMon );
+    dim::feedbacker::sync::Easy<EOT> feedbacker;
+    dim::inputprobasender::sync::Easy<EOT> probasender;
+    dim::vectorupdater::sync::Easy<EOT> updater(alpha, beta);
+    dim::memorizer::sync::Easy<EOT> memorizer;
+    dim::migrator::sync::Easy<EOT> migrator;
+    dim::algo::sync::Easy<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
