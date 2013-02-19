@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
      * Déclaration des composants EO *
      *********************************/
 
-    unsigned chromSize = parser.getORcreateParam(unsigned(1500), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
+    unsigned chromSize = parser.getORcreateParam(unsigned(1000), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
     eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
 
     // string nklInstance =  parser.getORcreateParam(string(), "nklInstance", "filename of the instance for NK-L problem", 0, "Problem").value();
