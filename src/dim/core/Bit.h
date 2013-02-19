@@ -1,5 +1,5 @@
 /*
-  eoBit.h
+  Bit.h
   (c) GeNeura Team 1998, Marc Schoenauer 2000
 
   This library is free software; you can redistribute it and/or
