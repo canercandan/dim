@@ -21,6 +21,10 @@
 #include <eo>
 #include <ga.h>
 #include <dim/dim>
+#include <dim/feedbacker/Easy.h>
+#include <dim/migrator/Easy.h>
+#include <dim/vectorupdater/Easy.h>
+#include <dim/algo/Easy.h>
 
 using namespace std;
 using namespace boost::mpi;
@@ -31,12 +35,32 @@ typedef dim::core::Bit<double> EOT;
 
 int main(int argc, char *argv[])
 {
-    /******************************
-     * Initialisation de MPI + EO *
-     ******************************/
+    /*************************
+     * Initialisation de MPI *
+     *************************/
 
     environment env(argc, argv);
     communicator world;
+
+    /****************************
+     * Il faut au moins 4 nœuds *
+     ****************************/
+
+    const size_t ALL = world.size();
+    const size_t RANK = world.rank();
+
+    // if ( ALL < 4 )
+    // 	{
+    // 	    if ( 0 == RANK )
+    // 		{
+    // 		    cerr << "Needs at least 4 processes to be launched!" << endl;
+    // 		}
+    // 	    return 0;
+    // 	}
+
+    /************************
+     * Initialisation de EO *
+     ************************/
 
     eoParser parser(argc, argv);
     eoState state;    // keeps all things allocated
@@ -52,28 +76,12 @@ int main(int argc, char *argv[])
     // p
     /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
     // d
-    size_t probaSame = parser.createParam(size_t(100), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
+    size_t probaSame = parser.createParam(size_t(100/ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
     // r
     /*size_t reward = */parser.createParam(size_t(2), "reward", "reward", 'r', "Islands Model")/*.value()*/;
     /*size_t penalty = */parser.createParam(size_t(1), "penalty", "penalty", 0, "Islands Model")/*.value()*/;
     // I
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
-
-    /****************************
-     * Il faut au moins 4 nœuds *
-     ****************************/
-
-    const size_t ALL = world.size();
-    const size_t RANK = world.rank();
-
-    if ( ALL < 4 )
-    	{
-    	    if ( 0 == RANK )
-    		{
-    		    cerr << "Needs at least 4 processes to be launched!" << endl;
-    		}
-    	    return 0;
-    	}
 
     /*********************************
      * Déclaration des composants EO *
