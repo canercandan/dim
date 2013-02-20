@@ -20,9 +20,11 @@
 #ifndef _CORE_ISLANDDATA_H_
 #define _CORE_ISLANDDATA_H_
 
+#include <tuple>
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <chrono>
 
 #include "ParallelContext.h"
 
@@ -34,15 +36,25 @@ namespace dim
 	template <typename EOT>
 	struct IslandData : public ParallelContext
 	{
-	    std::vector< typename EOT::Fitness > feedbacks = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
-	    std::vector< typename EOT::Fitness > proba = std::vector< typename EOT::Fitness >(ParallelContext::size(), 0);
+	    using ParallelContext::size;
 
-	    std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > > feedbackerSendingQueuesVector = std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > >( ParallelContext::size() );
-	    std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > > feedbackerReceivingQueuesVector = std::vector< std::pair< std::mutex, std::queue< typename EOT::Fitness > > >( ParallelContext::size() );
+	    using Fitness = typename EOT::Fitness;
+	    using Mutex = std::mutex;
+	    using Time = std::chrono::time_point<std::chrono::system_clock>;
 
-	    std::vector< std::pair< std::mutex, std::queue<EOT> > > migratorSendingQueuesVector = std::vector< std::pair< std::mutex, std::queue<EOT> > >( ParallelContext::size() );
-	    std::vector< std::pair< std::mutex, std::queue<EOT> > > migratorReceivingQueuesVector = std::vector< std::pair< std::mutex, std::queue<EOT> > >( ParallelContext::size() );
+	    template <typename T> using Vector = std::vector< T >;
+	    template <typename T> using Queue = std::queue< T >;
+	    template <typename T, typename U> using Data = std::tuple< Mutex, T, U >;
+	    template <typename T> using VDQ = Vector< Data< Queue<T>, Queue<Time> > >;
 
+	    Vector<Fitness> feedbacks = Vector<Fitness>(size(), 0);
+	    Vector<Fitness> proba = Vector<Fitness>(size(), 0);
+
+	    VDQ<Fitness> feedbackerSendingQueuesVector = VDQ<Fitness>( size() );
+	    VDQ<Fitness> feedbackerReceivingQueuesVector = VDQ<Fitness>( size() );
+
+	    VDQ<EOT> migratorSendingQueuesVector = VDQ<EOT>( size() );
+	    VDQ<EOT> migratorReceivingQueuesVector = VDQ<EOT>( size() );
 	};
 
     } // !core
