@@ -8,6 +8,8 @@ SET(SOURCES
   t-boost-mpi-thread-multi-nonblocking-count
   t-boost-mpi-thread-multi-thread-recv
   t-stack
+  t-multithreaded-comm
+  t-multithreaded-comm-boost-mpi
   )
 
 # SET(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
