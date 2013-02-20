@@ -40,6 +40,19 @@ environment::environment(int& argc, char** &argv, bool abort_on_exception)
   MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 }
 
+environment::environment(int& argc, char** &argv, int required, bool abort_on_exception)
+  : i_initialized(false),
+    abort_on_exception(abort_on_exception)
+{
+  if (!initialized()) {
+    int provided;
+    BOOST_MPI_CHECK_RESULT(MPI_Init_thread, (&argc, &argv, required, &provided));
+    i_initialized = true;
+  }
+
+  MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+}
+
 environment::~environment()
 {
   if (i_initialized) {

@@ -80,6 +80,8 @@ public:
    */
   environment(int& argc, char** &argv, bool abort_on_exception = true);
 
+  environment(int& argc, char** &argv, int required, bool abort_on_exception = true);
+
   /** Shuts down the MPI environment.
    *
    *  If this @c environment object was used to initialize the MPI
