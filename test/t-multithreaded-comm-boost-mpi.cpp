@@ -16,7 +16,8 @@ void send(int dst)
     while (1)
 	{
 	    string s("hello");
-	    world.send(dst, dst*world.size()+world.rank(), s);
+	    vector<string> v(1000, s);
+	    world.send(dst, dst*world.size()+world.rank(), v);
 	}
 }
 
@@ -26,9 +27,9 @@ void recv(int src)
 
     while (1)
 	{
-	    string s;
-	    world.recv(src, world.rank()*world.size()+src, s);
-	    cout << s << " "; cout.flush();
+	    vector<string> v;
+	    world.recv(src, world.rank()*world.size()+src, v);
+	    cout << v[0] << " "; cout.flush();
 	}
 }
 
