@@ -120,53 +120,25 @@ namespace dim
 			     * Send feedbacks back to all islands (ANALYSE) *
 			     ************************************************/
 
-			    // old population based model for communication
-			    // std::vector<typename EOT::Fitness> sums(this->size(), 0);
-			    // std::vector<int> nbs(this->size(), 0);
-			    // for (auto& ind : pop)
-			    // 	{
-			    // 	    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
-			    // 	    ++nbs[ind.getLastIsland()];
-			    // 	}
-
-			    // _m_fbs.lock();
-			    // for (size_t i = 0; i < this->size(); ++i)
-			    // 	{
-			    // 	    if (i == this->rank()) { continue; }
-			    // 	    data.feedbacks[i] = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
-			    // 	    // std::cout << data.feedbacks[i] << " "; std::cout.flush();
-			    // 	    _vec_fbs[i].push( data.feedbacks[i] );
-			    // 	}
-			    // _m_fbs.unlock();
-
-			    // // for island itself because of the MPI communication optimizing.
-			    // data.feedbacks[this->rank()] = nbs[this->rank()] > 0 ? sums[this->rank()] / nbs[this->rank()] : 0;
-
-			    // new model
 			    for (auto& ind : pop)
 			    	{
 			    	    auto delta = ind.fitness() - ind.getLastFitness();
-
-				    // if (ind.getLastIsland() == this->rank())
-				    // 	{
-				    // 	    auto& Ri = data.feedbacks[this->rank()];
-
-				    // 	    // data.feedbacks[this->rank()] = data.feedbacks[this->rank()] + 0.01 * ( delta - data.feedbacks[this->rank()] );
-				    // 	    Ri = Ri + 0.01 * ( delta - Ri );
-				    // 	    continue;
-				    // 	}
-
-				    auto& fbsPair = data.feedbackerSendingQueuesVector[ind.getLastIsland()];
-				    fbsPair.first.lock();
-				    fbsPair.second.push( delta );
-				    fbsPair.first.unlock();
+				    auto& fbsData = data.feedbackerSendingQueuesVector[ind.getLastIsland()];
+				    auto& m = std::get<0>(fbsData);
+				    auto& fbs = std::get<1>(fbsData);
+				    m.lock();
+				    fbs.push( delta );
+				    m.unlock();
 			    	}
 
-			    auto& fbr = data.feedbackerReceivingQueuesVector[this->rank()].second;
-			    auto& fbs = data.feedbackerSendingQueuesVector[this->rank()].second;
+			    auto& fbrData = data.feedbackerReceivingQueuesVector[this->rank()];
+			    auto& fbr = std::get<1>( fbrData );
+			    auto& times = std::get<2>( fbrData );
+			    auto& fbs = std::get<1>( data.feedbackerSendingQueuesVector[this->rank()] );
 			    while ( !fbs.empty() )
 			    	{
 			    	    fbr.push( fbs.front() );
+				    times.push( std::chrono::system_clock::now() );
 			    	    fbs.pop();
 			    	}
 			}
@@ -177,30 +149,43 @@ namespace dim
 
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
-			    // if (i == this->rank()) { continue; }
-
-			    auto& m = data.feedbackerReceivingQueuesVector[i].first;
-			    auto& fbr = data.feedbackerReceivingQueuesVector[i].second;
+			    auto& fbrData = data.feedbackerReceivingQueuesVector[i];
+			    auto& m = std::get<0>(fbrData);
+			    auto& fbr = std::get<1>(fbrData);
+			    auto& times = std::get<2>(fbrData);
 			    auto& Ri = data.feedbacks[i];
 
 			    m.lock();
+
+			    assert(fbr.size() == times.size());
+
 			    size_t n = fbr.size();
 			    if (n)
 				{
-				    // typename EOT::Fitness sum = 0;
+				    // size_t timeout = pow(10, this->rank());
+
 				    while (!fbr.empty())
 					{
-					    // sum += _vec_fbr[i].front();
-
 					    auto& Fi = fbr.front();
-					    Ri = Ri + 0.01 * ( Fi - Ri );
+					    auto& start = times.front();
+					    auto end = std::chrono::system_clock::now();
+					    auto Ti = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+					    // Ri = Ri + 0.01 * ( Fi/timeout - Ri );
+
+					    if (Ti)
+					    	{
+					    	    Ri = Ri + 0.01 * ( Fi/Ti - Ri );
+					    	    // _of_algo_data << Fi << "/" << Ti << "=" << Fi/Ti << " "; _of_algo_data.flush();
+					    	}
+					    else
+					    	{
+					    	    Ri = Ri + 0.01 * ( Fi - Ri );
+					    	}
 
 					    fbr.pop();
+					    times.pop();
 					}
-				    // double coef = pop.size() / (popSize*this->size());
-				    // data.feedbacks[i] = (sum / (typename EOT::Fitness)(n))/* * coef*/;
-				    _of_algo_data << Ri << " "; _of_algo_data.flush();
-				    // std::cout << data.feedbacks[i] << " "; std::cout.flush();
+				    // _of_algo_data << Ri << " "; _of_algo_data.flush();
 				}
 			    m.unlock();
 			}
@@ -219,11 +204,6 @@ namespace dim
 
 		void communicate(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		{
-		    // size_t next = (this->rank()+1) % this->size();
-		    // _of_comm << _vec_fbs[next].size() << " ";
-		    // _of_comm << _vec_fbr[next].size() << " ";
-		    // _of_comm.flush();
-
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
 			    if (i == this->rank()) continue;
@@ -234,18 +214,18 @@ namespace dim
 			     * Send feedbacks to all islands *
 			     ***********************************/
 			    {
+				auto& fbsData = data.feedbackerSendingQueuesVector[i];
+				auto& m = std::get<0>(fbsData);
+				auto& fbs = std::get<1>(fbsData);
 
-				auto& fbs = data.feedbackerSendingQueuesVector[i].second;
-				auto& ms = data.feedbackerSendingQueuesVector[i].first;
-
-				ms.lock();
+				m.lock();
 				std::vector< typename EOT::Fitness > fbsVec;
 				while (!fbs.empty())
 				    {
 					fbsVec.push_back( fbs.front() );
 					fbs.pop();
 				    }
-				ms.unlock();
+				m.unlock();
 
 				this->world().send(i, this->tag()*10, fbsVec.size());
 
@@ -259,7 +239,6 @@ namespace dim
 			     * Receive individuals from all islands *
 			     ****************************************/
 			    {
-
 				size_t count = 0;
 				this->world().recv(i, this->tag()*10, count);
 
@@ -275,17 +254,20 @@ namespace dim
 
 				boost::mpi::wait_all( reqs.begin(), reqs.end() );
 
-				auto& fbr = data.feedbackerReceivingQueuesVector[i].second;
-				auto& mr = data.feedbackerReceivingQueuesVector[i].first;
+				auto& fbrData = data.feedbackerReceivingQueuesVector[i];
+				auto& m = std::get<0>(fbrData);
+				auto& fbr = std::get<1>(fbrData);
+				auto& times = std::get<2>(fbrData);
 
 				if (!fbrVec.empty())
 				    {
-					mr.lock();
+					m.lock();
 					for (size_t k = 0; k < fbrVec.size(); ++k)
 					    {
 						fbr.push( fbrVec[k] );
+						times.push( std::chrono::system_clock::now() );
 					    }
-					mr.unlock();
+					m.unlock();
 				    }
 			    }
 			}
