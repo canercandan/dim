@@ -19,14 +19,12 @@
 
 #include <boost/mpi.hpp>
 #include <eo>
-#include <eoSwapMutation.h>
-#include <eoShiftMutation.h>
-#include <eoTwoOptMutation.h>
 #include <dim/dim>
-#include <dim/algo/algo>
-#include <dim/feedbacker/feedbacker>
-#include <dim/migrator/migrator>
-#include <dim/vectorupdater/vectorupdater>
+#include <dim/algo/Easy.h>
+#include <dim/evolver/Easy.h>
+#include <dim/feedbacker/Easy.h>
+#include <dim/migrator/Easy.h>
+#include <dim/vectorupdater/Easy.h>
 
 using namespace std;
 using namespace boost::mpi;
@@ -44,7 +42,7 @@ public:
 
     bool operator()(EOT&)
     {
-	std::this_thread::sleep_for(std::chrono::microseconds( _timeout ));
+	std::this_thread::sleep_for(std::chrono::milliseconds( _timeout ));
 	return true;
     }
 
@@ -58,53 +56,34 @@ public:
     SimulatedEval(typename EOT::Fitness fit) : _fit(fit) {}
 
     /// The class name.
-    virtual std::string className() const { return "SimulatedEval"; }
+    virtual string className() const { return "SimulatedEval"; }
 
     void operator()(EOT& sol)
     {
-	if ( !sol.invalid() )
-	    {
-		sol.fitness( sol.fitness() + _fit );
-	    }
-	else
-	    {
-		sol.fitness( _fit );
-	    }
+	sol.fitness( sol.fitness() + _fit );
     }
 
 private:
     typename EOT::Fitness _fit;
 };
 
+class FitnessInit : public eoUF<EOT&, void>
+{
+public:
+    void operator()(EOT& sol)
+    {
+	sol.fitness( 0 );
+    }
+};
+
 int main (int argc, char *argv[])
 {
-    /******************************
-     * Initialisation de MPI + EO *
-     ******************************/
+    /*************************
+     * Initialisation de MPI *
+     *************************/
 
     environment env(argc, argv);
     communicator world;
-
-    eoParser parser(argc, argv);
-    eoState state;    // keeps all things allocated
-
-    /*****************************
-     * Definition des paramètres *
-     *****************************/
-
-    // a
-    double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
-    // b
-    double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
-    // p
-    /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
-    // d
-    size_t probaSame = parser.createParam(size_t(100), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
-    // r
-    /*size_t reward = */parser.createParam(size_t(2), "reward", "reward", 'r', "Islands Model")/*.value()*/;
-    /*size_t penalty = */parser.createParam(size_t(1), "penalty", "penalty", 0, "Islands Model")/*.value()*/;
-    // I
-    bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
 
     /****************************
      * Il faut au moins 4 nœuds *
@@ -122,41 +101,71 @@ int main (int argc, char *argv[])
     // 	    return 0;
     // 	}
 
+    /************************
+     * Initialisation de EO *
+     ************************/
+
+    eoParser parser(argc, argv);
+    eoState state;    // keeps all things allocated
+
+    /*****************************
+     * Definition des paramètres *
+     *****************************/
+
+    // a
+    double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
+    // b
+    double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
+    // p
+    /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
+    // d
+    size_t probaSame = parser.createParam(size_t(100/ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
+    // r
+    /*size_t reward = */parser.createParam(size_t(2), "reward", "reward", 'r', "Islands Model")/*.value()*/;
+    /*size_t penalty = */parser.createParam(size_t(1), "penalty", "penalty", 0, "Islands Model")/*.value()*/;
+    // I
+    bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
+
     /*********************************
      * Déclaration des composants EO *
      *********************************/
 
-    unsigned chromSize = parser.getORcreateParam(unsigned(1000), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
+    /*unsigned chromSize = */parser.getORcreateParam(unsigned(0), "chromSize", "The length of the bitstrings", 'n',"Problem")/*.value()*/;
     eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
 
-    // size_t timeout = pow(10, RANK) * 100;
-    size_t timeout = 10000;
+    size_t timeout = pow(10, RANK);
+    // size_t timeout = 10000;
 
     eoEvalFunc<EOT>* ptEval = NULL;
-    if ( 0 == RANK )
-	{
-	    ptEval = new SimulatedEval(timeout);
-	}
-    else if ( 1 == RANK )
-	{
-	    ptEval = new SimulatedEval(timeout);
-	}
-    else if ( 2 == RANK )
-	{
-	    ptEval = new SimulatedEval(timeout);
-	}
-    else if ( 3 == RANK )
-	{
-	    ptEval = new SimulatedEval(timeout);
-	}
+    ptEval = new SimulatedEval(1);
     state.storeFunctor(ptEval);
+
+    // eoEvalFunc<EOT>* ptEval = NULL;
+    // if ( 0 == RANK )
+    // 	{
+    // 	    ptEval = new SimulatedEval(1);
+    // 	}
+    // else if ( 1 == RANK )
+    // 	{
+    // 	    ptEval = new SimulatedEval(5);
+    // 	}
+    // else if ( 2 == RANK )
+    // 	{
+    // 	    ptEval = new SimulatedEval(10);
+    // 	}
+    // else if ( 3 == RANK )
+    // 	{
+    // 	    ptEval = new SimulatedEval(15);
+    // 	}
+    // state.storeFunctor(ptEval);
 
     eoEvalFuncCounter<EOT> eval(*ptEval);
 
-    unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
+    /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
     dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
-    /*double targetFitness = */parser.getORcreateParam(double(chromSize), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
+    /*double targetFitness = */parser.getORcreateParam(double(1000), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
+    /*unsigned maxGen = */parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion")/*.value()*/;
     dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 
     dim::core::IslandData<EOT> data;
@@ -176,39 +185,36 @@ int main (int argc, char *argv[])
      ****************************************/
 
     eoMonOp<EOT>* ptMon = NULL;
-    if ( 0 == RANK )
-	{
-	    ptMon = new SimulatedOp(timeout);
-	}
-    else if ( 1 == RANK )
-	{
-	    ptMon = new SimulatedOp(timeout);
-	}
-    else if ( 2 == RANK )
-	{
-	    ptMon = new SimulatedOp(timeout);
-	}
-    else if ( 3 == RANK )
-	{
-	    ptMon = new SimulatedOp(timeout);
-	}
+    ptMon = new SimulatedOp(timeout);
     state.storeFunctor(ptMon);
+
+    // if ( 0 == RANK )
+    // 	{
+    // 	    ptMon = new SimulatedOp(1);
+    // 	}
+    // else if ( 1 == RANK )
+    // 	{
+    // 	    ptMon = new SimulatedOp(5);
+    // 	}
+    // else if ( 2 == RANK )
+    // 	{
+    // 	    ptMon = new SimulatedOp(10);
+    // 	}
+    // else if ( 3 == RANK )
+    // 	{
+    // 	    ptMon = new SimulatedOp(15);
+    // 	}
+    // state.storeFunctor(ptMon);
 
     // /**********************************
     //  * Déclaration des composants DIM *
     //  **********************************/
 
-    dim::evolver::async::Easy<EOT> evolver( eval, *ptMon );
+    dim::evolver::async::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
-    feedbacker.popSize = popSize;
     dim::vectorupdater::async::Easy<EOT> updater(alpha, beta);
     dim::memorizer::async::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
-
-    // dim::algo::async::Easy<EOT>::DummyEvolver evolver;
-    // dim::algo::async::Easy<EOT>::DummyFeedbacker feedbacker;
-    // dim::algo::async::Easy<EOT>::DummyVectorUpdater updater;
-    // dim::algo::async::Easy<EOT>::DummyMemorizer memorizer;
 
     dim::algo::async::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
@@ -246,7 +252,9 @@ int main (int argc, char *argv[])
     world.barrier();
     dim::utils::print_sum(pop);
 
-    apply<EOT>(eval, pop);
+    FitnessInit fitInit;
+
+    apply<EOT>(fitInit, pop);
 
     island( pop, data );
 
