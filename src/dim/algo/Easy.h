@@ -30,7 +30,6 @@
 #include <dim/utils/utils>
 #include <dim/evolver/evolver>
 #include <dim/feedbacker/feedbacker>
-// #include <dim/inputprobasender/inputprobasender>
 #include <dim/vectorupdater/vectorupdater>
 #include <dim/memorizer/memorizer>
 #include <dim/migrator/migrator>
@@ -120,22 +119,84 @@ namespace dim
 
 		void compute(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
+		    std::ostringstream ss;
+		    ss << "gen.time." << this->rank();
+		    std::ofstream gen_time(ss.str());
+		    ss.str("");
+
+		    ss << "evolve.time." << this->rank();
+		    std::ofstream evolve_time(ss.str());
+		    ss.str("");
+
+		    ss << "feedback.time." << this->rank();
+		    std::ofstream feedback_time(ss.str());
+		    ss.str("");
+
+		    ss << "update.time." << this->rank();
+		    std::ofstream update_time(ss.str());
+		    ss.str("");
+
+		    ss << "memorize.time." << this->rank();
+		    std::ofstream memorize_time(ss.str());
+		    ss.str("");
+
+		    ss << "migrate.time." << this->rank();
+		    std::ofstream migrate_time(ss.str());
+		    ss.str("");
+
 		    _evolve.firstCompute(pop, data);
 		    _feedback.firstCompute(pop, data);
 		    _update.firstCompute(pop, data);
 		    _memorize.firstCompute(pop, data);
 		    _migrate.firstCompute(pop, data);
 
-		    // while ( _tocontinue )
 		    while ( ( _tocontinue = _checkpoint(pop) ) )
 			{
-			    // std::this_thread::sleep_for(std::chrono::microseconds( 1000000 ));
+			    auto start = std::chrono::system_clock::now();
 
-			    _evolve.compute(pop, data);
-			    _feedback.compute(pop, data);
-			    _update.compute(pop, data);
-			    _memorize.compute(pop, data);
-			    _migrate.compute(pop, data);
+			    {
+				auto start = std::chrono::system_clock::now();
+				_evolve.compute(pop, data);
+				auto end = std::chrono::system_clock::now();
+				auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+				evolve_time << elapsed << " "; evolve_time.flush();
+			    }
+
+			    {
+				auto start = std::chrono::system_clock::now();
+				_feedback.compute(pop, data);
+				auto end = std::chrono::system_clock::now();
+				auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+				feedback_time << elapsed << " "; feedback_time.flush();
+			    }
+
+			    {
+				auto start = std::chrono::system_clock::now();
+				_update.compute(pop, data);
+				auto end = std::chrono::system_clock::now();
+				auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+				update_time << elapsed << " "; update_time.flush();
+			    }
+
+			    {
+				auto start = std::chrono::system_clock::now();
+				_memorize.compute(pop, data);
+				auto end = std::chrono::system_clock::now();
+				auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+				memorize_time << elapsed << " "; memorize_time.flush();
+			    }
+
+			    {
+				auto start = std::chrono::system_clock::now();
+				_migrate.compute(pop, data);
+				auto end = std::chrono::system_clock::now();
+				auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+				migrate_time << elapsed << " "; migrate_time.flush();
+			    }
+
+			    auto end = std::chrono::system_clock::now();
+			    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+			    gen_time << elapsed << " "; gen_time.flush();
 			}
 
 		    _evolve.lastCompute(pop, data);
@@ -154,44 +215,12 @@ namespace dim
 		    _migrate.firstCommunicate(pop, data);
 
 		    while ( _tocontinue )
-		    // while ( ( _tocontinue = _checkpoint(pop) ) )
 			{
-			    // std::this_thread::sleep_for(std::chrono::microseconds( 10000 ));
-			    // std::cout << "* "; std::cout.flush();
-
 			    _evolve.communicate(pop, data);
 			    _feedback.communicate(pop, data);
 			    _update.communicate(pop, data);
 			    _memorize.communicate(pop, data);
 			    _migrate.communicate(pop, data);
-
-
-			    /*************************************************************************
-			     * MAJ de la matrice de transition et récupération des vecteurs des iles *
-			     *************************************************************************/
-
-			    // if ( this->rank() > 0 )
-			    // 	{
-			    // 	    this->world().send( 0, 42, data.proba );
-			    // 	}
-			    // else
-			    // 	{
-			    // 	    for (size_t i = 1; i < this->size(); ++i)
-			    // 		{
-			    // 		    std::vector<double> proba(this->size());
-			    // 		    this->world().recv( i, 42, proba );
-			    // 		    for (size_t j = 0; j < proba.size(); ++j)
-			    // 			{
-			    // 			    _probabilities(i,j) = proba[j];
-			    // 			}
-			    // 		}
-			    // 	    for (size_t j = 0; j < data.proba.size(); ++j)
-			    // 		{
-			    // 		    _probabilities(0,j) = data.proba[j];
-			    // 		}
-
-			    // 	    std::cout << _probabilities; std::cout.flush();
-			    // 	}
 			}
 
 		    _evolve.lastCommunicate(pop, data);
@@ -208,8 +237,6 @@ namespace dim
 
 		    void operator()()
 		    {
-			// std::unique_lock<std::mutex> lk(*(this->pt_m));
-
 			_algo.compute(_pop, _data);
 		    }
 
@@ -226,12 +253,7 @@ namespace dim
 
 		    void operator()()
 		    {
-			// std::unique_lock<std::mutex> lk(*(this->pt_m));
-			// this->pt_cv->wait(lk); // plus de stabilité entre les deux threads, facultatif à mettre comme param ???
-
 			_algo.communicate(_pop, _data);
-
-			// pt_cv->notify_one(); // notify communication thread one cycle is done, facultatif
 		    }
 
 		private:
