@@ -149,31 +149,37 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		virtual void firstCompute(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		virtual void firstCompute(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
 		    std::ostringstream ss;
 		    ss << "trace.migrator." << this->rank() << ".algo.txt";
 		    _of_algo.open(ss.str());
+
+		    for (auto& ind : pop)
+			{
+			    auto& immData = data.migratorReceivingQueuesVector[this->rank()];
+			    auto& m = std::get<0>(immData);
+			    auto& imm = std::get<1>(immData);
+			    m.lock();
+			    imm.push( ind );
+			    m.unlock();
+			}
+		    pop.clear();
 		}
 
 		void compute(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
-		    // _of_algo << pop.size() << " "; _of_algo.flush();
-
 		    if (!pop.empty())
 			{
 			    /***********************************
 			     * Send individuals to all islands *
 			     ***********************************/
 
-			    // std::vector< core::Pop<EOT> > pops( this->size() );
-
 			    /*************
 			     * Selection *
 			     *************/
 
 			    std::vector< size_t > outputSizes( this->size(), 0 );
-			    // size_t outputSize = 0;
 
 			    for (auto& ind : pop)
 				{
@@ -187,130 +193,93 @@ namespace dim
 					}
 				    --j;
 
-				    // pops[j].push_back(ind);
-				    auto& emPair = data.migratorSendingQueuesVector[j];
-				    emPair.first.lock(); // mutex
-				    emPair.second.push( ind ); // queue
-				    emPair.first.unlock(); // mutex
+				    _of_algo << j << " "; _of_algo.flush();
+
+				    auto& emData = data.migratorSendingQueuesVector[j];
+				    auto& m = std::get<0>(emData);
+				    auto& em = std::get<1>(emData);
+				    m.lock();
+				    em.push( ind );
+				    m.unlock();
 				    ++outputSizes[j];
 				}
 
 			    pop.clear();
 
-			    // for (size_t i = 0; i < this->size(); ++i)
-			    // 	{
-			    // 	    if (i == this->rank()) { continue; }
-			    // _outputSizes[i] = pops[i].size();
-			    // outputSize += pops[i].size();
-			    // }
-
 			    pop.setOutputSizes( outputSizes );
 			    pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
 
-			    // pop.setOutputSizes( _outputSizes );
-			    // pop.setOutputSize( outputSize );
-
-			    // _m_em.lock();
-			    // for ( size_t i = 0; i < this->size(); ++i )
-			    // 	{
-			    // 	    if (i == this->rank()) { continue; }
-			    // 	    // _vec_em[i].push( pops[i] );
-
-			    // 	    // now we're sending individuals one by one
-			    // 	    for (auto& ind : pops[i])
-			    // 		{
-			    // 		    // core::Pop<EOT> newpop;
-			    // 		    // newpop.resize(1);
-			    // 		    // newpop[0] = ind;
-			    // 		    // _vec_em[i].push( newpop );
-			    // 		    _vec_em[i].push( ind );
-			    // 		}
-			    // 	}
-			    // _m_em.unlock();
-
-			    // for (auto &indi : pops[this->rank()])
-			    // 	{
-			    // 	    pop.push_back( indi );
-			    // 	}
-
 			    // in order to avoid communicating individuals who wanna stay in the same island
-			    auto& imm = data.migratorReceivingQueuesVector[this->rank()].second;
-			    auto& em = data.migratorSendingQueuesVector[this->rank()].second;
+			    auto& em = std::get<1>(data.migratorSendingQueuesVector[this->rank()]);
+			    auto& imm = std::get<1>(data.migratorReceivingQueuesVector[this->rank()]);
 			    while ( !em.empty() )
 				{
 				    imm.push( em.front() );
 				    em.pop();
 				}
-
-			    // for (auto &indi : pops[this->rank()])
-			    // 	{
-			    // 	    pop.push_back( indi );
-			    // 	}
 			}
 
 		    /*********************
 		     * Update population *
 		     *********************/
 		    {
-			std::vector<size_t> order(this->size(), 0);
+			// std::vector<size_t> order(this->size(), 0);
 
-			for (size_t i = 0; i < this->size(); ++i)
-			    {
-				order[i] = i;
-			    }
+			// for (size_t i = 0; i < this->size(); ++i)
+			//     {
+			// 	order[i] = i;
+			//     }
 
-			for (size_t i = this->size() - 1; i > 0; --i)
-			    {
-				std::swap( order[i], order[ rng.random(this->size()) ] );
-			    }
+			// for (size_t i = this->size() - 1; i > 0; --i)
+			//     {
+			// 	std::swap( order[i], order[ rng.random(this->size()) ] );
+			//     }
 
 			size_t inputSize = 0;
 
 			// We're waiting until the queue has an individual to continue
-			// if (pop.empty())
-			//     {
 			bool stop = false;
 			while (!stop)
 			    {
-				for (size_t i = 0; i < this->size(); ++i)
+				double s = 0;
+				int r = rng.rand() % 1000 + 1;
+
+				size_t j;
+				for ( j = 0; j < this->size() && r > s; ++j )
 				    {
-					// if (i == this->rank()) continue;
-
-					size_t island = order[i];
-
-					_of_algo << island << " "; _of_algo.flush();
-
-					auto& imm = data.migratorReceivingQueuesVector[island].second;
-					if (!imm.empty())
-					    {
-						pop.push_back( imm.front() );
-						imm.pop();
-						++inputSize;
-						stop = true;
-						break;
-					    }
+					s += data.proba[j];
 				    }
+				--j;
+
+				_of_algo << j << " "; _of_algo.flush();
+
+				auto& imm = std::get<1>(data.migratorReceivingQueuesVector[j]);
+				if (!imm.empty())
+				    {
+					pop.push_back( imm.front() );
+					imm.pop();
+					++inputSize;
+					stop = true;
+					break;
+				    }
+
+				// for (size_t i = 0; i < this->size(); ++i)
+				//     {
+				// 	size_t island = order[i];
+
+				// 	_of_algo << island << " "; _of_algo.flush();
+
+				// 	auto& imm = std::get<1>(data.migratorReceivingQueuesVector[island]);
+				// 	if (!imm.empty())
+				// 	    {
+				// 		pop.push_back( imm.front() );
+				// 		imm.pop();
+				// 		++inputSize;
+				// 		stop = true;
+				// 		break;
+				// 	    }
+				//     }
 			    }
-			// }
-
-
-			// for (size_t i = 0; i < this->size(); ++i)
-			//     {
-			// 	if (i == this->rank()) continue;
-
-			// 	_m_imm.lock();
-			// 	while (!_vec_imm[i].empty())
-			// 	    {
-			// 		auto& newpop = _vec_imm[i].front();
-			// 		for (auto& ind : newpop)
-			// 		    {
-			// 			pop.push_back(ind);
-			// 		    }
-			// 		inputSize += newpop.size();
-			// 		_vec_imm[i].pop();
-			// 	    }
-			// 	_m_imm.unlock();
-			//     }
 
 			pop.setInputSize( inputSize );
 		    }
@@ -335,8 +304,9 @@ namespace dim
 			     * Send individuals to all islands *
 			     ***********************************/
 
-			    auto& em = data.migratorSendingQueuesVector[i].second;
-			    auto& m = data.migratorSendingQueuesVector[i].first;
+			    auto& emData = data.migratorSendingQueuesVector[i];
+			    auto& m = std::get<0>(emData);
+			    auto& em = std::get<1>(emData);
 
 			    m.lock();
 			    std::vector< EOT > emVec;
@@ -361,7 +331,6 @@ namespace dim
 			    size_t count = 0;
 			    this->world().recv(i, this->tag()*10, count);
 
-			    // std::vector< core::Pop<EOT> > imm;
 			    std::vector< EOT > immVec;
 			    if (count)
 				{
@@ -376,8 +345,9 @@ namespace dim
 
 			    if (!immVec.empty())
 				{
-				    auto& imm = data.migratorReceivingQueuesVector[i].second;
-				    auto& m = data.migratorReceivingQueuesVector[i].first;
+				    auto& immData = data.migratorReceivingQueuesVector[i];
+				    auto& m = std::get<0>(immData);
+				    auto& imm = std::get<1>(immData);
 
 				    m.lock();
 				    for (size_t k = 0; k < immVec.size(); ++k)
