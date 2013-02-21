@@ -80,13 +80,7 @@ namespace dim
 
 	    size_t operator() ( const core::Pop<EOT>& )
 	    {
-		auto& immData = _data.migratorReceivingQueuesVector[_data.rank()];
-		auto& m = std::get<0>(immData);
-		auto& imm = std::get<1>(immData);
-		m.lock();
-		size_t res = imm.size();
-		m.unlock();
-		return res;
+		return _data.migratorReceivingQueue.size();
 	    }
 
 	private:
