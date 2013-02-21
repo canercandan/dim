@@ -26,6 +26,7 @@
 #define _ALGO_BASE_H_
 
 #include <dim/core/IslandOperator.h>
+#include <dim/core/Thread.h>
 
 namespace dim
 {
@@ -41,30 +42,13 @@ namespace dim
 	   @ingroup Algorithms
 	*/
 
-	namespace sync
+	template< class EOT >
+	class Base : public core::IslandOperator<EOT>
 	{
-	    template< class EOT >
-	    class Base : public core::sync::IslandOperator<EOT>
-	    {
-	    public:
-		virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    };
-	} // !sync
-
-	namespace async
-	{
-	    template< class EOT >
-	    class Base : public core::async::IslandOperator<EOT>
-	    {
-	    public:
-		virtual void firstCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-
-		virtual void firstCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    };
-	} // !async
+	public:
+	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	};
     } // !algo
 } // !dim
 
