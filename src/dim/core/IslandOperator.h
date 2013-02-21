@@ -24,42 +24,22 @@
 #include "BF.h"
 #include "Pop.h"
 #include "IslandData.h"
+#include "Thread.h"
 
 namespace dim
 {
     namespace core
     {
-	namespace sync
+	template <typename EOT>
+	class IslandOperator : public ParallelContext,
+			       public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
 	{
-	    template <typename EOT>
-	    class IslandOperator : public BF<Pop<EOT>&, IslandData<EOT>&>, public ParallelContext
-	    {
-	    public:
-		IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
+	public:
+	    IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
 
-		virtual void firstCall(Pop<EOT>&, IslandData<EOT>&) = 0;
-		virtual void lastCall(Pop<EOT>&, IslandData<EOT>&) = 0;
-	    };
-	} // !sync
-
-	namespace async
-	{
-	    template <typename EOT>
-	    class IslandOperator : public ParallelContext
-	    {
-	    public:
-		IslandOperator(size_t tag = 0) : ParallelContext(tag) {}
-
-		virtual void firstCompute(Pop<EOT>&, IslandData<EOT>&) = 0;
-		virtual void lastCompute(Pop<EOT>&, IslandData<EOT>&) = 0;
-
-		virtual void firstCommunicate(Pop<EOT>&, IslandData<EOT>&) = 0;
-		virtual void lastCommunicate(Pop<EOT>&, IslandData<EOT>&) = 0;
-
-		virtual void compute(Pop<EOT>&, IslandData<EOT>&) = 0;
-		virtual void communicate(Pop<EOT>&, IslandData<EOT>&) = 0;
-	    };
-	} // !async
+	    virtual void firstCall(Pop<EOT>&, IslandData<EOT>&) = 0;
+	    virtual void lastCall(Pop<EOT>&, IslandData<EOT>&) = 0;
+	};
     } // !core
 } // !dim
 
