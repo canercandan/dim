@@ -37,12 +37,6 @@ namespace dim
 	public:
 	    Easy( double alpha = 0.8, double beta = 0.99 ) : _alpha(alpha), _beta(beta) {}
 
-	    // template <typename T>
-	    // static T normalized_add(T x, T y)
-	    // {
-	    // 	return std::max(x, 0.) + std::max(y, 0.);
-	    // }
-
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
 		if (pop.empty()) { return; }
@@ -64,8 +58,7 @@ namespace dim
 		// 	}
 
 		// Stratégie par récompense proportionnelle
-		// auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., normalized_add< typename EOT::Fitness >);
-		auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., [&](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, 0.) + std::max(y, 0.); } );
+		auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., [](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); } );
 		auto proportionalFeedbacks = data.feedbacks;
 		for (auto& fit : proportionalFeedbacks)
 		    {
