@@ -134,12 +134,12 @@ int main (int argc, char *argv[])
     //  * Déclaration des composants DIM *
     //  **********************************/
 
-    dim::evolver::sync::Easy<EOT> evolver( eval, *ptMon );
+    dim::evolver::Easy<EOT> evolver( eval, *ptMon );
     dim::feedbacker::sync::Easy<EOT> feedbacker;
-    dim::vectorupdater::sync::Easy<EOT> updater(alpha, beta);
-    dim::memorizer::sync::Easy<EOT> memorizer;
+    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    dim::memorizer::Easy<EOT> memorizer;
     dim::migrator::sync::Easy<EOT> migrator;
-    dim::algo::sync::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
+    dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
