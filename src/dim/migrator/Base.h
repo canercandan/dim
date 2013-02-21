@@ -26,34 +26,17 @@ namespace dim
 {
     namespace migrator
     {
-	namespace sync
+	template <typename EOT>
+	class Base : public core::IslandOperator<EOT>,
+		     public core::ThreadsHandler< core::Pop<EOT>&, core::IslandData<EOT>& >
 	{
-	    template <typename EOT>
-	    class Base : public core::sync::IslandOperator<EOT>
-	    {
-	    public:
-		Base() : core::sync::IslandOperator<EOT>(0) {}
+	public:
+	    Base() : core::IslandOperator<EOT>(0) {}
 
-		virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    };
-	} // !sync
-
-	namespace async
-	{
-	    template <typename EOT>
-	    class Base : public core::async::IslandOperator<EOT>
-	    {
-	    public:
-		Base() : core::async::IslandOperator<EOT>(0) {}
-
-		virtual void firstCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-
-		virtual void firstCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    };
-	} // !async
+	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    virtual void addTo(core::ThreadsRunner< core::Pop<EOT>&, core::IslandData<EOT>& >&) {}
+	};
     }
 }
 
