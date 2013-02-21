@@ -26,30 +26,13 @@ namespace dim
 {
     namespace evolver
     {
-	namespace sync
+	template <typename EOT>
+	class Base : public core::IslandOperator<EOT>
 	{
-	    template <typename EOT>
-	    class Base : public core::sync::IslandOperator<EOT>
-	    {
-	    public:
-		virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    };
-	} // !sync
-
-	namespace async
-	{
-	    template <typename EOT>
-	    class Base : public core::async::IslandOperator<EOT>
-	    {
-	    public:
-		virtual void firstCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCompute(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-
-		virtual void firstCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-		virtual void lastCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&) {}
-	    };
-	} // !async
+	public:
+	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+	};
     } // !evolver
 } // !dim
 

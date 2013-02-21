@@ -31,159 +31,121 @@ namespace dim
 {
     namespace vectorupdater
     {
-	template <typename T>
-	T positive_add(T x, T y)
+	template <typename EOT>
+	class Easy : public Base<EOT>
 	{
-	    return std::max(x, 0.) + std::max(y, 0.);
-	}
+	public:
+	    Easy( double alpha = 0.8, double beta = 0.99 ) : _alpha(alpha), _beta(beta) {}
 
-	template <typename EOT, typename T>
-	void __common_functor( T& easy, core::Pop<EOT>& pop, core::IslandData<EOT>& data, double _alpha, double _beta )
-	{
-	    if (pop.empty()) { return; }
+	    // template <typename T>
+	    // static T normalized_add(T x, T y)
+	    // {
+	    // 	return std::max(x, 0.) + std::max(y, 0.);
+	    // }
 
-	    /****************************
-	     * Update transition vector *
-	     ****************************/
-
-	    // Stategie par critère MAX
-	    // int best = -1;
-	    // typename EOT::Fitness max = 0;
-	    // for (size_t i = 0; i < easy.size(); ++i)
-	    // 	{
-	    // 	    if (data.feedbacks[i] > max)
-	    // 		{
-	    // 		    best = i;
-	    // 		    max = data.feedbacks[i];
-	    // 		}
-	    // 	}
-
-	    // Stratégie par récompense proportionnelle
-	    auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., positive_add< typename EOT::Fitness >);
-	    auto proportionalFeedbacks = data.feedbacks;
-	    for (auto& fit : proportionalFeedbacks)
-		{
-		    fit = fit > 0 ? fit / sum_fits * 1000 : 0;
-		}
-
-	    // computation of epsilon vector (norm is 1)
-	    double sum = 0;
-
-	    std::vector< double > epsilon( easy.size() );
-
-	    for ( auto &k : epsilon )
-		{
-		    k = rng.rand() % 1000;
-		    sum += k;
-		}
-
-	    for ( auto &k : epsilon )
-		{
-		    k = sum ? k / sum : 0;
-		}
-
-	    /*******************************************************************************
-	     * Si p_i^t est le vecteur de migration de ile numéro i au temps t             *
-	     * alors on peut faire un update "baysien" comme ça:                           *
-	     *                                                                             *
-	     * p_i^{t+1} =  b  *  ( a * p_i^t + (1 - a) * select )  +  (1 - b) * epsilon   *
-	     *                                                                             *
-	     * où:                                                                         *
-	     * - a et b sont les coefficients qui reglent respectivement l'exploitation et *
-	     * l'exploration                                                               *
-	     * - select est le vecteur avec que des 0 sauf pour l'ile qui semble la plus   *
-	     * prometteuse où cela vaut 1.                                                 *
-	     * - epsilon un vecteur de 'bruit' (de norme 1) avec des coefficient           *
-	     * uniforme entre 0.0 et 1.0                                                   *
-	     *******************************************************************************/
-
-	    // Stategie par critère MAX
-	    // if (best < 0) //aucune ile n'améliore donc on rééquilibre
-	    // 	{
-	    // 	    for ( size_t i = 0; i < easy.size(); ++i )
-	    // 		{
-	    // 		    data.proba[i] = _beta * data.proba[i] + (1 - _beta) * 1000 * epsilon[i];
-	    // 		}
-	    // 	}
-	    // else
-	    // 	{
-	    // 	    for (size_t i = 0; i < easy.size(); ++i)
-	    // 		{
-	    // 		    if ( static_cast<int>(i) == best )
-	    // 			{
-	    // 			    data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * 1000 ) + (1 - _beta) * 1000 * epsilon[i];
-	    // 			}
-	    // 		    else
-	    // 			{
-	    // 			    data.proba[i] = _beta * ( _alpha * data.proba[i] ) + (1 - _beta) * 1000 * epsilon[i];
-	    // 			}
-	    // 		}
-	    // 	}
-
-	    // Stratégie par récompense proportionnelle
-	    typename EOT::Fitness sum_multi = 0;
-	    for (size_t i = 0; i < easy.size(); ++i)
-		{
-		    sum_multi += data.proba[i] * proportionalFeedbacks[i] / 1000;
-		}
-
-	    for ( size_t i = 0; i < easy.size(); ++i )
-		{
-		    typename EOT::Fitness res = ( data.proba[i] * proportionalFeedbacks[i] ) / sum_multi;
-		    data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * res ) + (1 - _beta) * 1000 * epsilon[i];
-
-		}
-	}
-
-	namespace sync
-	{
-	    template <typename EOT>
-	    class Easy : public Base<EOT>
+	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
-	    public:
-		Easy( double alpha = 0.8, double beta = 0.99 ) : _alpha(alpha), _beta(beta) {}
+		if (pop.empty()) { return; }
 
-		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
-		{
-		    __common_functor(*this, pop, data, _alpha, _beta);
-		}
+		/****************************
+		 * Update transition vector *
+		 ****************************/
 
-	    private:
-		double _alpha;
-		double _beta;
-	    };
-	} // !sync
+		// Stategie par critère MAX
+		// int best = -1;
+		// typename EOT::Fitness max = 0;
+		// for (size_t i = 0; i < this->size(); ++i)
+		// 	{
+		// 	    if (data.feedbacks[i] > max)
+		// 		{
+		// 		    best = i;
+		// 		    max = data.feedbacks[i];
+		// 		}
+		// 	}
 
-	namespace async
-	{
-	    template <typename EOT>
-	    class Easy : public Base<EOT>
-	    {
-	    public:
-		Easy( double alpha = 0.8, double beta = 0.99 ) : _alpha(alpha), _beta(beta)
-		{
-		    // std::ostringstream ss;
-		    // ss << "trace.updater." << this->rank() << ".txt";
-		    // _of.open(ss.str());
-		}
+		// Stratégie par récompense proportionnelle
+		// auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., normalized_add< typename EOT::Fitness >);
+		auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., [&](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, 0.) + std::max(y, 0.); } );
+		auto proportionalFeedbacks = data.feedbacks;
+		for (auto& fit : proportionalFeedbacks)
+		    {
+			fit = fit > 0 ? fit / sum_fits * 1000 : 0;
+		    }
 
-		void compute(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
-		{
-		    __common_functor(*this, pop, data, _alpha, _beta);
-		}
+		// computation of epsilon vector (norm is 1)
+		double sum = 0;
 
-		void communicate(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
-		{
-		    // empty
-		}
+		std::vector< double > epsilon( this->size() );
 
-	    private:
-		double _alpha;
-		double _beta;
-		// std::ofstream _of;
-	    };
-	} // !async
-    }
-}
+		for ( auto &k : epsilon )
+		    {
+			k = rng.rand() % 1000;
+			sum += k;
+		    }
+
+		for ( auto &k : epsilon )
+		    {
+			k = sum ? k / sum : 0;
+		    }
+
+		/*******************************************************************************
+		 * Si p_i^t est le vecteur de migration de ile numéro i au temps t             *
+		 * alors on peut faire un update "baysien" comme ça:                           *
+		 *                                                                             *
+		 * p_i^{t+1} =  b  *  ( a * p_i^t + (1 - a) * select )  +  (1 - b) * epsilon   *
+		 *                                                                             *
+		 * où:                                                                         *
+		 * - a et b sont les coefficients qui reglent respectivement l'exploitation et *
+		 * l'exploration                                                               *
+		 * - select est le vecteur avec que des 0 sauf pour l'ile qui semble la plus   *
+		 * prometteuse où cela vaut 1.                                                 *
+		 * - epsilon un vecteur de 'bruit' (de norme 1) avec des coefficient           *
+		 * uniforme entre 0.0 et 1.0                                                   *
+		 *******************************************************************************/
+
+		// Stategie par critère MAX
+		// if (best < 0) //aucune ile n'améliore donc on rééquilibre
+		// 	{
+		// 	    for ( size_t i = 0; i < this->size(); ++i )
+		// 		{
+		// 		    data.proba[i] = _beta * data.proba[i] + (1 - _beta) * 1000 * epsilon[i];
+		// 		}
+		// 	}
+		// else
+		// 	{
+		// 	    for (size_t i = 0; i < this->size(); ++i)
+		// 		{
+		// 		    if ( static_cast<int>(i) == best )
+		// 			{
+		// 			    data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * 1000 ) + (1 - _beta) * 1000 * epsilon[i];
+		// 			}
+		// 		    else
+		// 			{
+		// 			    data.proba[i] = _beta * ( _alpha * data.proba[i] ) + (1 - _beta) * 1000 * epsilon[i];
+		// 			}
+		// 		}
+		// 	}
+
+		// Stratégie par récompense proportionnelle
+		typename EOT::Fitness sum_multi = 0;
+		for (size_t i = 0; i < this->size(); ++i)
+		    {
+			sum_multi += data.proba[i] * proportionalFeedbacks[i] / 1000;
+		    }
+
+		for ( size_t i = 0; i < this->size(); ++i )
+		    {
+			typename EOT::Fitness res = ( data.proba[i] * proportionalFeedbacks[i] ) / sum_multi;
+			data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * res ) + (1 - _beta) * 1000 * epsilon[i];
+
+		    }
+	    }
+
+	private:
+	    double _alpha;
+	    double _beta;
+	};
+    } // !vectorupdater
+} // !dim
 
 #endif /* _VECTORUPDATER_EASY_H_ */
