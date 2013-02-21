@@ -29,70 +29,65 @@ namespace dim
 {
     namespace core
     {
-
+	template<class... Args>
 	class ThreadsRunner;
 
+	template<class... Args>
 	class Thread
 	{
 	public:
 	    virtual ~Thread() {}
 
+	    virtual void operator()(Args...) = 0;
+
 	private:
-	    friend class ThreadsRunner;
+	    friend class ThreadsRunner<Args...>;
 
-	    virtual void operator()() = 0;
+	    void build(Args... args)
+	    {
+		t = std::thread( std::ref(*this), std::ref(args)... );
+	    }
 
-	    void build(std::condition_variable& cv, std::mutex& m);
-	    void join();
+	    inline void join() { t.join(); }
 
 	protected:
 	    std::thread t;
-	    std::condition_variable* pt_cv = nullptr;
-	    std::mutex* pt_m = nullptr;
 	};
 
-	class BlockingThread : public Thread
+	template<class... Args>
+	class ThreadsHandler
 	{
 	public:
-	    BlockingThread(size_t __id = 0) : id(__id) {}
+	    virtual ~ThreadsHandler() {}
 
-	private:
-	    void operator()() override;
-
-	protected:
-	    size_t id = 0;
+	    virtual void addTo(ThreadsRunner<Args...>&) = 0;
 	};
 
-	class NonBlockingThread : public Thread
-	{
-	private:
-	    virtual void operator()() override;
-	};
-
-	class Compute : public NonBlockingThread
-	{
-	private:
-	    void operator()() override;
-	};
-
-	class Communicate : public BlockingThread
-	{
-	private:
-	    void operator()() override;
-	};
-
+	template <class... Args>
 	class ThreadsRunner
 	{
 	public:
-	    void operator()();
-	    ThreadsRunner& add(Thread& t);
+	    void operator()(Args... args)
+	    {
+		for (auto& t : _vt) { t->build(args...); }
+		for (auto& t : _vt) { t->join(); }
+	    }
+
+	    ThreadsRunner& add(Thread<Args...>& t)
+	    {
+		_vt.push_back(&t);
+		return *this;
+	    }
+
+	    ThreadsRunner& addHandler(ThreadsHandler<Args...>& t)
+	    {
+		t.addTo(*this);
+		return *this;
+	    }
 
 	private:
-	    std::vector<Thread*> _vt;
-	    std::condition_variable _cv;
-	    std::mutex _m;
+	    std::vector< Thread<Args...>* > _vt;
 	};
-
     } // !core
 } // !dim
 
