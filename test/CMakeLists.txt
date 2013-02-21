@@ -1,6 +1,8 @@
 SET(SOURCES
   t-test
   t-Thread
+  t-Thread-args
+  t-Thread-args2
   t-mpi-persistent
   t-boost-mpi-thread
   t-boost-mpi-thread-multi
