@@ -5,11 +5,11 @@ using namespace dim::core;
 using namespace std;
 
 template <typename... Args>
-using T = args::Thread<Args...>;
+using T = Thread<Args...>;
 template <typename... Args>
-using TH = args::ThreadsHandler<Args...>;
+using TH = ThreadsHandler<Args...>;
 template <typename... Args>
-using TR = args::ThreadsRunner<Args...>;
+using TR = ThreadsRunner<Args...>;
 
 class MyThread : public T<int&, int&>
 {
@@ -45,7 +45,7 @@ int main()
     MyThread mt;
     MyThread2 mt2;
     MyThread3 mt3;
-    tr.add(mt).add(mt2).add(mt3);
+    tr.add(mt).add(mt2).addHandler(mt3);
 
     int a = 1, b = 1;
 
