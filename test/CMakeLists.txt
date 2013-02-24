@@ -2,6 +2,7 @@ SET(SOURCES
   t-test
   t-Thread-args
   t-Thread-args2
+  t-Thread-args3
   t-mpi-persistent
   t-boost-mpi-thread
   t-boost-mpi-thread-multi
@@ -11,6 +12,7 @@ SET(SOURCES
   t-stack
   t-multithreaded-comm
   t-multithreaded-comm-boost-mpi
+  t-multithreaded-comm-boost-mpi-functor
   )
 
 # SET(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
