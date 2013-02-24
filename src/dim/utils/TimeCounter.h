@@ -27,7 +27,7 @@
 #ifndef _UTILS_TIMECOUNTER_H_
 #define _UTILS_TIMECOUNTER_H_
 
-#include <time.h>
+#include <chrono>
 
 #include "Stat.h"
 
@@ -45,23 +45,19 @@ namespace dim
 	class TimeCounter : public Updater, public eoValueParam<double>
 	{
 	public:
-	    TimeCounter() : eoValueParam<double>(0.0, "Time")
-	    {
-		start = time(NULL);
-	    }
+	    TimeCounter() : eoValueParam<double>(0.0, "Time"), _start( std::chrono::system_clock::now() ) {}
 
 	    /** simply stores the time spent in process in its value() */
 	    virtual void operator()()
 	    {
-		// ask for system time
-		utime = clock();
-		double seconds_elapsed = time(NULL) - start;
-		value() = (seconds_elapsed > 2140) ? seconds_elapsed : double(utime)/CLOCKS_PER_SEC;
+		// ask for wall clock
+		auto end = std::chrono::system_clock::now();
+		auto milliseconds_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>( end - _start ).count();
+		value() = milliseconds_elapsed / 1000.;
 	    }
 
 	private:
-	    clock_t utime;
-	    time_t start;
+	    std::chrono::time_point< std::chrono::system_clock > _start;
 	};
 
     } // !utils
