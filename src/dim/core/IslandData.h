@@ -24,6 +24,7 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <atomic>
 #include <chrono>
 
 #include "ParallelContext.h"
@@ -48,8 +49,21 @@ namespace dim
 		idQueue.push(id);
 	    }
 
-	    std::tuple<T, long, size_t> pop()
+	    std::tuple<T, long, size_t> pop(bool wait = false)
 	    {
+		// waiting while queue is empty
+		if (wait)
+		    {
+			while ( empty() ) {}
+		    }
+		else
+		    {
+			if ( empty() )
+			    {
+				throw std::runtime_error("The queue is empty.");
+			    }
+		    }
+
 		std::lock_guard<std::mutex> lock(mutex);
 		auto end = std::chrono::system_clock::now();
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>( end - timesQueue.front() ).count();
@@ -74,11 +88,9 @@ namespace dim
 	};
 
 	template <typename T>
-	struct DataQueueVector : public std::vector< DataQueue< T > >, public ParallelContext
+	struct DataQueueVector : public std::vector< DataQueue< T > >
 	{
-	    using ParallelContext::size;
-
-	    DataQueueVector() : std::vector< DataQueue< T > >(size()) {}
+	    DataQueueVector(size_t size) : std::vector< DataQueue< T > >(size) {}
 
 	    void push(T newData, size_t id)
 	    {
@@ -86,19 +98,19 @@ namespace dim
 		dataQueue.push(newData, id);
 	    }
 
-	    std::tuple<T, long, size_t> pop(size_t id)
+	    std::tuple<T, long, size_t> pop(size_t id, bool wait = false)
 	    {
 		auto& dataQueue = (*this)[id];
-		return dataQueue.pop();
+		return dataQueue.pop(wait);
 	    }
 
-	    bool empty(size_t id) const
+	    bool empty(size_t id)
 	    {
 		auto& dataQueue = (*this)[id];
 		return dataQueue.empty();
 	    }
 
-	    size_t size(size_t id) const
+	    size_t size(size_t id)
 	    {
 		auto& dataQueue = (*this)[id];
 		return dataQueue.size();
@@ -111,16 +123,18 @@ namespace dim
 	    using ParallelContext::size;
 	    using Fitness = typename EOT::Fitness;
 
-	    IslandData() : feedbacks(size()), proba(size()) {}
+	    IslandData() : feedbacks(size()), proba(size()), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
 
-	    std::vector< Fitness > feedbacks = std::vector< Fitness >(size(), 0);
-	    std::vector< Fitness > proba = std::vector< Fitness >(size(), 0);
+	    std::vector< Fitness > feedbacks;
+	    std::vector< Fitness > proba;
 
 	    DataQueueVector< Fitness > feedbackerSendingQueue;
 	    DataQueue< Fitness > feedbackerReceivingQueue;
 
 	    DataQueueVector< EOT > migratorSendingQueue;
 	    DataQueue< EOT > migratorReceivingQueue;
+
+	    std::atomic<bool> toContinue;
 	};
 
     } // !core
