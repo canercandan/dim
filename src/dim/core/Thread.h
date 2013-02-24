@@ -29,10 +29,10 @@ namespace dim
 {
     namespace core
     {
-	template<class... Args>
+	template <class... Args>
 	class ThreadsRunner;
 
-	template<class... Args>
+	template <class... Args>
 	class Thread
 	{
 	public:
@@ -54,7 +54,7 @@ namespace dim
 	    std::thread t;
 	};
 
-	template<class... Args>
+	template <class... Args>
 	class ThreadsHandler
 	{
 	public:
@@ -76,6 +76,12 @@ namespace dim
 	    ThreadsRunner& add(Thread<Args...>& t)
 	    {
 		_vt.push_back(&t);
+		return *this;
+	    }
+
+	    ThreadsRunner& add(Thread<Args...>* t)
+	    {
+		_vt.push_back(t);
 		return *this;
 	    }
 
