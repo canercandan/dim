@@ -101,7 +101,13 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		virtual void firstCompute(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		~Easy()
+		{
+		    for (auto& sender : _senders) { delete sender; }
+		    for (auto& receiver : _receivers) { delete receiver; }
+		}
+
+		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
 		{
 		    std::ostringstream ss;
 		    ss << "trace.feedbacker." << this->rank() << ".algo.txt";
@@ -112,170 +118,109 @@ namespace dim
 		    _of_algo_data.open(ss_data.str());
 		}
 
-		void compute(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
-		    if (!pop.empty())
-			{
-			    /************************************************
-			     * Send feedbacks back to all islands (ANALYSE) *
-			     ************************************************/
+		    /************************************************
+		     * Send feedbacks back to all islands (ANALYSE) *
+		     ************************************************/
 
-			    for (auto& ind : pop)
-			    	{
-			    	    auto delta = ind.fitness() - ind.getLastFitness();
-				    auto& fbsData = data.feedbackerSendingQueuesVector[ind.getLastIsland()];
-				    auto& m = std::get<0>(fbsData);
-				    auto& fbs = std::get<1>(fbsData);
-				    m.lock();
-				    fbs.push( delta );
-				    m.unlock();
-			    	}
+		    // _of_algo_data << pop.size() << " "; _of_algo_data.flush();
 
-			    auto& fbrData = data.feedbackerReceivingQueuesVector[this->rank()];
-			    auto& fbr = std::get<1>( fbrData );
-			    auto& times = std::get<2>( fbrData );
-			    auto& fbs = std::get<1>( data.feedbackerSendingQueuesVector[this->rank()] );
-			    while ( !fbs.empty() )
-			    	{
-			    	    fbr.push( fbs.front() );
-				    times.push( std::chrono::system_clock::now() );
-			    	    fbs.pop();
-			    	}
-			}
+		    for (auto& ind : pop)
+		    	{
+		    	    auto delta = ind.fitness() - ind.getLastFitness();
 
-		    /*************************************
-		     * Update feedbacks from all islands *
-		     *************************************/
+		    	    if ( ind.getLastIsland() == static_cast<int>( this->rank() ) )
+		    		{
+		    		    data.feedbackerReceivingQueue.push( delta, this->rank() );
+		    		    continue;
+		    		}
 
-		    for (size_t i = 0; i < this->size(); ++i)
-			{
-			    auto& fbrData = data.feedbackerReceivingQueuesVector[i];
-			    auto& m = std::get<0>(fbrData);
-			    auto& fbr = std::get<1>(fbrData);
-			    auto& times = std::get<2>(fbrData);
-			    auto& Ri = data.feedbacks[i];
+		    	    data.feedbackerSendingQueue.push( delta, ind.getLastIsland() );
+		    	}
 
-			    m.lock();
+		    /********************
+		     * Update feedbacks *
+		     ********************/
 
-			    assert(fbr.size() == times.size());
+		    while ( !data.feedbackerReceivingQueue.empty() )
+		    	{
+		    	    // waiting for a new fitness
+		    	    auto fbr = data.feedbackerReceivingQueue.pop();
+		    	    auto Fi = std::get<0>(fbr);
+		    	    auto Ti = std::get<1>(fbr);
+		    	    auto from = std::get<2>(fbr);
+		    	    auto& Ri = data.feedbacks[from];
 
-			    size_t n = fbr.size();
-			    if (n)
-				{
-				    // size_t timeout = pow(10, this->rank());
+			    // _of_algo_data << Ti << " "; _of_algo_data.flush();
 
-				    while (!fbr.empty())
-					{
-					    auto& Fi = fbr.front();
-					    auto& start = times.front();
-					    auto end = std::chrono::system_clock::now();
-					    auto Ti = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-					    // Ri = Ri + 0.01 * ( Fi/timeout - Ri );
-
-					    if (Ti)
-					    	{
-					    	    Ri = Ri + 0.01 * ( Fi/Ti - Ri );
-					    	    // _of_algo_data << Fi << "/" << Ti << "=" << Fi/Ti << " "; _of_algo_data.flush();
-					    	}
-					    else
-					    	{
-					    	    Ri = Ri + 0.01 * ( Fi - Ri );
-					    	}
-
-					    fbr.pop();
-					    times.pop();
-					}
-				    // _of_algo_data << Ri << " "; _of_algo_data.flush();
-				}
-			    m.unlock();
-			}
+		    	    if (Ti)
+		    		{
+		    		    Ri = Ri + 0.01 * ( Fi/Ti - Ri );
+		    		    _of_algo_data << Fi << "/" << Ti << "=" << Fi/Ti << " "; _of_algo_data.flush();
+		    		}
+		    	    else
+		    		{
+		    		    Ri = Ri + 0.01 * ( Fi - Ri );
+		    		}
+		    	}
 		}
 
-		virtual void firstCommunicate(core::Pop<EOT>&, core::IslandData<EOT>&)
+		class Sender : public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >, public core::ParallelContext
 		{
-		    std::ostringstream ss;
-		    ss << "trace.feedbacker." << this->rank() << ".comm.txt";
-		    _of_comm.open(ss.str());
+		public:
+		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
 
-		    std::ostringstream ss_data;
-		    ss_data << "trace.feedbacker." << this->rank() << ".comm.data.txt";
-		    _of_comm_data.open(ss_data.str());
-		}
+		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		    {
+			while (data.toContinue)
+			    {
+				auto fbs = data.feedbackerSendingQueue.pop( _to, true );
+				auto fit = std::get<0>( fbs );
+				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), fit);
+			    }
+		    }
 
-		void communicate(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		private:
+		    size_t _to;
+		};
+
+		class Receiver : public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >, public core::ParallelContext
+		{
+		public:
+		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
+
+		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		    {
+			while (data.toContinue)
+			    {
+				typename EOT::Fitness fit;
+				this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), fit);
+				data.feedbackerReceivingQueue.push( fit, _from );
+			    }
+		    }
+		private:
+		    size_t _from;
+		};
+
+		virtual void addTo( core::ThreadsRunner< core::Pop<EOT>&, core::IslandData<EOT>& >& tr )
 		{
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
-			    if (i == this->rank()) continue;
+			    if (i == this->rank()) { continue; }
 
-			    std::vector< boost::mpi::request > reqs;
+			    _senders.push_back( new Sender(i, this->tag()) );
+			    _receivers.push_back( new Receiver(i, this->tag()) );
 
-			    /***********************************
-			     * Send feedbacks to all islands *
-			     ***********************************/
-			    {
-				auto& fbsData = data.feedbackerSendingQueuesVector[i];
-				auto& m = std::get<0>(fbsData);
-				auto& fbs = std::get<1>(fbsData);
-
-				m.lock();
-				std::vector< typename EOT::Fitness > fbsVec;
-				while (!fbs.empty())
-				    {
-					fbsVec.push_back( fbs.front() );
-					fbs.pop();
-				    }
-				m.unlock();
-
-				this->world().send(i, this->tag()*10, fbsVec.size());
-
-				if (fbsVec.size())
-				    {
-					reqs.push_back( this->world().isend(i, this->tag(), fbsVec) );
-				    }
-			    }
-
-			    /****************************************
-			     * Receive individuals from all islands *
-			     ****************************************/
-			    {
-				size_t count = 0;
-				this->world().recv(i, this->tag()*10, count);
-
-				std::vector< typename EOT::Fitness > fbrVec;
-				if (count)
-				    {
-					reqs.push_back( this->world().irecv(i, this->tag(), fbrVec) );
-				    }
-
-				/****************************
-				 * Process all MPI requests *
-				 ****************************/
-
-				boost::mpi::wait_all( reqs.begin(), reqs.end() );
-
-				auto& fbrData = data.feedbackerReceivingQueuesVector[i];
-				auto& m = std::get<0>(fbrData);
-				auto& fbr = std::get<1>(fbrData);
-				auto& times = std::get<2>(fbrData);
-
-				if (!fbrVec.empty())
-				    {
-					m.lock();
-					for (size_t k = 0; k < fbrVec.size(); ++k)
-					    {
-						fbr.push( fbrVec[k] );
-						times.push( std::chrono::system_clock::now() );
-					    }
-					m.unlock();
-				    }
-			    }
+			    tr.add( _senders.back() );
+			    tr.add( _receivers.back() );
 			}
 		}
 
 	    private:
-		std::ofstream _of_comm, _of_algo;
-		std::ofstream _of_comm_data, _of_algo_data;
+		std::vector<Sender*> _senders;
+		std::vector<Receiver*> _receivers;
+		std::ofstream _of_algo, _of_algo_data;
 	    };
 	} // !async
     }
