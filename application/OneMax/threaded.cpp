@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     dim::evaluation::OneMax<EOT> mainEval;
     eoEvalFuncCounter<EOT> eval(mainEval);
 
-    unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
+    /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
     dim::core::Pop<EOT>& pop = dim::do_make::pop(parser, state, init);
 
     /*unsigned maxGen = */parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion")/*.value()*/;
@@ -134,29 +134,12 @@ int main(int argc, char *argv[])
      * Déclaration des composants DIM *
      **********************************/
 
-    // dim::evolver::sync::Easy<EOT> evolver( eval, *ptMon );
-    // dim::feedbacker::sync::Easy<EOT> feedbacker;
-    // dim::inputprobasender::sync::Easy<EOT> probasender;
-    // dim::vectorupdater::sync::Easy<EOT> updater(alpha, beta);
-    // dim::memorizer::sync::Easy<EOT> memorizer;
-    // dim::migrator::sync::Easy<EOT> migrator;
-    // dim::algo::sync::Easy<EOT> island( evolver, feedbacker, probasender, updater, memorizer, migrator, checkpoint );
-
-    dim::evolver::async::Easy<EOT> evolver( eval, *ptMon );
+    dim::evolver::Easy<EOT> evolver( eval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
-    feedbacker.popSize = popSize;
-    // dim::inputprobasender::async::Easy<EOT> probasender;
-    dim::vectorupdater::async::Easy<EOT> updater(alpha, beta);
-    dim::memorizer::async::Easy<EOT> memorizer;
+    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    dim::memorizer::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
-
-    // dim::algo::async::Easy<EOT>::DummyEvolver evolver;
-    // dim::algo::async::Easy<EOT>::DummyFeedbacker feedbacker;
-    // dim::algo::async::Easy<EOT>::DummyInputProbaSender probasender;
-    // dim::algo::async::Easy<EOT>::DummyVectorUpdater updater;
-    // dim::algo::async::Easy<EOT>::DummyMemorizer memorizer;
-
-    dim::algo::async::Easy<EOT> island( evolver, feedbacker/*, probasender*/, updater, memorizer, migrator, checkpoint );
+    dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
     /***************
      * Rock & Roll *
