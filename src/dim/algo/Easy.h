@@ -25,7 +25,6 @@
 #include <chrono>
 #include <sstream>
 #include <fstream>
-#include <atomic>
 
 #include <dim/core/core>
 #include <dim/utils/utils>
@@ -37,7 +36,10 @@
 
 #include "Base.h"
 
-#define MEASURE(op, f)							\
+#define MEASURE
+
+#ifdef MEASURE
+# define DO_MEASURE(op, f)						\
     {									\
 	auto start = std::chrono::system_clock::now();			\
 	op;								\
@@ -45,6 +47,9 @@
 	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count(); \
 	f << elapsed << " "; f.flush();					\
     }
+#else
+# define DO_MEASURE(op, f) { op; }
+#endif // !MEASURE
 
 namespace dim
 {
@@ -88,14 +93,14 @@ namespace dim
 		_memorize.firstCall(pop, data);
 		_migrate.firstCall(pop, data);
 
-		while ( ( _tocontinue = _checkpoint(pop) ) )
+		while ( ( data.toContinue = _checkpoint(pop) ) )
 		    {
-			MEASURE( MEASURE(_evolve(pop, data), evolve_time);
-				 MEASURE(_feedback(pop, data), feedback_time);
-				 MEASURE(_update(pop, data), update_time);
-				 MEASURE(_memorize(pop, data), memorize_time);
-				 MEASURE(_migrate(pop, data), migrate_time);
-				 , gen_time );
+			DO_MEASURE( DO_MEASURE(_evolve(pop, data), evolve_time);
+				    DO_MEASURE(_feedback(pop, data), feedback_time);
+				    // DO_MEASURE(_update(pop, data), update_time);
+				    DO_MEASURE(_memorize(pop, data), memorize_time);
+				    DO_MEASURE(_migrate(pop, data), migrate_time);
+				    , gen_time );
 		    }
 
 		_evolve.lastCall(pop, data);
