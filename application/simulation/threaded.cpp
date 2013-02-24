@@ -82,7 +82,7 @@ int main (int argc, char *argv[])
      * Initialisation de MPI *
      *************************/
 
-    environment env(argc, argv);
+    environment env(argc, argv, MPI_THREAD_MULTIPLE, true);
     communicator world;
 
     /****************************
@@ -210,13 +210,16 @@ int main (int argc, char *argv[])
     //  * Déclaration des composants DIM *
     //  **********************************/
 
-    dim::evolver::async::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
-    dim::feedbacker::async::Easy<EOT> feedbacker;
-    dim::vectorupdater::async::Easy<EOT> updater(alpha, beta);
-    dim::memorizer::async::Easy<EOT> memorizer;
-    dim::migrator::async::Easy<EOT> migrator;
+    dim::core::ThreadsRunner< dim::core::Pop<EOT>&, dim::core::IslandData<EOT>& > tr;
 
-    dim::algo::async::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
+    dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
+    dim::feedbacker::async::Easy<EOT> feedbacker;
+    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    dim::memorizer::Easy<EOT> memorizer;
+    dim::migrator::async::Easy<EOT> migrator;
+    dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
+
+    tr.addHandler(feedbacker).addHandler(migrator).add(island);
 
     /***************
      * Rock & Roll *
@@ -256,7 +259,7 @@ int main (int argc, char *argv[])
 
     apply<EOT>(fitInit, pop);
 
-    island( pop, data );
+    tr( pop, data );
 
     world.abort(0);
 
