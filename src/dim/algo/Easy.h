@@ -69,6 +69,9 @@ namespace dim
 	    {
 		std::ostringstream ss;
 
+		ss.str(""); ss << "total.time." << this->rank();
+		std::ofstream total_time(ss.str());
+
 		ss.str(""); ss << "gen.time." << this->rank();
 		std::ofstream gen_time(ss.str());
 
@@ -87,27 +90,32 @@ namespace dim
 		ss.str(""); ss << "migrate.time." << this->rank();
 		std::ofstream migrate_time(ss.str());
 
-		_evolve.firstCall(pop, data);
-		_feedback.firstCall(pop, data);
-		_update.firstCall(pop, data);
-		_memorize.firstCall(pop, data);
-		_migrate.firstCall(pop, data);
+		DO_MEASURE(
 
-		while ( ( data.toContinue = _checkpoint(pop) ) )
-		    {
-			DO_MEASURE( DO_MEASURE(_evolve(pop, data), evolve_time);
-				    DO_MEASURE(_feedback(pop, data), feedback_time);
-				    // DO_MEASURE(_update(pop, data), update_time);
-				    DO_MEASURE(_memorize(pop, data), memorize_time);
-				    DO_MEASURE(_migrate(pop, data), migrate_time);
-				    , gen_time );
-		    }
+			   _evolve.firstCall(pop, data);
+			   _feedback.firstCall(pop, data);
+			   _update.firstCall(pop, data);
+			   _memorize.firstCall(pop, data);
+			   _migrate.firstCall(pop, data);
 
-		_evolve.lastCall(pop, data);
-		_feedback.lastCall(pop, data);
-		_update.lastCall(pop, data);
-		_memorize.lastCall(pop, data);
-		_migrate.lastCall(pop, data);
+
+			   while ( ( data.toContinue = _checkpoint(pop) ) )
+			       {
+				   DO_MEASURE( DO_MEASURE(_evolve(pop, data), evolve_time);
+					       DO_MEASURE(_feedback(pop, data), feedback_time);
+					       DO_MEASURE(_update(pop, data), update_time);
+					       DO_MEASURE(_memorize(pop, data), memorize_time);
+					       DO_MEASURE(_migrate(pop, data), migrate_time);
+					       , gen_time );
+			       }
+
+			   _evolve.lastCall(pop, data);
+			   _feedback.lastCall(pop, data);
+			   _update.lastCall(pop, data);
+			   _memorize.lastCall(pop, data);
+			   _migrate.lastCall(pop, data);
+
+			   , total_time );
 	    }
 
 	private:
