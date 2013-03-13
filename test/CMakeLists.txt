@@ -4,11 +4,11 @@ SET(SOURCES
   t-Thread-args2
   t-Thread-args3
   t-mpi-persistent
-  t-boost-mpi-thread
-  t-boost-mpi-thread-multi
-  t-boost-mpi-thread-multi-with-trace
-  t-boost-mpi-thread-multi-nonblocking-count
-  t-boost-mpi-thread-multi-thread-recv
+  #t-boost-mpi-thread
+  #t-boost-mpi-thread-multi
+  #t-boost-mpi-thread-multi-with-trace
+  #t-boost-mpi-thread-multi-nonblocking-count
+  #t-boost-mpi-thread-multi-thread-recv
   t-stack
   t-multithreaded-comm
   t-multithreaded-comm-boost-mpi
