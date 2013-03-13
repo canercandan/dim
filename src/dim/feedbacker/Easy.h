@@ -128,8 +128,9 @@ namespace dim
 
 		    for (auto& ind : pop)
 		    	{
-		    	    auto delta = ind.fitness() - ind.getLastFitness();
-
+			    auto end = std::chrono::system_clock::now();
+			    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>( end - data.vectorLastUpdatedTime ).count() / 1000.;
+		    	    auto delta = ( ind.fitness() - ind.getLastFitness() ) / ( ind.receivedTime + elapsed );
 		    	    if ( ind.getLastIsland() == static_cast<int>( this->rank() ) )
 		    		{
 		    		    data.feedbackerReceivingQueue.push( delta, this->rank() );
@@ -145,24 +146,29 @@ namespace dim
 
 		    while ( !data.feedbackerReceivingQueue.empty() )
 		    	{
-		    	    // waiting for a new fitness
 		    	    auto fbr = data.feedbackerReceivingQueue.pop();
 		    	    auto Fi = std::get<0>(fbr);
-		    	    auto Ti = std::get<1>(fbr);
+		    	    // auto t = std::get<1>(fbr);
 		    	    auto from = std::get<2>(fbr);
-		    	    auto& Ri = data.feedbacks[from];
+		    	    auto& Si = data.feedbacks[from];
+			    auto& Ti = data.feedbackLastUpdatedTimes[from];
+			    // const auto alpha_s = 0.99;
+			    const auto alpha_s = 0.01;
 
 			    // _of_algo_data << Ti << " "; _of_algo_data.flush();
 
-		    	    if (Ti)
-		    		{
-		    		    Ri = Ri + 0.01 * ( Fi/Ti - Ri );
-		    		    _of_algo_data << Fi << "/" << Ti << "=" << Fi/Ti << " "; _of_algo_data.flush();
-		    		}
-		    	    else
-		    		{
-		    		    Ri = Ri + 0.01 * ( Fi - Ri );
-		    		}
+		    	    // if (Ti)
+		    	    // 	{
+		    	    // 	    Ri = Ri + 0.01 * ( Fi/Ti - Ri );
+		    	    // 	    _of_algo_data << Fi << "/" << Ti << "=" << Fi/Ti << " "; _of_algo_data.flush();
+		    	    // 	}
+		    	    // else
+		    	    // 	{
+		    	    // 	    Ri = Ri + 0.01 * ( Fi - Ri );
+		    	    // 	}
+
+			    Si = (1-alpha_s) * Si + alpha_s * Fi;
+			    Ti = std::chrono::system_clock::now();
 		    	}
 		}
 
