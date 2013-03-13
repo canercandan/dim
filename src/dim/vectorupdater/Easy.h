@@ -35,7 +35,12 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy( double alpha = 0.8, double beta = 0.99 ) : _alpha(alpha), _beta(beta) {}
+	    Easy( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/ ) : _alpha(alpha), _beta(beta)
+	    {
+		std::ostringstream ss;
+		ss << "trace.updater." << this->rank() << ".txt";
+		_of.open(ss.str());
+	    }
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
@@ -44,6 +49,17 @@ namespace dim
 		/****************************
 		 * Update transition vector *
 		 ****************************/
+
+		// Prepare the vector R
+		// Ri = { Si, if Ti > \tau; 0, otherwise }
+		auto& S = data.feedbacks;
+		auto& T = data.feedbackLastUpdatedTimes;
+		auto& tau = data.vectorLastUpdatedTime;
+		std::vector< typename EOT::Fitness > R( this->size() );
+		for (size_t i = 0; i < this->size(); ++i)
+		    {
+			R[i] = T[i] > tau ? S[i] : 0;
+		    }
 
 		// Stategie par critère MAX
 		// int best = -1;
@@ -58,9 +74,8 @@ namespace dim
 		// 	}
 
 		// Stratégie par récompense proportionnelle
-		auto sum_fits = std::accumulate(data.feedbacks.begin(), data.feedbacks.end(), 0., [](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); } );
-		auto proportionalFeedbacks = data.feedbacks;
-		for (auto& fit : proportionalFeedbacks)
+		auto sum_fits = std::accumulate(R.begin(), R.end(), 0., [](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); } );
+		for (auto& fit : R)
 		    {
 			fit = fit > 0 ? fit / sum_fits * 1000 : 0;
 		    }
@@ -70,13 +85,13 @@ namespace dim
 
 		std::vector< double > epsilon( this->size() );
 
-		for ( auto &k : epsilon )
+		for ( auto& k : epsilon )
 		    {
 			k = rng.rand() % 1000;
 			sum += k;
 		    }
 
-		for ( auto &k : epsilon )
+		for ( auto& k : epsilon )
 		    {
 			k = sum ? k / sum : 0;
 		    }
@@ -120,23 +135,61 @@ namespace dim
 		// 	}
 
 		// Stratégie par récompense proportionnelle
-		typename EOT::Fitness sum_multi = 0;
-		for (size_t i = 0; i < this->size(); ++i)
-		    {
-			sum_multi += data.proba[i] * proportionalFeedbacks[i] / 1000;
-		    }
+		// typename EOT::Fitness sum_multi = 0;
+		// for (size_t i = 0; i < this->size(); ++i)
+		//     {
+		// 	sum_multi += data.proba[i] * R[i] / 1000;
+		//     }
+
+		// for ( size_t i = 0; i < this->size(); ++i )
+		//     {
+		// 	typename EOT::Fitness res = ( data.proba[i] * R[i] ) / sum_multi;
+		// 	data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * res ) + (1 - _beta) * 1000 * epsilon[i];
+		//     }
+
+		// Utilisation basic de R pour la MAJ des proba
+		// typename EOT::Fitness sum_multi = 0;
+		// for (size_t i = 0; i < this->size(); ++i)
+		//     {
+		// 	sum_multi += R[i] / 1000;
+		//     }
+
+		// for ( size_t i = 0; i < this->size(); ++i )
+		//     {
+		// 	R[i] = ( data.proba[i] * R[i] ) / sum_multi;
+		// 	_of << R[i] << " ";
+		//     }
+
+		auto deltaT = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::system_clock::now() - tau ).count() / 1000.;
+		auto alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
+		auto betaT = pow(_beta /*0.01*/, 1. / deltaT);
+		// _of << deltaT << " "; _of.flush();
 
 		for ( size_t i = 0; i < this->size(); ++i )
 		    {
-			typename EOT::Fitness res = ( data.proba[i] * proportionalFeedbacks[i] ) / sum_multi;
-			data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * res ) + (1 - _beta) * 1000 * epsilon[i];
+			// typename EOT::Fitness Ri = R[i] / sum_multi;
 
+			_of << (1 - _beta) /*0.99*/ << " * ( "
+			    << 1 - alphaT << " * "
+			    << data.proba[i] << " + "
+			    << alphaT << " * "
+			    << R[i] << " )"
+			    // << " + " << _beta /*0.01*/ << " * " << 1000 << " * " << epsilon[i]
+			    << " = ";
+
+			data.proba[i] = (1 - betaT) * ( ( 1 - alphaT ) * data.proba[i] + alphaT * R[i] ) + betaT * 1000 * epsilon[i];
+
+			_of << data.proba[i] << std::endl;
+			_of.flush();
 		    }
+
+		tau = std::chrono::system_clock::now();
 	    }
 
 	private:
 	    double _alpha;
 	    double _beta;
+	    std::ofstream _of;
 	};
     } // !vectorupdater
 } // !dim
