@@ -40,7 +40,7 @@ namespace dim
 
 			_op( candidate );
 
-			candidate.invalidate();
+			// candidate.invalidate();
 			_eval( candidate );
 
 			if ( candidate.fitness() > ind.fitness() )
