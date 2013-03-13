@@ -192,8 +192,6 @@ namespace dim
 		    		}
 		    	    --j;
 
-		    	    // _of_algo << j << " "; _of_algo.flush();
-
 		    	    ++outputSizes[j];
 
 		    	    if (j == this->rank())
@@ -222,6 +220,8 @@ namespace dim
 		    	    // This special pop function is waiting while the queue of individual is empty.
 		    	    auto imm = data.migratorReceivingQueue.pop(true);
 		    	    auto ind = std::get<0>(imm);
+		    	    auto time = std::get<1>(imm);
+			    ind.receivedTime = time;
 		    	    pop.push_back( ind );
 		    	    ++inputSize;
 		    	}
