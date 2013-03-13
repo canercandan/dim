@@ -72,10 +72,10 @@ namespace dim
 		fileMonitor.add(tCounter);
 		if (printBest) { stdMonitor->add(tCounter); }
 
-		utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
-		checkpoint.add(genCounter);
-		fileMonitor.add(genCounter);
-		if (printBest) { stdMonitor->add(genCounter); }
+		// utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
+		// checkpoint.add(genCounter);
+		// fileMonitor.add(genCounter);
+		// if (printBest) { stdMonitor->add(genCounter); }
 
 		// std::ostringstream ss_size;
 		// ss_size << "nb_individual_isl" << RANK;
