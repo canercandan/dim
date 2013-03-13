@@ -49,7 +49,7 @@ namespace dim
 		idQueue.push(id);
 	    }
 
-	    std::tuple<T, long, size_t> pop(bool wait = false)
+	    std::tuple<T, double, size_t> pop(bool wait = false)
 	    {
 		// waiting while queue is empty
 		if (wait)
@@ -66,8 +66,9 @@ namespace dim
 
 		std::lock_guard<std::mutex> lock(mutex);
 		auto end = std::chrono::system_clock::now();
-		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>( end - timesQueue.front() ).count();
-		std::tuple<T, long, size_t> ret(dataQueue.front(), elapsed, idQueue.front());
+		auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>( end - timesQueue.front() ).count() / 1000.;
+		if (!elapsed) { elapsed = 10e-10; } // temporary solution in order to have a positive number in elapsed value
+		std::tuple<T, double, size_t> ret(dataQueue.front(), elapsed, idQueue.front());
 		dataQueue.pop();
 		timesQueue.pop();
 		idQueue.pop();
@@ -98,7 +99,7 @@ namespace dim
 		dataQueue.push(newData, id);
 	    }
 
-	    std::tuple<T, long, size_t> pop(size_t id, bool wait = false)
+	    std::tuple<T, double, size_t> pop(size_t id, bool wait = false)
 	    {
 		auto& dataQueue = (*this)[id];
 		return dataQueue.pop(wait);
@@ -123,9 +124,11 @@ namespace dim
 	    using ParallelContext::size;
 	    using Fitness = typename EOT::Fitness;
 
-	    IslandData() : feedbacks(size()), proba(size()), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
+	    IslandData() : feedbacks(size()), feedbackLastUpdatedTimes(size()), vectorLastUpdatedTime(std::chrono::system_clock::now()), proba(size()), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
 
 	    std::vector< Fitness > feedbacks;
+	    std::vector< std::chrono::time_point< std::chrono::system_clock > > feedbackLastUpdatedTimes;
+	    std::chrono::time_point< std::chrono::system_clock > vectorLastUpdatedTime;
 	    std::vector< Fitness > proba;
 
 	    DataQueueVector< Fitness > feedbackerSendingQueue;
