@@ -28,6 +28,7 @@
 #include <iterator>
 #include <EO.h>
 #include <utils/eoLogger.h>
+#include <chrono>
 
 #include <boost/mpi.hpp>
 
@@ -225,6 +226,9 @@ namespace dim
 	    size_t historySize = 1;
 	    std::list< std::pair< size_t, size_t > > lastIslands;
 	    std::list< FitT > lastFitnesses;
+
+	public:
+	    double receivedTime = 1.;
 	    /* !DIM */
 
 	public:
