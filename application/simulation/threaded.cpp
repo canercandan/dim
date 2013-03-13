@@ -113,9 +113,11 @@ int main (int argc, char *argv[])
      *****************************/
 
     // a
-    double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
+    // double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
+    double alpha = parser.createParam(double(0.2), "alpha", "Alpha", 'a', "Islands Model").value();
     // b
-    double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
+    // double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
+    double beta = parser.createParam(double(0.01), "beta", "Beta", 'b', "Islands Model").value();
     // p
     /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
     // d
@@ -133,31 +135,32 @@ int main (int argc, char *argv[])
     /*unsigned chromSize = */parser.getORcreateParam(unsigned(0), "chromSize", "The length of the bitstrings", 'n',"Problem")/*.value()*/;
     eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
 
-    size_t timeout = pow(10, RANK);
-    // size_t timeout = 10000;
-
-    eoEvalFunc<EOT>* ptEval = NULL;
-    ptEval = new SimulatedEval(1);
-    state.storeFunctor(ptEval);
+    // size_t timeout = pow(10, RANK);
+    // size_t timeout = RANK+1;
+    // size_t timeout = 1;
 
     // eoEvalFunc<EOT>* ptEval = NULL;
-    // if ( 0 == RANK )
-    // 	{
-    // 	    ptEval = new SimulatedEval(1);
-    // 	}
-    // else if ( 1 == RANK )
-    // 	{
-    // 	    ptEval = new SimulatedEval(5);
-    // 	}
-    // else if ( 2 == RANK )
-    // 	{
-    // 	    ptEval = new SimulatedEval(10);
-    // 	}
-    // else if ( 3 == RANK )
-    // 	{
-    // 	    ptEval = new SimulatedEval(15);
-    // 	}
+    // ptEval = new SimulatedEval(1);
     // state.storeFunctor(ptEval);
+
+    eoEvalFunc<EOT>* ptEval = NULL;
+    if ( 0 == RANK )
+    	{
+    	    ptEval = new SimulatedEval(1);
+    	}
+    else if ( 1 == RANK )
+    	{
+    	    ptEval = new SimulatedEval(1);
+    	}
+    else if ( 2 == RANK )
+    	{
+    	    ptEval = new SimulatedEval(1);
+    	}
+    else if ( 3 == RANK )
+    	{
+    	    ptEval = new SimulatedEval(1);
+    	}
+    state.storeFunctor(ptEval);
 
     eoEvalFuncCounter<EOT> eval(*ptEval);
 
@@ -185,26 +188,26 @@ int main (int argc, char *argv[])
      ****************************************/
 
     eoMonOp<EOT>* ptMon = NULL;
-    ptMon = new SimulatedOp(timeout);
-    state.storeFunctor(ptMon);
-
-    // if ( 0 == RANK )
-    // 	{
-    // 	    ptMon = new SimulatedOp(1);
-    // 	}
-    // else if ( 1 == RANK )
-    // 	{
-    // 	    ptMon = new SimulatedOp(5);
-    // 	}
-    // else if ( 2 == RANK )
-    // 	{
-    // 	    ptMon = new SimulatedOp(10);
-    // 	}
-    // else if ( 3 == RANK )
-    // 	{
-    // 	    ptMon = new SimulatedOp(15);
-    // 	}
+    // ptMon = new SimulatedOp(timeout);
     // state.storeFunctor(ptMon);
+
+    if ( 0 == RANK )
+    	{
+    	    ptMon = new SimulatedOp(1);
+    	}
+    else if ( 1 == RANK )
+    	{
+    	    ptMon = new SimulatedOp(1);
+    	}
+    else if ( 2 == RANK )
+    	{
+    	    ptMon = new SimulatedOp(1);
+    	}
+    else if ( 3 == RANK )
+    	{
+    	    ptMon = new SimulatedOp(1);
+    	}
+    state.storeFunctor(ptMon);
 
     // /**********************************
     //  * Déclaration des composants DIM *
