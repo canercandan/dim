@@ -31,32 +31,37 @@ SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 ### 3) Find and include useful dependencies
 ######################################################################################
 
+FIND_PACKAGE(MPI)
+
+SET(CMAKE_CXX_COMPILER "${MPI_CXX_COMPILER}")
+
 # FIND_PACKAGE(OpenMP)
 # IF(OPENMP_FOUND)
 #   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 #   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 # ENDIF()
 
-FIND_PACKAGE(EO COMPONENTS ga mpi serial)
 ADD_DEFINITIONS(-DDEPRECATED_MESSAGES) # disable warning deprecated function messages
 ADD_DEFINITIONS(-DWITH_MPI)
 ADD_DEFINITIONS(-DWITH_BOOST)
-
-FIND_PACKAGE(ParadisEO-MO)
-FIND_PACKAGE(ParadisEO-problems)
-FIND_PACKAGE(Gnuplot)
-FIND_PACKAGE(MPI)
-# FIND_PACKAGE(PythonLibs)
-INCLUDE_DIRECTORIES(${EO_INCLUDE_DIRS} ${ParadisEO-MO_INCLUDE_DIRS} ${ParadisEO-problems_INCLUDE_DIRS})
-# INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
+FIND_PACKAGE(EO COMPONENTS ga mpi serial)
+INCLUDE_DIRECTORIES(${EO_INCLUDE_DIRS})
 LINK_DIRECTORIES(${EO_LIBRARY_DIRS})
+
+# FIND_PACKAGE(Gnuplot)
+# FIND_PACKAGE(PythonLibs)
+# INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src)
 
-SET(Boost_USE_STATIC_LIBS ON)
+# SET(Boost_USE_STATIC_LIBS ON)
 FIND_PACKAGE(Boost COMPONENTS serialization)
 
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} contrib ${MPI_CXX_INCLUDE_PATH})
+INCLUDE_DIRECTORIES(
+  ${Boost_INCLUDE_DIRS}
+  contrib
+  )
+
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
 ######################################################################################
