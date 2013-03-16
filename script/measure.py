@@ -7,7 +7,7 @@ FILES = ['gen', 'evolve', 'feedback', 'update', 'memorize', 'migrate']
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Number of islands missing.")
+        print("Usage: %s [NUMBER_OF_ISLAND]" % sys.argv[0])
         sys.exit()
 
     print("Time unit: second")
