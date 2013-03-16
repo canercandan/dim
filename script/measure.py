@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
 import numpy as np
-import sys
+import sys, os
 
 FILES = ['gen', 'evolve', 'feedback', 'update', 'memorize', 'migrate']
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: %s [NUMBER_OF_ISLAND]" % sys.argv[0])
+        print("Usage:", os.path.basename(sys.argv[0]), "[NUMBER_OF_ISLAND]")
         sys.exit()
 
     print("Time unit: second")
