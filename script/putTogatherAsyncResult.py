@@ -24,7 +24,7 @@ def createTimelines(timemax, datafiles):
 
     timelines = [None]*N
     for i in range(N):
-        timelines[i] = [None]*timemax
+        timelines[i] = [None]*(timemax+1)
 
     for i in range(N):
         for line in datafiles[i]:
