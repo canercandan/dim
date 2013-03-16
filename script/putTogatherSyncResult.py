@@ -8,9 +8,10 @@ if __name__ == '__main__':
         sys.exit()
 
     prefix = sys.argv[1]
+    N = sys.argv[2]
 
     files = []
-    for i in range(4):
+    for i in range(N):
         files += [open("%s_monitor_%d" % (prefix, i), 'r')]
 
     newfile = open("%s_monitor" % prefix, 'w')
@@ -86,7 +87,7 @@ if __name__ == '__main__':
 """)
 
     # on ignore la premiere ligne
-    for i in range(4):
+    for i in range(N):
         files[i].readline()
 
     for line in files[0]:
