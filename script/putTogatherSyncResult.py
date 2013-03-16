@@ -8,7 +8,7 @@ if __name__ == '__main__':
         sys.exit()
 
     prefix = sys.argv[1]
-    N = sys.argv[2]
+    N = int(sys.argv[2])
 
     files = []
     for i in range(N):
