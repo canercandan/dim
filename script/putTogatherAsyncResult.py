@@ -13,7 +13,8 @@ def getTimeMax(datafiles):
     max_values = []
 
     for data in datafiles:
-        max_values += [float(data[-1][1])]
+        if data:
+            max_values += [float(data[-1][1])]
 
     return round(max(max_values))
 
