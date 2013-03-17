@@ -109,6 +109,7 @@ namespace dim
 
 		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
 		{
+#ifdef TRACE
 		    std::ostringstream ss;
 		    ss << "trace.feedbacker." << this->rank() << ".algo.txt";
 		    _of_algo.open(ss.str());
@@ -116,6 +117,7 @@ namespace dim
 		    std::ostringstream ss_data;
 		    ss_data << "trace.feedbacker." << this->rank() << ".algo.data.txt";
 		    _of_algo_data.open(ss_data.str());
+#endif // !TRACE
 		}
 
 		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
@@ -226,7 +228,9 @@ namespace dim
 	    private:
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
+#ifdef TRACE
 		std::ofstream _of_algo, _of_algo_data;
+#endif // !TRACE
 	    };
 	} // !async
     }

@@ -10,3 +10,6 @@ SET(EO_LIBRARYDIR "")
 
 # Enable time measuring
 # ADD_DEFINITIONS(-DMEASURE)
+
+# Enable tracing files
+# ADD_DEFINITIONS(-DTRACE)

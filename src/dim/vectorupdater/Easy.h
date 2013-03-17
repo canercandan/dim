@@ -37,9 +37,11 @@ namespace dim
 	public:
 	    Easy( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/ ) : _alpha(alpha), _beta(beta)
 	    {
+#ifdef TRACE
 		std::ostringstream ss;
 		ss << "trace.updater." << this->rank() << ".txt";
 		_of.open(ss.str());
+#endif // !TRACE
 	    }
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
@@ -169,6 +171,7 @@ namespace dim
 		    {
 			// typename EOT::Fitness Ri = R[i] / sum_multi;
 
+#ifdef TRACE
 			_of << (1 - _beta) /*0.99*/ << " * ( "
 			    << 1 - alphaT << " * "
 			    << data.proba[i] << " + "
@@ -176,11 +179,15 @@ namespace dim
 			    << R[i] << " )"
 			    // << " + " << _beta /*0.01*/ << " * " << 1000 << " * " << epsilon[i]
 			    << " = ";
+#endif // !TRACE
 
 			data.proba[i] = (1 - betaT) * ( ( 1 - alphaT ) * data.proba[i] + alphaT * R[i] ) + betaT * 1000 * epsilon[i];
 
+#ifdef TRACE
 			_of << data.proba[i] << std::endl;
 			_of.flush();
+#endif // !TRACE
+
 		    }
 
 		tau = std::chrono::system_clock::now();
@@ -189,7 +196,9 @@ namespace dim
 	private:
 	    double _alpha;
 	    double _beta;
+#ifdef TRACE
 	    std::ofstream _of;
+#endif // !TRACE
 	};
     } // !vectorupdater
 } // !dim

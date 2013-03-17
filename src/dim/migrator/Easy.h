@@ -157,9 +157,11 @@ namespace dim
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
+#ifdef TRACE
 		    std::ostringstream ss;
 		    ss << "trace.migrator." << this->rank() << ".algo.txt";
 		    _of_algo.open(ss.str());
+#endif // !TRACE
 
 		    for (auto& ind : pop)
 			{
@@ -285,7 +287,9 @@ namespace dim
 	    private:
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
+#ifdef TRACE
 		std::ofstream _of_comm, _of_algo;
+#endif // !TRACE
 	    };
 	} // !async
     } // !migrator
