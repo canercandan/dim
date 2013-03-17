@@ -39,6 +39,7 @@
 #include "SteadyFit.h"
 #include "Eval.h"
 #include "CtrlC.h"
+#include "Time.h"
 
 #endif // !_CONTINUATOR_
 
