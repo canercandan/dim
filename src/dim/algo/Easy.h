@@ -65,6 +65,7 @@ namespace dim
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
+#ifdef MEASURE
 		std::ostringstream ss;
 
 		ss.str(""); ss << "total.time." << this->rank();
@@ -114,6 +115,29 @@ namespace dim
 			   _migrate.lastCall(pop, data);
 
 			   , total_time );
+#else // MEASURE
+		_evolve.firstCall(pop, data);
+		_feedback.firstCall(pop, data);
+		_update.firstCall(pop, data);
+		_memorize.firstCall(pop, data);
+		_migrate.firstCall(pop, data);
+
+
+		while ( ( data.toContinue = _checkpoint(pop) ) )
+		    {
+			_evolve(pop, data);
+			_feedback(pop, data);
+			_update(pop, data);
+			_memorize(pop, data);
+			_migrate(pop, data);
+		    }
+
+		_evolve.lastCall(pop, data);
+		_feedback.lastCall(pop, data);
+		_update.lastCall(pop, data);
+		_memorize.lastCall(pop, data);
+		_migrate.lastCall(pop, data);
+#endif // !MEASURE
 	    }
 
 	public:
