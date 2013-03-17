@@ -66,6 +66,15 @@ namespace dim
 	{
 	    continuator::Combined<EOT>* continuator = NULL;
 
+	    long maxTime = _parser.getORcreateParam(long(0), "maxTime", "Maximum time (in seconds) used by the program () = none)",'X',"Stopping criterion").value();
+	    if (maxTime) // positive: -> define and store
+		{
+		    continuator::Time<EOT> *timeCont = new continuator::Time<EOT>(maxTime);
+		    _state.storeFunctor(timeCont);
+		    // and "add" to combined
+		    continuator = combinedContinuator<EOT>(continuator, timeCont);
+		}
+
 	    unsigned maxGen = _parser.getORcreateParam(unsigned(10000), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
 	    if (maxGen) // positive: -> define and store
 		{
