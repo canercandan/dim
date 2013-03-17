@@ -1,0 +1,9 @@
+# Boost customized location
+SET(BOOST_INCLUDEDIR "")
+SET(BOOST_LIBRARYDIR "")
+# SET(Boost_USE_STATIC_LIBS ON)
+
+# EO customized location
+SET(EO_INCLUDEDIR "")
+SET(EO_LIBRARYDIR "")
+# SET(EO_USE_STATIC_LIBS ON)
