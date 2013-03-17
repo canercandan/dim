@@ -36,8 +36,6 @@
 
 #include "Base.h"
 
-#define MEASURE
-
 #ifdef MEASURE
 # define DO_MEASURE(op, f)						\
     {									\
