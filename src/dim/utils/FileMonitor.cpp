@@ -51,6 +51,14 @@ namespace dim
 
 	Monitor& FileMonitor::operator()(void)
 	{
+	    if (counter % frequency)
+		{
+		    counter++;
+		    return *this;
+		}
+
+	    counter++;
+
 	    ofstream os(filename.c_str(),
 			overwrite ?
 			ios_base::out|ios_base::trunc // truncate

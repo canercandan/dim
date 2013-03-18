@@ -1,7 +1,7 @@
 // -*- mode: c++; c-indent-level: 4; c++-member-init-indent: 8; comment-column: 35; -*-
 
 //-----------------------------------------------------------------------------
-// eoFileMonitor.h
+// FileMonitor.h
 // (c) Marc Schoenauer, Maarten Keijzer and GeNeura Team, 2000
 /*
   This library is free software; you can redistribute it and/or
@@ -56,20 +56,26 @@ namespace dim
 	     * Try to create the file in writing mode, erasing it if asked.
 	     *
 	     * @param _filename complete filename to write to
+	     * @param _frequency write to the file at this frequency
 	     * @param _delim delimiter string to use between each item of the registered vector (e.g. of eoStats)
+	     * @param _counter beginning value of the counter
 	     * @param _keep_existing if true, overwrite any existing file with the same name prior to any output
 	     * @param _header print the header (with the descriptions of registered eoStats) at the beginning of the file (WARNING: true will discards header printing)
 	     * @param _overwrite if true, overwrite the existing file
 	     */
 	    FileMonitor(
 			std::string _filename,
+			unsigned _frequency = 1,
 			std::string _delim = " ",
+			unsigned _counter = 0,
 			bool _keep_existing = false,
 			bool _header = false,
 			bool _overwrite = false
 			)
 		: filename(_filename),
+		  frequency(_frequency),
 		  delim(_delim),
+		  counter(_counter),
 		  keep(_keep_existing),
 		  header(_header),
 		  firstcall(true),
@@ -106,8 +112,14 @@ namespace dim
 	    //! complete filename to write to
 	    std::string filename;
 
+	    //! write to the file at a frequency
+	    unsigned frequency;
+
 	    //! delimiter to use between each write
 	    std::string delim;
+
+	    // beginnig value of the counter
+	    unsigned int counter;
 
 	    //! should we append or create a new file
 	    bool keep;
