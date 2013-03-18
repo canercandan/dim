@@ -173,7 +173,7 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data;
 
-    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data);
+    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 200);
 
     /**************
      * EO routine *
@@ -217,7 +217,8 @@ int main (int argc, char *argv[])
 
     dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
-    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    // dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    dim::algo::Easy<EOT>::DummyVectorUpdater updater;
     dim::memorizer::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
     dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
