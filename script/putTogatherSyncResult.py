@@ -34,7 +34,7 @@ if __name__ == '__main__':
         avg += [float(t0[4]) * float(t0[3])]
         for i in range(1,4):
             ti = files[i].readline().split()
-            newfile.write('%s ' % ' '.join(ti[3:]))
+            newfile.write('%s ' % ' '.join(ti[2:]) )
             best += [float(ti[6])]
             nbindi += [float(ti[3])]
             avg += [float(ti[4]) * float(ti[3])]
