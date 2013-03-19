@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     for line in files[0]:
         t0 = line.split()
-        newfile.write('%s ' % ' '.join(t0[2:]))
+        newfile.write('%s %s ' % (t0[1], ' '.join(t0[2:]) ) )
         best = []
         nbindi = []
         avg = []
