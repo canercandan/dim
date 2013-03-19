@@ -38,6 +38,8 @@ def getTimelineInfo(timeline):
     Parse the info data provided by a timeline and return.
     """
 
+    if not timeline: return None
+
     info = {}
     info['nb'], info['avg'], info['delta'], info['best'], info['input'], info['output'] = timeline[:6]
     info['probas'] = [ float(x) for x in timeline[6:6+N] ]
@@ -93,7 +95,10 @@ if __name__ == '__main__':
 
         for i in range(N):
             info = getTimelineInfo(timelines[i][time])
+
+            if not info: continue
             # pprint(info)
+
             writeInfoToResult(info, newfile)
 
             best += [info['best']]
