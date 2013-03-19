@@ -51,13 +51,29 @@ namespace dim
 
 	Monitor& FileMonitor::operator()(void)
 	{
-	    if (counter % frequency)
+	    if (stepTimer)
 		{
-		    counter++;
-		    return *this;
-		}
+		    auto now = std::chrono::system_clock::now();
+		    unsigned elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now-start).count();
+		    elapsed /= stepTimer;
 
-	    counter++;
+		    if ( elapsed <= lastElapsedTime )
+			{
+			    return *this;
+			}
+
+		    lastElapsedTime = elapsed;
+		}
+	    else
+		{
+		    if (counter % frequency)
+			{
+			    counter++;
+			    return *this;
+			}
+
+		    counter++;
+		}
 
 	    ofstream os(filename.c_str(),
 			overwrite ?

@@ -30,6 +30,7 @@
 #include <string>
 #include <fstream>
 #include <stdexcept>
+#include <chrono>
 
 #include "Monitor.h"
 #include "eoObject.h"
@@ -70,7 +71,8 @@ namespace dim
 			unsigned _counter = 0,
 			bool _keep_existing = false,
 			bool _header = false,
-			bool _overwrite = false
+			bool _overwrite = false,
+			unsigned _stepTimer = 1000
 			)
 		: filename(_filename),
 		  frequency(_frequency),
@@ -79,7 +81,8 @@ namespace dim
 		  keep(_keep_existing),
 		  header(_header),
 		  firstcall(true),
-		  overwrite(_overwrite)
+		  overwrite(_overwrite),
+		  stepTimer(_stepTimer)
 	    {
 		if (!_keep_existing) {
 		    std::ofstream os (filename.c_str ());
@@ -132,6 +135,15 @@ namespace dim
 
 	    //! erase the entire file prior to writing in it (mode eos_base::
 	    bool overwrite;
+
+	    //! step timer
+	    unsigned stepTimer;
+
+	    //! start time
+	    std::chrono::time_point< std::chrono::system_clock > start = std::chrono::system_clock::now();
+
+	    //! last elapsed time
+	    unsigned lastElapsedTime = 0;
 	};
 
     } // !utils
