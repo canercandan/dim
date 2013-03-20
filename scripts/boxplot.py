@@ -19,7 +19,7 @@ if __name__ == '__main__':
     for i in range(Ni):
         files = []
         for r in range(Nr):
-            fn = "%s_%d_monitor_%d" % (prefix, r, i)
+            fn = "%s_%d_monitor_%d" % (prefix, r+1, i)
             print("Pre-opening of run files…", fn)
             f = open(fn)
             files += [(fn, f)]
