@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os
+import pylab as pl;
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -22,6 +23,8 @@ if __name__ == '__main__':
     for i in range(N):
         files[i].readline()
 
+    total = []
+
     for line in files[0]:
         t0 = line.split()
         newfile.write('%s %s ' % (t0[1], ' '.join(t0[2:]) ) )
@@ -29,16 +32,22 @@ if __name__ == '__main__':
         nbindi = []
         avg = []
         evl = []
-        best += [float(t0[6])]
-        nbindi += [float(t0[3])]
-        avg += [float(t0[4]) * float(t0[3])]
-        for i in range(1,4):
+        best += [float(t0[5])]
+        nbindi += [float(t0[2])]
+        avg += [float(t0[3]) * float(t0[2])]
+        for i in range(1,N):
             ti = files[i].readline().split()
             newfile.write('%s ' % ' '.join(ti[2:]) )
-            best += [float(ti[6])]
-            nbindi += [float(ti[3])]
-            avg += [float(ti[4]) * float(ti[3])]
+            best += [float(ti[5])]
+            nbindi += [float(ti[2])]
+            avg += [float(ti[3]) * float(ti[2])]
         newfile.write('%d %d %d' % (max(best), sum(avg) / sum(nbindi), 0))
         newfile.write('\n')
 
+        total += [nbindi]
+
+    pl.plot(total)
+    pl.show()
+
+    # print(total)
     print("Done")
