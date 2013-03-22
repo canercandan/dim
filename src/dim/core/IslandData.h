@@ -20,12 +20,15 @@
 #ifndef _CORE_ISLANDDATA_H_
 #define _CORE_ISLANDDATA_H_
 
+#if __cplusplus > 199711L
 #include <tuple>
-#include <vector>
-#include <queue>
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#endif
+
+#include <vector>
+#include <queue>
 
 #include "ParallelContext.h"
 

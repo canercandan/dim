@@ -96,7 +96,11 @@ class Pop: public std::vector<EOT>, public eoObject, public eoPersistent
 
         /** Default ctor. Creates empty pop
         */
-        Pop()   : std::vector<EOT>(), eoObject(), eoPersistent() {};
+        Pop()   : std::vector<EOT>(), eoObject(), eoPersistent()
+#if __cplusplus <= 199711L
+		, inputSize(0), outputSize(0)
+#endif
+        {};
 
         /** Ctor for the initialization of chromosomes
 
@@ -105,6 +109,9 @@ class Pop: public std::vector<EOT>, public eoObject, public eoPersistent
         */
         Pop( unsigned _popSize, eoInit<EOT>& _chromInit )
             : std::vector<EOT>()
+#if __cplusplus <= 199711L
+	    , inputSize(0), outputSize(0)
+#endif
         {
             resize(_popSize);
             for ( unsigned i = 0; i < _popSize; i++ )
@@ -407,8 +414,13 @@ public:
 	}
 
 private:
+#if __cplusplus > 199711L
 	size_t inputSize = 0;
 	size_t outputSize = 0;
+#else
+	size_t inputSize;
+	size_t outputSize;
+#endif
 	std::vector<size_t> outputSizes;
 
 }; // class Pop

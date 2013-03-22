@@ -28,7 +28,12 @@
 #include <iterator>
 #include <EO.h>
 #include <utils/eoLogger.h>
-#include <chrono>
+
+// #if __cplusplus > 199711L
+// #include <chrono>
+// #else
+// #include <boost/chrono/chrono_io.hpp>
+// #endif
 
 #include <boost/mpi.hpp>
 
@@ -89,6 +94,9 @@ namespace dim
 	    */
 	    Vector(unsigned _size = 0, GeneType _value = GeneType())
 		: EO<FitT>(), std::vector<GeneType>(_size, _value)
+#if __cplusplus <= 199711L
+		, historySize(1), receivedTime(1.)
+#endif
 	    {}
 
 	    /// copy ctor abstracting from the FitT
@@ -199,7 +207,12 @@ namespace dim
 		std::cout.flush();
 
 		size_t i = 0;
+
+#if __cplusplus > 199711L
 		for (auto it = lastIslands.crbegin(); it != lastIslands.crend(); ++it, ++i)
+#else
+		for (std::list< std::pair< size_t, size_t > >::reverse_iterator it = lastIslands.rbegin(); it != lastIslands.rend(); ++it, ++i)
+#endif
 		    {
 			size_t count = it->first;
 			size_t last = it->second;
@@ -223,12 +236,20 @@ namespace dim
 	    inline size_t getHistorySize(size_t size) const { return historySize; }
 
 	private:
+#if __cplusplus > 199711L
 	    size_t historySize = 1;
+#else
+	    size_t historySize;
+#endif
 	    std::list< std::pair< size_t, size_t > > lastIslands;
 	    std::list< FitT > lastFitnesses;
 
 	public:
+#if __cplusplus > 199711L
 	    double receivedTime = 1.;
+#else
+	    double receivedTime;
+#endif
 	    /* !DIM */
 
 	public:
