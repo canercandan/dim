@@ -84,7 +84,11 @@ namespace dim
 		    continuator = combinedContinuator<EOT>(continuator, genCont);
 		}
 
+#if __cplusplus > 199711L
 	    continuator::Fit<EOT> *fitCont = nullptr;
+#else
+	    continuator::Fit<EOT> *fitCont = NULL;
+#endif
 	    double targetFitness = _parser.getORcreateParam(double(1000), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion").value();
 	    if (targetFitness)
 		{

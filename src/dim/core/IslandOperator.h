@@ -32,7 +32,11 @@ namespace dim
     {
 	template <typename EOT>
 	class IslandOperator : public ParallelContext,
+#if __cplusplus > 199711L
 			       public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
+#else
+			       public core::Thread<EOT>
+#endif
 	{
 	public:
 	    IslandOperator(size_t tag = 0) : ParallelContext(tag) {}

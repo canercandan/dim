@@ -38,9 +38,18 @@ namespace dim
 	    void operator() (EOT& _sol)
 	    {
 		unsigned int sum = 0;
+
+#if __cplusplus > 199711L
 		for (auto i : _sol)
+#else
+		for (size_t i = 0; i < _sol.size(); ++i)
+#endif
 		    {
+#if __cplusplus > 199711L
 			sum += i;
+#else
+			sum += _sol[i];
+#endif
 		    }
 		_sol.fitness(sum);
 	    }

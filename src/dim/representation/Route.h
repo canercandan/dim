@@ -46,8 +46,13 @@ namespace dim
     namespace representation
     {
 
+#if __cplusplus > 199711L
 	template <typename FitT = float>
 	using Route = core::Vector<FitT, unsigned>; // [Fitness (- length), Gene (city)]
+#else
+	template <typename FitT>
+	class Route : public core::Vector<FitT, unsigned> {};
+#endif
 
     } // !representation
 } // !dim

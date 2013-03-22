@@ -27,7 +27,11 @@
 #ifndef _UTILS_TIMECOUNTER_H_
 #define _UTILS_TIMECOUNTER_H_
 
+#if __cplusplus > 199711L
 #include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
 
 #include "Stat.h"
 
@@ -35,6 +39,11 @@ namespace dim
 {
     namespace utils
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
 
 	/**
 	   An eoStat that simply gives the user time since first generation
@@ -45,19 +54,29 @@ namespace dim
 	class TimeCounter : public Updater, public eoValueParam<double>
 	{
 	public:
-	    TimeCounter() : eoValueParam<double>(0.0, "Time"), _start( std::chrono::system_clock::now() ) {}
+	    TimeCounter() : eoValueParam<double>(0.0, "Time"), _start( std_or_boost::chrono::system_clock::now() ) {}
 
 	    /** simply stores the time spent in process in its value() */
 	    virtual void operator()()
 	    {
 		// ask for wall clock
-		auto end = std::chrono::system_clock::now();
-		auto milliseconds_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>( end - _start ).count();
+#if __cplusplus > 199711L
+		auto end = std_or_boost::chrono::system_clock::now();
+#else
+	        std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();
+#endif
+
+#if __cplusplus > 199711L
+		auto milliseconds_elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::milliseconds>( end - _start ).count();
+#else
+		unsigned milliseconds_elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::milliseconds>( end - _start ).count();
+#endif
+
 		value() = milliseconds_elapsed / 1000.;
 	    }
 
 	private:
-	    std::chrono::time_point< std::chrono::system_clock > _start;
+	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > _start;
 	};
 
     } // !utils

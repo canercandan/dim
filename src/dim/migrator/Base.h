@@ -28,14 +28,22 @@ namespace dim
     {
 	template <typename EOT>
 	class Base : public core::IslandOperator<EOT>,
+#if __cplusplus > 199711L
 		     public core::ThreadsHandler< core::Pop<EOT>&, core::IslandData<EOT>& >
+#else
+		     public core::ThreadsHandler<EOT>
+#endif
 	{
 	public:
 	    Base() : core::IslandOperator<EOT>(0) {}
 
 	    virtual void firstCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
 	    virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&) {}
+#if __cplusplus > 199711L
 	    virtual void addTo(core::ThreadsRunner< core::Pop<EOT>&, core::IslandData<EOT>& >&) {}
+#else
+	    virtual void addTo(core::ThreadsRunner<EOT>&) {}
+#endif
 	};
     }
 }

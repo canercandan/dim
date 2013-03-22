@@ -26,9 +26,15 @@
 #include <dim/migrator/Easy.h>
 #include <dim/vectorupdater/Easy.h>
 
-using namespace std;
-using namespace boost::mpi;
-using namespace boost;
+#if __cplusplus > 199711L
+namespace std_or_boost = std;
+#else
+namespace std_or_boost = boost;
+#endif
+
+// using namespace std;
+// using namespace boost::mpi;
+// using namespace boost;
 
 typedef dim::core::Bit<double> EOT;
 
@@ -42,7 +48,7 @@ public:
 
     bool operator()(EOT&)
     {
-	std::this_thread::sleep_for(std::chrono::milliseconds( _timeout ));
+	std_or_boost::this_thread::sleep_for(std_or_boost::chrono::milliseconds( _timeout ));
 	return true;
     }
 
@@ -56,7 +62,7 @@ public:
     SimulatedEval(typename EOT::Fitness fit) : _fit(fit) {}
 
     /// The class name.
-    virtual string className() const { return "SimulatedEval"; }
+    virtual std::string className() const { return "SimulatedEval"; }
 
     void operator()(EOT& sol)
     {
@@ -82,8 +88,8 @@ int main (int argc, char *argv[])
      * Initialisation de MPI *
      *************************/
 
-    environment env(argc, argv, MPI_THREAD_MULTIPLE, true);
-    communicator world;
+    boost::mpi::environment env(argc, argv, MPI_THREAD_MULTIPLE, true);
+    boost::mpi::communicator world;
 
     /****************************
      * Il faut au moins 4 nœuds *
@@ -173,99 +179,103 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data;
 
-    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 200);
+//     dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 200);
 
-    /**************
-     * EO routine *
-     **************/
+//     /**************
+//      * EO routine *
+//      **************/
 
-    make_parallel(parser);
-    make_verbose(parser);
-    make_help(parser);
+//     make_parallel(parser);
+//     make_verbose(parser);
+//     make_help(parser);
 
-    /****************************************
-     * Distribution des opérateurs aux iles *
-     ****************************************/
+//     /****************************************
+//      * Distribution des opérateurs aux iles *
+//      ****************************************/
 
-    eoMonOp<EOT>* ptMon = NULL;
-    // ptMon = new SimulatedOp(timeout);
-    // state.storeFunctor(ptMon);
+//     eoMonOp<EOT>* ptMon = NULL;
+//     // ptMon = new SimulatedOp(timeout);
+//     // state.storeFunctor(ptMon);
 
-    if ( 0 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    else if ( 1 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    else if ( 2 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    else if ( 3 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    state.storeFunctor(ptMon);
+//     if ( 0 == RANK )
+//     	{
+//     	    ptMon = new SimulatedOp(1);
+//     	}
+//     else if ( 1 == RANK )
+//     	{
+//     	    ptMon = new SimulatedOp(1);
+//     	}
+//     else if ( 2 == RANK )
+//     	{
+//     	    ptMon = new SimulatedOp(1);
+//     	}
+//     else if ( 3 == RANK )
+//     	{
+//     	    ptMon = new SimulatedOp(1);
+//     	}
+//     state.storeFunctor(ptMon);
 
-    // /**********************************
-    //  * Déclaration des composants DIM *
-    //  **********************************/
+//     // /**********************************
+//     //  * Déclaration des composants DIM *
+//     //  **********************************/
 
-    dim::core::ThreadsRunner< dim::core::Pop<EOT>&, dim::core::IslandData<EOT>& > tr;
+// #if __cplusplus > 199711L
+//     dim::core::ThreadsRunner< dim::core::Pop<EOT>&, dim::core::IslandData<EOT>& > tr;
+// #else
+//     dim::core::ThreadsRunner< EOT > tr;
+// #endif
 
-    dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
-    dim::feedbacker::async::Easy<EOT> feedbacker;
-    // dim::vectorupdater::Easy<EOT> updater(alpha, beta);
-    dim::algo::Easy<EOT>::DummyVectorUpdater updater;
-    dim::memorizer::Easy<EOT> memorizer;
-    dim::migrator::async::Easy<EOT> migrator;
-    dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
+//     dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
+//     dim::feedbacker::async::Easy<EOT> feedbacker;
+//     // dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+//     dim::algo::Easy<EOT>::DummyVectorUpdater updater;
+//     dim::memorizer::Easy<EOT> memorizer;
+//     dim::migrator::async::Easy<EOT> migrator;
+//     dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
 
-    tr.addHandler(feedbacker).addHandler(migrator).add(island);
+//     tr.addHandler(feedbacker).addHandler(migrator).add(island);
 
-    /***************
-     * Rock & Roll *
-     ***************/
+//     /***************
+//      * Rock & Roll *
+//      ***************/
 
-    /******************************************************************************
-     * Création de la matrice de transition et distribution aux iles des vecteurs *
-     ******************************************************************************/
+//     /******************************************************************************
+//      * Création de la matrice de transition et distribution aux iles des vecteurs *
+//      ******************************************************************************/
 
-    dim::core::MigrationMatrix<EOT> probabilities( ALL );
-    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
+//     dim::core::MigrationMatrix<EOT> probabilities( ALL );
+//     dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
 
-    if ( 0 == RANK )
-    	{
-    	    initmatrix( probabilities );
-    	    std::cout << probabilities;
-    	    data.proba = probabilities(RANK);
+//     if ( 0 == RANK )
+//     	{
+//     	    initmatrix( probabilities );
+//     	    std::cout << probabilities;
+//     	    data.proba = probabilities(RANK);
 
-    	    for (size_t i = 1; i < ALL; ++i)
-    		{
-    		    world.send( i, 100, probabilities(i) );
-    		}
-    	}
-    else
-    	{
-    	    world.recv( 0, 100, data.proba );
-    	}
+//     	    for (size_t i = 1; i < ALL; ++i)
+//     		{
+//     		    world.send( i, 100, probabilities(i) );
+//     		}
+//     	}
+//     else
+//     	{
+//     	    world.recv( 0, 100, data.proba );
+//     	}
 
-    /******************************************
-     * Get the population size of all islands *
-     ******************************************/
+//     /******************************************
+//      * Get the population size of all islands *
+//      ******************************************/
 
-    world.barrier();
-    dim::utils::print_sum(pop);
+//     world.barrier();
+//     dim::utils::print_sum(pop);
 
-    FitnessInit fitInit;
+//     FitnessInit fitInit;
 
-    apply<EOT>(fitInit, pop);
+//     apply<EOT>(fitInit, pop);
 
-    tr( pop, data );
+//     tr( pop, data );
 
-    world.abort(0);
+//     world.abort(0);
 
     return 0 ;
 }

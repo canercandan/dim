@@ -39,7 +39,7 @@ namespace dim
 	    inline size_t tag() const { return _tag; }
 
 	private:
-	    const size_t _tag = 0;
+	    const size_t _tag;
 	    boost::mpi::communicator _world;
 	};
 

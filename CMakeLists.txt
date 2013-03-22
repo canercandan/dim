@@ -42,7 +42,7 @@ ADD_DEFINITIONS(-DWITH_MPI)
 ADD_DEFINITIONS(-DWITH_BOOST)
 
 FIND_PACKAGE(EO COMPONENTS ga mpi serial)
-FIND_PACKAGE(Boost COMPONENTS serialization)
+FIND_PACKAGE(Boost COMPONENTS serialization system chrono)
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src ${EO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} contrib)
 LINK_DIRECTORIES(${EO_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
@@ -61,7 +61,7 @@ IF(UNIX)
   ADD_DEFINITIONS( -Wall -W -Wextra )
   # ADD_DEFINITIONS( -Weffc++)
   # ADD_DEFINITIONS( -g3 )
-  ADD_DEFINITIONS(-std=c++11 -D_GLIBCXX_USE_NANOSLEEP)
+  # ADD_DEFINITIONS(-std=c++11 -D_GLIBCXX_USE_NANOSLEEP)
 ENDIF()
 
 ######################################################################################

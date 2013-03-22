@@ -42,9 +42,19 @@ namespace dim
 	/// clears the memory
 	FunctorStore::~FunctorStore()
 	{
-	    for(auto &func : vec) {
-		delete func;
-	    }
+#if __cplusplus > 199711L
+	    for(auto &func : vec)
+#else
+	    for (unsigned i = 0; i < vec.size(); ++i)
+#endif
+
+		{
+#if __cplusplus > 199711L
+		    delete func;
+#else
+		    delete vec[i];
+#endif
+		}
 	}
 
     } // !core

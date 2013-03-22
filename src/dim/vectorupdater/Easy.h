@@ -20,6 +20,12 @@
 #ifndef _VECTORUPDATER_EASY_H_
 #define _VECTORUPDATER_EASY_H_
 
+#if __cplusplus > 199711L
+#include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
+
 #include <vector>
 #include <algorithm>
 #include <numeric>
@@ -31,6 +37,12 @@ namespace dim
 {
     namespace vectorupdater
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
+
 	template <typename EOT>
 	class Easy : public Base<EOT>
 	{
@@ -44,6 +56,10 @@ namespace dim
 #endif // !TRACE
 	    }
 
+#if __cplusplus <= 199711L
+	    static inline typename EOT::Fitness bounded_sum(typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); }
+#endif
+
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
 		if (pop.empty()) { return; }
@@ -54,9 +70,17 @@ namespace dim
 
 		// Prepare the vector R
 		// Ri = { Si, if Ti > \tau; 0, otherwise }
+#if __cplusplus > 199711L
 		auto& S = data.feedbacks;
 		auto& T = data.feedbackLastUpdatedTimes;
 		auto& tau = data.vectorLastUpdatedTime;
+#else
+		typedef typename EOT::Fitness Fitness;
+		std::vector< Fitness >& S = data.feedbacks;
+		std::vector< std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > >& T = data.feedbackLastUpdatedTimes;
+		std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >& tau = data.vectorLastUpdatedTime;
+#endif
+
 		std::vector< typename EOT::Fitness > R( this->size() );
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
@@ -76,9 +100,22 @@ namespace dim
 		// 	}
 
 		// Stratégie par récompense proportionnelle
+#if __cplusplus > 199711L
 		auto sum_fits = std::accumulate(R.begin(), R.end(), 0., [](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); } );
-		for (auto& fit : R)
+#else
+		typename EOT::Fitness sum_fits = std::accumulate(R.begin(), R.end(), 0., bounded_sum );
+#endif
+
+#if __cplusplus > 199711L
+		    for (auto& fit : R)
+#else
+		    for (size_t i = 0; i < R.size(); ++i)
+#endif
 		    {
+#if __cplusplus <= 199711L
+			typename EOT::Fitness& fit = R[i];
+#endif
+
 			fit = fit > 0 ? fit / sum_fits * 1000 : 0;
 		    }
 
@@ -87,14 +124,30 @@ namespace dim
 
 		std::vector< double > epsilon( this->size() );
 
+#if __cplusplus > 199711L
 		for ( auto& k : epsilon )
+#else
+		for (size_t i = 0; i < epsilon.size(); ++i)
+#endif
 		    {
+#if __cplusplus <= 199711L
+			double& k = epsilon[i];
+#endif
+
 			k = rng.rand() % 1000;
 			sum += k;
 		    }
 
+#if __cplusplus > 199711L
 		for ( auto& k : epsilon )
+#else
+		for (size_t i = 0; i < epsilon.size(); ++i)
+#endif
 		    {
+#if __cplusplus <= 199711L
+			double& k = epsilon[i];
+#endif
+
 			k = sum ? k / sum : 0;
 		    }
 
@@ -162,9 +215,16 @@ namespace dim
 		// 	_of << R[i] << " ";
 		//     }
 
-		auto deltaT = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::system_clock::now() - tau ).count() / 1000.;
+#if __cplusplus > 199711L
+		auto deltaT = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.;
 		auto alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
 		auto betaT = pow(_beta /*0.01*/, 1. / deltaT);
+#else
+		double deltaT = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.;
+		double alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
+		double betaT = pow(_beta /*0.01*/, 1. / deltaT);
+#endif
+
 		// _of << deltaT << " "; _of.flush();
 
 		for ( size_t i = 0; i < this->size(); ++i )
@@ -190,7 +250,7 @@ namespace dim
 
 		    }
 
-		tau = std::chrono::system_clock::now();
+		tau = std_or_boost::chrono::system_clock::now();
 	    }
 
 	private:

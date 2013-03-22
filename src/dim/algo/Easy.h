@@ -22,7 +22,12 @@
 #define _ALGO_EASY_H_
 
 // For time mesuring
+#if __cplusplus > 199711L
 #include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
+
 #include <sstream>
 #include <fstream>
 
@@ -39,10 +44,10 @@
 #ifdef MEASURE
 # define DO_MEASURE(op, f)						\
     {									\
-	auto start = std::chrono::system_clock::now();			\
+	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start = std_or_boost::chrono::system_clock::now(); \
 	op;								\
-	auto end = std::chrono::system_clock::now();			\
-	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count(); \
+	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
+	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
 	f << elapsed << " "; f.flush();					\
     }
 #else
@@ -53,6 +58,12 @@ namespace dim
 {
     namespace algo
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
+
 	template <typename EOT>
 	class Easy : public Base<EOT>
 	{
@@ -155,10 +166,7 @@ namespace dim
 	    memorizer::Base<EOT>& _memorize;
 	    migrator::Base<EOT>& _migrate;
 
-	    bool _initG = true;
-	    size_t _probaSame = 100;
-
-	    std::atomic<bool> _tocontinue;
+	    std_or_boost::atomic<bool> _tocontinue;
 	};
     } // !algo
 } // !dim

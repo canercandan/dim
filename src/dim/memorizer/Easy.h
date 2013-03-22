@@ -32,18 +32,34 @@ namespace dim
 	public:
 	    void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
 	    {
+#if __cplusplus > 199711L
 		for (auto &ind : pop)
+#else
+		for (size_t i = 0; i < pop.size(); ++i)
+#endif
 		    {
+#if __cplusplus <= 199711L
+			EOT& ind = pop[i];
+#endif
+
 			ind.addIsland(this->rank());
 		    }
 	    }
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
 	    {
-		for (auto &indi : pop)
+#if __cplusplus > 199711L
+		for (auto &ind : pop)
+#else
+		for (size_t i = 0; i < pop.size(); ++i)
+#endif
 		    {
-			indi.addFitness();
-			indi.addIsland(this->rank());
+#if __cplusplus <= 199711L
+			EOT& ind = pop[i];
+#endif
+
+			ind.addFitness();
+			ind.addIsland(this->rank());
 		    }
 	    }
 	};

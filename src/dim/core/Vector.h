@@ -29,12 +29,6 @@
 #include <EO.h>
 #include <utils/eoLogger.h>
 
-// #if __cplusplus > 199711L
-// #include <chrono>
-// #else
-// #include <boost/chrono/chrono_io.hpp>
-// #endif
-
 #include <boost/mpi.hpp>
 
 #include <boost/archive/text_oarchive.hpp>

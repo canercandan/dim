@@ -61,11 +61,7 @@ namespace dim
 
 	    size_t operator() ( const core::Pop<EOT>& )
 	    {
-		auto& immPair = _data.migratorSendingQueuesVector[_data.rank()];
-		immPair.first.lock();
-		size_t res = immPair.second.size();
-		immPair.first.unlock();
-		return res;
+		return _data.migratorSendingQueue.size(_data.rank());
 	    }
 
 	private:

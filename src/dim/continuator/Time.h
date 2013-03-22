@@ -25,7 +25,11 @@
 #ifndef _CONTINUATOR_TIME_H_
 #define _CONTINUATOR_TIME_H_
 
+#if __cplusplus > 199711L
 #include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
 
 #include "Base.h"
 #include <utils/eoLogger.h>
@@ -34,6 +38,11 @@ namespace dim
 {
     namespace continuator
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
 
 	/**
 	 * Termination condition until a running time is reached.
@@ -48,7 +57,7 @@ namespace dim
 	     * Ctor.
 	     * @param _max maximum running time
 	     */
-	    Time(long max) : _start( std::chrono::system_clock::now() ), _end( std::chrono::system_clock::now() + std::chrono::seconds(max) ), _max(max) {}
+	    Time(long max) : _start( std_or_boost::chrono::system_clock::now() ), _end( std_or_boost::chrono::system_clock::now() + std_or_boost::chrono::seconds(max) ), _max(max) {}
 
 	    /**
 	     * Returns false when the running time is reached.
@@ -56,9 +65,14 @@ namespace dim
 	     */
 	    virtual bool operator() (const core::Pop<EOT> & /*_pop*/)
 	    {
-		if ( std::chrono::system_clock::now() >= _end )
+		if ( std_or_boost::chrono::system_clock::now() >= _end )
 		    {
-			auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(_end-_start).count();
+#if __cplusplus > 199711L
+			auto elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::seconds>(_end-_start).count();
+#else
+			unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::seconds>(_end-_start).count();
+#endif
+
 			eo::log << eo::progress << "STOP in Continuator::Time: Reached maximum time [" << elapsed << "/" << _max << "]" << std::endl;
 			return false;
 		    }
@@ -71,7 +85,7 @@ namespace dim
 	    virtual std::string className(void) const { return "Time"; }
 
 	private:
-	    std::chrono::time_point< std::chrono::system_clock > _start, _end;
+	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > _start, _end;
 	    long _max;
 	};
 

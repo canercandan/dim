@@ -31,6 +31,12 @@ namespace dim
 {
     namespace migrator
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
+
 	namespace sync
 	{
 	    template <typename EOT>
@@ -56,8 +62,16 @@ namespace dim
 			 * Selection *
 			 *************/
 
-			for (auto &indi : pop)
+#if __cplusplus > 199711L
+			for (auto& ind : pop)
+#else
+			for (size_t i = 0; i < pop.size(); ++i)
+#endif
 			    {
+#if __cplusplus <= 199711L
+				EOT& indi = pop[i];
+#endif
+
 				double s = 0;
 				int r = rng.rand() % 1000 + 1;
 
@@ -91,8 +105,16 @@ namespace dim
 				reqs.push_back( this->world().isend( i, this->tag(), pops[i] ) );
 			    }
 
+#if __cplusplus > 199711L
 			for (auto &indi : pops[this->rank()])
+#else
+			for (size_t i = 0; i < pops[this->rank()].size(); ++i)
+#endif
 			    {
+#if __cplusplus <= 199711L
+				EOT& indi = pops[this->rank()][i];
+#endif
+
 				pop.push_back( indi );
 			    }
 		    }
@@ -126,8 +148,16 @@ namespace dim
 			    {
 				if (i == this->rank()) { continue; }
 
-				for (auto &indi : pops[i])
+#if __cplusplus > 199711L
+				for (auto& ind : pop)
+#else
+				for (size_t j = 0; j < pop.size(); ++j)
+#endif
 				    {
+#if __cplusplus <= 199711L
+					EOT& indi = pop[j];
+#endif
+
 					pop.push_back( indi );
 				    }
 
@@ -151,8 +181,13 @@ namespace dim
 	    public:
 		~Easy()
 		{
+#if __cplusplus > 199711L
 		    for (auto& sender : _senders) { delete sender; }
 		    for (auto& receiver : _receivers) { delete receiver; }
+#else
+		    for (size_t i = 0; i < _senders.size(); ++i) { delete _senders[i]; }
+		    for (size_t i = 0; i < _receivers.size(); ++i) { delete _receivers[i]; }
+#endif
 		}
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
@@ -163,8 +198,16 @@ namespace dim
 		    _of_algo.open(ss.str());
 #endif // !TRACE
 
+#if __cplusplus > 199711L
 		    for (auto& ind : pop)
+#else
+		    for (size_t i = 0; i < pop.size(); ++i)
+#endif
 			{
+			    #if __cplusplus <= 199711L
+			    EOT& ind = pop[i];
+			    #endif
+
 			    data.migratorReceivingQueue.push( ind, this->rank() );
 			}
 		    pop.clear();
@@ -178,8 +221,16 @@ namespace dim
 
 		    std::vector< size_t > outputSizes( this->size(), 0 );
 
+#if __cplusplus > 199711L
 		    for (auto& ind : pop)
+#else
+		    for (size_t i = 0; i < pop.size(); ++i)
+#endif
 		    	{
+			    #if __cplusplus <= 199711L
+			    EOT& ind = pop[i];
+			    #endif
+
 		    	    /*************
 		    	     * Selection *
 		    	     *************/
@@ -220,9 +271,16 @@ namespace dim
 		    for (int k = 0; k < 1; ++k)
 		    	{
 		    	    // This special pop function is waiting while the queue of individual is empty.
+#if __cplusplus > 199711L
 		    	    auto imm = data.migratorReceivingQueue.pop(true);
-		    	    auto ind = std::get<0>(imm);
-		    	    auto time = std::get<1>(imm);
+		    	    auto ind = std_or_boost::get<0>(imm);
+		    	    auto time = std_or_boost::get<1>(imm);
+#else
+		    	    std_or_boost::tuple<EOT, double, size_t> imm = data.migratorReceivingQueue.pop(true);
+		    	    EOT ind = std_or_boost::get<0>(imm);
+		    	    double time = std_or_boost::get<1>(imm);
+#endif
+
 			    ind.receivedTime = time;
 		    	    pop.push_back( ind );
 		    	    ++inputSize;
@@ -231,7 +289,13 @@ namespace dim
 		    pop.setInputSize( inputSize );
 		}
 
-		class Sender : public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >, public core::ParallelContext
+		class Sender :
+#if __cplusplus > 199711L
+		    public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
+#else
+		    public core::Thread<EOT>
+#endif
+		    , public core::ParallelContext
 		{
 		public:
 		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
@@ -241,8 +305,14 @@ namespace dim
 			while (data.toContinue)
 			    {
 				// waiting until there is an individual in the queue
+#if __cplusplus > 199711L
 				auto em = data.migratorSendingQueue.pop( _to, true );
-				auto ind = std::get<0>(em);
+				auto ind = std_or_boost::get<0>(em);
+#else
+				std_or_boost::tuple<EOT, double, size_t> em = data.migratorSendingQueue.pop( _to, true );
+				EOT ind = std_or_boost::get<0>(em);
+#endif
+
 				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), ind);
 			    }
 		    }
@@ -251,7 +321,13 @@ namespace dim
 		    size_t _to;
 		};
 
-		class Receiver : public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >, public core::ParallelContext
+		class Receiver :
+#if __cplusplus > 199711L
+		    public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
+#else
+		    public core::Thread<EOT>
+#endif
+		    , public core::ParallelContext
 		{
 		public:
 		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
@@ -270,7 +346,11 @@ namespace dim
 		    size_t _from;
 		};
 
+#if __cplusplus > 199711L
 		virtual void addTo( core::ThreadsRunner< core::Pop<EOT>&, core::IslandData<EOT>& >& tr )
+#else
+		virtual void addTo( core::ThreadsRunner<EOT>& tr )
+#endif
 		{
 		    for (size_t i = 0; i < this->size(); ++i)
 			{

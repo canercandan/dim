@@ -30,7 +30,12 @@
 #include <string>
 #include <fstream>
 #include <stdexcept>
+
+#if __cplusplus > 199711L
 #include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
 
 #include "Monitor.h"
 #include "eoObject.h"
@@ -83,6 +88,9 @@ namespace dim
 		  firstcall(true),
 		  overwrite(_overwrite),
 		  stepTimer(_stepTimer)
+#if __cplusplus <= 199711L
+		, start( boost::chrono::system_clock::now() ), lastElapsedTime(0)
+#endif
 	    {
 		if (!_keep_existing) {
 		    std::ofstream os (filename.c_str ());
@@ -140,10 +148,18 @@ namespace dim
 	    unsigned stepTimer;
 
 	    //! start time
+#if __cplusplus > 199711L
 	    std::chrono::time_point< std::chrono::system_clock > start = std::chrono::system_clock::now();
+#else
+            boost::chrono::time_point< boost::chrono::system_clock > start;
+#endif
 
 	    //! last elapsed time
+#if __cplusplus > 199711L
 	    unsigned lastElapsedTime = 0;
+#else
+	    unsigned lastElapsedTime;
+#endif
 	};
 
     } // !utils
