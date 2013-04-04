@@ -117,7 +117,7 @@ namespace dim
 	{
 	public:
 #if __cplusplus > 199711L
-	    void operator()(Args...)
+	    void operator()(Args... args)
 #else
 	    void operator()(Pop<EOT>& pop, IslandData<EOT>& data)
 #endif

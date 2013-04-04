@@ -122,10 +122,10 @@ int main (int argc, char *argv[])
 
     // a
     // double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
-    double alpha = parser.createParam(double(0.2), "alpha", "Alpha", 'a', "Islands Model").value();
+    /*double alpha = */parser.createParam(double(0.2), "alpha", "Alpha", 'a', "Islands Model").value();
     // b
     // double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
-    double beta = parser.createParam(double(0.01), "beta", "Beta", 'b', "Islands Model").value();
+    /*double beta = */parser.createParam(double(0.01), "beta", "Beta", 'b', "Islands Model").value();
     // p
     /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
     // d
@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data;
 
-    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 200);
+    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 1);
 
     /**************
      * EO routine *

@@ -25,6 +25,15 @@
 
 #include "Base.h"
 
+#include <boost/utility/identity_type.hpp>
+
+#undef AUTO
+#if __cplusplus > 199711L
+#define AUTO(TYPE) auto
+#else // __cplusplus <= 199711L
+#define AUTO(TYPE) TYPE
+#endif
+
 namespace dim
 {
     namespace feedbacker
@@ -63,22 +72,21 @@ namespace dim
 
 #if __cplusplus > 199711L
 		    for (auto &ind : pop)
+			{
 #else
 		    for (size_t i = 0; i < pop.size(); ++i)
-#endif
 			{
-#if __cplusplus > 199711L
+			    EOT& ind = pop[i];
+#endif
+
 			    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
 			    ++nbs[ind.getLastIsland()];
-#else
-			    sums[pop[i].getLastIsland()] += pop[i].fitness() - pop[i].getLastFitness();
-			    ++nbs[pop[i].getLastIsland()];
-#endif
 			}
 
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
 			    if (i == this->rank()) { continue; }
+
 			    data.feedbacks[i] = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
 			    this->world().start( _reqs[i] );
 			}
@@ -119,13 +127,11 @@ namespace dim
 	    public:
 		~Easy()
 		{
-#if __cplusplus > 199711L
-		    for (auto& sender : _senders) { delete sender; }
-		    for (auto& receiver : _receivers) { delete receiver; }
-#else
-		    for (size_t i = 0; i < _senders.size(); ++i) { delete _senders[i]; }
-		    for (size_t i = 0; i < _receivers.size(); ++i) { delete _receivers[i]; }
-#endif
+		    for (size_t i = 0; i < this->_senders.size(); ++i)
+			{
+			    delete _senders[i];
+			    delete _receivers[i];
+			}
 		}
 
 		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
@@ -151,31 +157,17 @@ namespace dim
 
 #if __cplusplus > 199711L
 		    for (auto& ind : pop)
+			{
 #else
 		    for (size_t i = 0; i < pop.size(); ++i)
-#endif
 		    	{
-#if __cplusplus <= 199711L
 			    EOT& ind = pop[i];
 #endif
 
-#if __cplusplus > 199711L
-			    auto end = std::chrono::system_clock::now();
-#else
-			    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();
-#endif
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now();
 
-#if __cplusplus > 199711L
-			    auto elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - data.vectorLastUpdatedTime ).count() / 1000.;
-#else
-			    unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - data.vectorLastUpdatedTime ).count() / 1000.;
-#endif
-
-#if __cplusplus > 199711L
-		    	    auto delta = ( ind.fitness() - ind.getLastFitness() ) / ( ind.receivedTime + elapsed );
-#else
-		    	    double delta = ( ind.fitness() - ind.getLastFitness() ) / ( ind.receivedTime + elapsed );
-#endif
+			    AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - data.vectorLastUpdatedTime ).count() / 1000.;
+		    	    AUTO(double) delta = ( ind.fitness() - ind.getLastFitness() ) / ( ind.receivedTime + elapsed );
 
 		    	    if ( ind.getLastIsland() == static_cast<int>( this->rank() ) )
 		    		{
@@ -192,38 +184,14 @@ namespace dim
 
 		    while ( !data.feedbackerReceivingQueue.empty() )
 		    	{
-#if __cplusplus > 199711L
-		    	    auto fbr = data.feedbackerReceivingQueue.pop();
-		    	    auto Fi = std_or_boost::get<0>(fbr);
-		    	    // auto t = std::get<1>(fbr);
-		    	    auto from = std_or_boost::get<2>(fbr);
-		    	    auto& Si = data.feedbacks[from];
-			    auto& Ti = data.feedbackLastUpdatedTimes[from];
-			    // const auto alpha_s = 0.99;
-			    const auto alpha_s = 0.01;
-#else
-			    typedef typename EOT::Fitness Fitness;
-		    	    std_or_boost::tuple<Fitness, double, size_t> fbr = data.feedbackerReceivingQueue.pop();
-		    	    Fitness Fi = std_or_boost::get<0>(fbr);
+		    	    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
+		    	    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
 		    	    // double t = std::get<1>(fbr);
-		    	    size_t from = std_or_boost::get<2>(fbr);
-		    	    Fitness& Si = data.feedbacks[from];
-			    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >& Ti = data.feedbackLastUpdatedTimes[from];
+		    	    AUTO(size_t) from = std_or_boost::get<2>(fbr);
+		    	    AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
 			    // const double alpha_s = 0.99;
-			    const double alpha_s = 0.01;
-#endif
-
-			    // _of_algo_data << Ti << " "; _of_algo_data.flush();
-
-		    	    // if (Ti)
-		    	    // 	{
-		    	    // 	    Ri = Ri + 0.01 * ( Fi/Ti - Ri );
-		    	    // 	    _of_algo_data << Fi << "/" << Ti << "=" << Fi/Ti << " "; _of_algo_data.flush();
-		    	    // 	}
-		    	    // else
-		    	    // 	{
-		    	    // 	    Ri = Ri + 0.01 * ( Fi - Ri );
-		    	    // 	}
+			    const AUTO(double) alpha_s = 0.01;
 
 			    Si = (1-alpha_s) * Si + alpha_s * Fi;
 			    Ti = std_or_boost::chrono::system_clock::now();
@@ -245,14 +213,8 @@ namespace dim
 		    {
 			while (data.toContinue)
 			    {
-#if __cplusplus > 199711L
-				auto fbs = data.feedbackerSendingQueue.pop( _to, true );
-				auto fit = std_or_boost::get<0>( fbs );
-#else
-				typedef typename EOT::Fitness Fitness;
-				std_or_boost::tuple<Fitness, double, size_t> fbs = data.feedbackerSendingQueue.pop( _to, true );
-				Fitness fit = std_or_boost::get<0>( fbs );
-#endif
+				AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbs = data.feedbackerSendingQueue.pop( _to, true );
+				AUTO(typename EOT::Fitness) fit = std_or_boost::get<0>( fbs );
 
 				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), fit);
 			    }

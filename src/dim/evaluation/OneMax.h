@@ -40,16 +40,15 @@ namespace dim
 		unsigned int sum = 0;
 
 #if __cplusplus > 199711L
-		for (auto i : _sol)
+		for (auto val : _sol)
+		    {
 #else
 		for (size_t i = 0; i < _sol.size(); ++i)
-#endif
 		    {
-#if __cplusplus > 199711L
-			sum += i;
-#else
-			sum += _sol[i];
+			unsigned int val = _sol[i];
 #endif
+
+			sum += val;
 		    }
 		_sol.fitness(sum);
 	    }

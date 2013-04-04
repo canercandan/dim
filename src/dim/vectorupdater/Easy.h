@@ -33,6 +33,15 @@
 
 #include "Base.h"
 
+#include <boost/utility/identity_type.hpp>
+
+#undef AUTO
+#if __cplusplus > 199711L
+#define AUTO(TYPE) auto
+#else // __cplusplus <= 199711L
+#define AUTO(TYPE) TYPE
+#endif
+
 namespace dim
 {
     namespace vectorupdater
@@ -70,16 +79,9 @@ namespace dim
 
 		// Prepare the vector R
 		// Ri = { Si, if Ti > \tau; 0, otherwise }
-#if __cplusplus > 199711L
-		auto& S = data.feedbacks;
-		auto& T = data.feedbackLastUpdatedTimes;
-		auto& tau = data.vectorLastUpdatedTime;
-#else
-		typedef typename EOT::Fitness Fitness;
-		std::vector< Fitness >& S = data.feedbacks;
-		std::vector< std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > >& T = data.feedbackLastUpdatedTimes;
-		std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >& tau = data.vectorLastUpdatedTime;
-#endif
+		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >)))& S = data.feedbacks;
+		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > >)))& T = data.feedbackLastUpdatedTimes;
+		AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)))& tau = data.vectorLastUpdatedTime;
 
 		std::vector< typename EOT::Fitness > R( this->size() );
 		for (size_t i = 0; i < this->size(); ++i)
@@ -107,12 +109,11 @@ namespace dim
 #endif
 
 #if __cplusplus > 199711L
-		    for (auto& fit : R)
-#else
-		    for (size_t i = 0; i < R.size(); ++i)
-#endif
+		for (auto& fit : R)
 		    {
-#if __cplusplus <= 199711L
+#else
+		for (size_t i = 0; i < R.size(); ++i)
+		    {
 			typename EOT::Fitness& fit = R[i];
 #endif
 
@@ -126,11 +127,10 @@ namespace dim
 
 #if __cplusplus > 199711L
 		for ( auto& k : epsilon )
+		    {
 #else
 		for (size_t i = 0; i < epsilon.size(); ++i)
-#endif
 		    {
-#if __cplusplus <= 199711L
 			double& k = epsilon[i];
 #endif
 
@@ -140,11 +140,10 @@ namespace dim
 
 #if __cplusplus > 199711L
 		for ( auto& k : epsilon )
+		    {
 #else
 		for (size_t i = 0; i < epsilon.size(); ++i)
-#endif
 		    {
-#if __cplusplus <= 199711L
 			double& k = epsilon[i];
 #endif
 
@@ -215,15 +214,9 @@ namespace dim
 		// 	_of << R[i] << " ";
 		//     }
 
-#if __cplusplus > 199711L
-		auto deltaT = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.;
-		auto alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
-		auto betaT = pow(_beta /*0.01*/, 1. / deltaT);
-#else
-		double deltaT = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.;
-		double alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
-		double betaT = pow(_beta /*0.01*/, 1. / deltaT);
-#endif
+		AUTO(double) deltaT = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.;
+		AUTO(double) alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
+		AUTO(double) betaT = pow(_beta /*0.01*/, 1. / deltaT);
 
 		// _of << deltaT << " "; _of.flush();
 

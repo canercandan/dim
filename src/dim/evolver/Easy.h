@@ -36,32 +36,24 @@ namespace dim
 	    {
 #if __cplusplus > 199711L
 		for (auto &ind : pop)
+		    {
 #else
 		for (size_t i = 0; i < pop.size(); ++i)
-#endif
 		    {
-#if __cplusplus > 199711L
-			EOT candidate = ind;
-#else
-			EOT candidate = pop[i];
+			EOT& ind = pop[i];
 #endif
+
+			EOT candidate = ind;
 
 			_op( candidate );
 
-			// candidate.invalidate();
+			// candidate.invalidate(); // temporaly disabled for debug
 			_eval( candidate );
 
-#if __cplusplus > 199711L
 			if ( candidate.fitness() > ind.fitness() )
 			    {
 				ind = candidate;
 			    }
-#else
-			if ( candidate.fitness() > pop[i].fitness() )
-			    {
-				pop[i] = candidate;
-			    }
-#endif
 		    }
 	    }
 

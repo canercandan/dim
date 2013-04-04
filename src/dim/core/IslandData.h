@@ -38,6 +38,15 @@
 
 #include "ParallelContext.h"
 
+#include <boost/utility/identity_type.hpp>
+
+#undef AUTO
+#if __cplusplus > 199711L
+#define AUTO(TYPE) auto
+#else // __cplusplus <= 199711L
+#define AUTO(TYPE) TYPE
+#endif
+
 namespace dim
 {
     namespace core
@@ -95,17 +104,9 @@ namespace dim
 
 		std_or_boost::lock_guard<std_or_boost::mutex> lock(mutex);
 
-#if __cplusplus > 199711L
-		auto end = std_or_boost::chrono::system_clock::now();
-#else
-		std_or_boost::chrono::time_point<std_or_boost::chrono::system_clock> end = std_or_boost::chrono::system_clock::now();
-#endif
+		AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::chrono::time_point<std_or_boost::chrono::system_clock>))) end = std_or_boost::chrono::system_clock::now();
 
-#if __cplusplus > 199711L
-		auto elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - timesQueue.front() ).count() / 1000.;
-#else
-		unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - timesQueue.front() ).count() / 1000.;
-#endif
+		AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - timesQueue.front() ).count() / 1000.;
 
 		if (!elapsed) { elapsed = 10e-10; } // temporary solution in order to have a positive number in elapsed value
 		std_or_boost::tuple<T, double, size_t> ret(dataQueue.front(), elapsed, idQueue.front());
@@ -135,45 +136,25 @@ namespace dim
 
 	    void push(T newData, size_t id)
 	    {
-#if __cplusplus > 199711L
-		auto& dataQueue = (*this)[id];
-#else
-		DataQueue< T >& dataQueue = (*this)[id];
-#endif
-
+		AUTO(typename BOOST_IDENTITY_TYPE((DataQueue< T >)))& dataQueue = (*this)[id];
 		dataQueue.push(newData, id);
 	    }
 
 	    std_or_boost::tuple<T, double, size_t> pop(size_t id, bool wait = false)
 	    {
-#if __cplusplus > 199711L
-		auto& dataQueue = (*this)[id];
-#else
-		DataQueue< T >& dataQueue = (*this)[id];
-#endif
-
+		AUTO(typename BOOST_IDENTITY_TYPE((DataQueue< T >)))& dataQueue = (*this)[id];
 		return dataQueue.pop(wait);
 	    }
 
 	    bool empty(size_t id)
 	    {
-#if __cplusplus > 199711L
-		auto& dataQueue = (*this)[id];
-#else
-		DataQueue< T >& dataQueue = (*this)[id];
-#endif
-
+		AUTO(typename BOOST_IDENTITY_TYPE((DataQueue< T >)))& dataQueue = (*this)[id];
 		return dataQueue.empty();
 	    }
 
 	    size_t size(size_t id)
 	    {
-#if __cplusplus > 199711L
-		auto& dataQueue = (*this)[id];
-#else
-		DataQueue< T >& dataQueue = (*this)[id];
-#endif
-
+		AUTO(typename BOOST_IDENTITY_TYPE((DataQueue< T >)))& dataQueue = (*this)[id];
 		return dataQueue.size();
 	    }
 	};

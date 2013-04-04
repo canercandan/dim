@@ -40,7 +40,7 @@ namespace dim
 	{
 
 	    template <class EOT>
-	    utils::CheckPoint<EOT>& checkpoint(eoParser& _parser, eoState& _state, continuator::Base<EOT>& _continue, core::IslandData<EOT>& data, unsigned _frequency = 1 )
+	    utils::CheckPoint<EOT>& checkpoint(eoParser& _parser, eoState& _state, continuator::Base<EOT>& _continue, core::IslandData<EOT>& data, unsigned _frequency = 1, unsigned stepTimer = 1000 )
 	    {
 		const size_t ALL = data.size();
 		const size_t RANK = data.rank();
@@ -52,7 +52,7 @@ namespace dim
 
 		std::ostringstream ss_prefix;
 		ss_prefix << monitorPrefix << "_monitor_" << RANK;
-		utils::FileMonitor& fileMonitor = _state.storeFunctor( new utils::FileMonitor( ss_prefix.str(), _frequency, " ", 0, false, true ) );
+		utils::FileMonitor& fileMonitor = _state.storeFunctor( new utils::FileMonitor( ss_prefix.str(), _frequency, " ", 0, false, true, false, stepTimer ) );
 		checkpoint.add(fileMonitor);
 
 		utils::StdoutMonitor* stdMonitor = NULL;

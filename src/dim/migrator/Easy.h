@@ -27,6 +27,15 @@
 
 #include "Base.h"
 
+#include <boost/utility/identity_type.hpp>
+
+#undef AUTO
+#if __cplusplus > 199711L
+#define AUTO(TYPE) auto
+#else // __cplusplus <= 199711L
+#define AUTO(TYPE) TYPE
+#endif
+
 namespace dim
 {
     namespace migrator
@@ -64,12 +73,11 @@ namespace dim
 
 #if __cplusplus > 199711L
 			for (auto& ind : pop)
+			    {
 #else
 			for (size_t i = 0; i < pop.size(); ++i)
-#endif
 			    {
-#if __cplusplus <= 199711L
-				EOT& indi = pop[i];
+				EOT& ind = pop[i];
 #endif
 
 				double s = 0;
@@ -82,7 +90,7 @@ namespace dim
 				    }
 				--j;
 
-				pops[j].push_back(indi);
+				pops[j].push_back(ind);
 			    }
 
 			size_t outputSize = 0;
@@ -106,16 +114,15 @@ namespace dim
 			    }
 
 #if __cplusplus > 199711L
-			for (auto &indi : pops[this->rank()])
+			for (auto& ind : pops[this->rank()])
+			    {
 #else
 			for (size_t i = 0; i < pops[this->rank()].size(); ++i)
-#endif
 			    {
-#if __cplusplus <= 199711L
-				EOT& indi = pops[this->rank()][i];
+				EOT& ind = pops[this->rank()][i];
 #endif
 
-				pop.push_back( indi );
+				pop.push_back( ind );
 			    }
 		    }
 
@@ -150,15 +157,14 @@ namespace dim
 
 #if __cplusplus > 199711L
 				for (auto& ind : pop)
+				    {
 #else
 				for (size_t j = 0; j < pop.size(); ++j)
-#endif
 				    {
-#if __cplusplus <= 199711L
-					EOT& indi = pop[j];
+					EOT& ind = pop[j];
 #endif
 
-					pop.push_back( indi );
+					pop.push_back( ind );
 				    }
 
 				inputSize += pops[i].size();
@@ -181,13 +187,11 @@ namespace dim
 	    public:
 		~Easy()
 		{
-#if __cplusplus > 199711L
-		    for (auto& sender : _senders) { delete sender; }
-		    for (auto& receiver : _receivers) { delete receiver; }
-#else
-		    for (size_t i = 0; i < _senders.size(); ++i) { delete _senders[i]; }
-		    for (size_t i = 0; i < _receivers.size(); ++i) { delete _receivers[i]; }
-#endif
+		    for (size_t i = 0; i < this->_senders.size(); ++i)
+			{
+			    delete _senders[i];
+			    delete _receivers[i];
+			}
 		}
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
@@ -200,13 +204,12 @@ namespace dim
 
 #if __cplusplus > 199711L
 		    for (auto& ind : pop)
+			{
 #else
 		    for (size_t i = 0; i < pop.size(); ++i)
-#endif
 			{
-			    #if __cplusplus <= 199711L
 			    EOT& ind = pop[i];
-			    #endif
+#endif
 
 			    data.migratorReceivingQueue.push( ind, this->rank() );
 			}
@@ -223,13 +226,12 @@ namespace dim
 
 #if __cplusplus > 199711L
 		    for (auto& ind : pop)
+			{
 #else
 		    for (size_t i = 0; i < pop.size(); ++i)
-#endif
 		    	{
-			    #if __cplusplus <= 199711L
 			    EOT& ind = pop[i];
-			    #endif
+#endif
 
 		    	    /*************
 		    	     * Selection *
@@ -271,15 +273,9 @@ namespace dim
 		    for (int k = 0; k < 1; ++k)
 		    	{
 		    	    // This special pop function is waiting while the queue of individual is empty.
-#if __cplusplus > 199711L
-		    	    auto imm = data.migratorReceivingQueue.pop(true);
-		    	    auto ind = std_or_boost::get<0>(imm);
-		    	    auto time = std_or_boost::get<1>(imm);
-#else
-		    	    std_or_boost::tuple<EOT, double, size_t> imm = data.migratorReceivingQueue.pop(true);
-		    	    EOT ind = std_or_boost::get<0>(imm);
-		    	    double time = std_or_boost::get<1>(imm);
-#endif
+		    	    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
+		    	    AUTO(EOT) ind = std_or_boost::get<0>(imm);
+		    	    AUTO(double) time = std_or_boost::get<1>(imm);
 
 			    ind.receivedTime = time;
 		    	    pop.push_back( ind );
@@ -305,13 +301,8 @@ namespace dim
 			while (data.toContinue)
 			    {
 				// waiting until there is an individual in the queue
-#if __cplusplus > 199711L
-				auto em = data.migratorSendingQueue.pop( _to, true );
-				auto ind = std_or_boost::get<0>(em);
-#else
-				std_or_boost::tuple<EOT, double, size_t> em = data.migratorSendingQueue.pop( _to, true );
-				EOT ind = std_or_boost::get<0>(em);
-#endif
+				AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) em = data.migratorSendingQueue.pop( _to, true );
+				AUTO(EOT) ind = std_or_boost::get<0>(em);
 
 				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), ind);
 			    }

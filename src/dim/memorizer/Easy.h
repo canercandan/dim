@@ -34,11 +34,10 @@ namespace dim
 	    {
 #if __cplusplus > 199711L
 		for (auto &ind : pop)
+		    {
 #else
 		for (size_t i = 0; i < pop.size(); ++i)
-#endif
 		    {
-#if __cplusplus <= 199711L
 			EOT& ind = pop[i];
 #endif
 
@@ -50,11 +49,10 @@ namespace dim
 	    {
 #if __cplusplus > 199711L
 		for (auto &ind : pop)
+		    {
 #else
 		for (size_t i = 0; i < pop.size(); ++i)
-#endif
 		    {
-#if __cplusplus <= 199711L
 			EOT& ind = pop[i];
 #endif
 
