@@ -20,6 +20,7 @@
 #ifndef _FEEDBACKER_EASY_H_
 #define _FEEDBACKER_EASY_H_
 
+#include <cmath>
 #include <vector>
 #include <queue>
 
@@ -164,18 +165,16 @@ namespace dim
 			    EOT& ind = pop[i];
 #endif
 
-			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now();
-
-			    AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - data.vectorLastUpdatedTime ).count() / 1000.;
-		    	    AUTO(double) delta = ( ind.fitness() - ind.getLastFitness() ) / ( ind.receivedTime + elapsed );
+			    // AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - data.vectorLastUpdatedTime ).count() / 1000.;
+		    	    AUTO(double) effectiveness = ind.fitness() - ind.getLastFitness();
 
 		    	    if ( ind.getLastIsland() == static_cast<int>( this->rank() ) )
 		    		{
-		    		    data.feedbackerReceivingQueue.push( delta, this->rank() );
+		    		    data.feedbackerReceivingQueue.push( effectiveness, this->rank() );
 		    		    continue;
 		    		}
 
-		    	    data.feedbackerSendingQueue.push( delta, ind.getLastIsland() );
+		    	    data.feedbackerSendingQueue.push( effectiveness, ind.getLastIsland() );
 		    	}
 
 		    /********************
@@ -190,11 +189,15 @@ namespace dim
 		    	    AUTO(size_t) from = std_or_boost::get<2>(fbr);
 		    	    AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
 			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
-			    // const double alpha_s = 0.99;
-			    const AUTO(double) alpha_s = 0.01;
+			    const AUTO(double) alpha_f = 0.01;
 
-			    Si = (1-alpha_s) * Si + alpha_s * Fi;
-			    Ti = std_or_boost::chrono::system_clock::now();
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
+			    AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::milliseconds>( end - Ti ).count(); // delta{t} <- t - t_i
+
+			    AUTO(double) alphaT = exp(log(alpha_f)/elapsed);
+			    Si = (1-alphaT)*Si + alphaT*Fi;
+
+			    Ti = end; // t_i <- t
 		    	}
 		}
 

@@ -40,10 +40,24 @@
 #include "Monitor.h"
 #include "eoObject.h"
 
+#include <boost/utility/identity_type.hpp>
+
+#undef AUTO
+#if __cplusplus > 199711L
+#define AUTO(TYPE) auto
+#else // __cplusplus <= 199711L
+#define AUTO(TYPE) TYPE
+#endif
+
 namespace dim
 {
     namespace utils
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
 
 	/** Prints statistics to file
 
@@ -87,10 +101,9 @@ namespace dim
 		  header(_header),
 		  firstcall(true),
 		  overwrite(_overwrite),
-		  stepTimer(_stepTimer)
-#if __cplusplus <= 199711L
-		, start( boost::chrono::system_clock::now() ), lastElapsedTime(0)
-#endif
+		  stepTimer(_stepTimer),
+		  start( std_or_boost::chrono::system_clock::now() ),
+		  lastElapsedTime(0)
 	    {
 		if (!_keep_existing) {
 		    std::ofstream os (filename.c_str ());
@@ -148,18 +161,10 @@ namespace dim
 	    unsigned stepTimer;
 
 	    //! start time
-#if __cplusplus > 199711L
-	    std::chrono::time_point< std::chrono::system_clock > start = std::chrono::system_clock::now();
-#else
-            boost::chrono::time_point< boost::chrono::system_clock > start;
-#endif
+	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start;
 
 	    //! last elapsed time
-#if __cplusplus > 199711L
-	    unsigned lastElapsedTime = 0;
-#else
 	    unsigned lastElapsedTime;
-#endif
 	};
 
     } // !utils

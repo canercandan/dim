@@ -58,7 +58,7 @@ namespace dim
 		utils::StdoutMonitor* stdMonitor = NULL;
 		if (printBest)
 		    {
-			stdMonitor = new utils::StdoutMonitor("\t", 8);
+			stdMonitor = new utils::StdoutMonitor("\t", 8, ' ', stepTimer);
 			_state.storeFunctor( stdMonitor );
 			checkpoint.add(*stdMonitor);
 		    }

@@ -165,58 +165,9 @@ namespace dim
 		 * uniforme entre 0.0 et 1.0                                                   *
 		 *******************************************************************************/
 
-		// Stategie par critère MAX
-		// if (best < 0) //aucune ile n'améliore donc on rééquilibre
-		// 	{
-		// 	    for ( size_t i = 0; i < this->size(); ++i )
-		// 		{
-		// 		    data.proba[i] = _beta * data.proba[i] + (1 - _beta) * 1000 * epsilon[i];
-		// 		}
-		// 	}
-		// else
-		// 	{
-		// 	    for (size_t i = 0; i < this->size(); ++i)
-		// 		{
-		// 		    if ( static_cast<int>(i) == best )
-		// 			{
-		// 			    data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * 1000 ) + (1 - _beta) * 1000 * epsilon[i];
-		// 			}
-		// 		    else
-		// 			{
-		// 			    data.proba[i] = _beta * ( _alpha * data.proba[i] ) + (1 - _beta) * 1000 * epsilon[i];
-		// 			}
-		// 		}
-		// 	}
-
-		// Stratégie par récompense proportionnelle
-		// typename EOT::Fitness sum_multi = 0;
-		// for (size_t i = 0; i < this->size(); ++i)
-		//     {
-		// 	sum_multi += data.proba[i] * R[i] / 1000;
-		//     }
-
-		// for ( size_t i = 0; i < this->size(); ++i )
-		//     {
-		// 	typename EOT::Fitness res = ( data.proba[i] * R[i] ) / sum_multi;
-		// 	data.proba[i] = _beta * ( _alpha * data.proba[i] + (1 - _alpha) * res ) + (1 - _beta) * 1000 * epsilon[i];
-		//     }
-
-		// Utilisation basic de R pour la MAJ des proba
-		// typename EOT::Fitness sum_multi = 0;
-		// for (size_t i = 0; i < this->size(); ++i)
-		//     {
-		// 	sum_multi += R[i] / 1000;
-		//     }
-
-		// for ( size_t i = 0; i < this->size(); ++i )
-		//     {
-		// 	R[i] = ( data.proba[i] * R[i] ) / sum_multi;
-		// 	_of << R[i] << " ";
-		//     }
-
-		AUTO(double) deltaT = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.;
-		AUTO(double) alphaT = pow(_alpha /*0.2*/, 1. / deltaT);
-		AUTO(double) betaT = pow(_beta /*0.01*/, 1. / deltaT);
+		AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.; // \DELTA{t}
+		AUTO(double) alphaT = exp(log(_alpha /*0.2*/)/elapsed);
+		AUTO(double) betaT = exp(log(_beta /*0.01*/)/elapsed);
 
 		// _of << deltaT << " "; _of.flush();
 
@@ -224,13 +175,16 @@ namespace dim
 		    {
 			// typename EOT::Fitness Ri = R[i] / sum_multi;
 
+			R[i] = 1000 / this->size();
+
 #ifdef TRACE
-			_of << (1 - _beta) /*0.99*/ << " * ( "
+			_of << "(" << i << ") "
+			    << (1 - betaT) << " * ( "
 			    << 1 - alphaT << " * "
 			    << data.proba[i] << " + "
 			    << alphaT << " * "
 			    << R[i] << " )"
-			    // << " + " << _beta /*0.01*/ << " * " << 1000 << " * " << epsilon[i]
+			    << " + " << betaT << " * " << 1000 << " * " << epsilon[i]
 			    << " = ";
 #endif // !TRACE
 
@@ -249,9 +203,11 @@ namespace dim
 	private:
 	    double _alpha;
 	    double _beta;
+
 #ifdef TRACE
 	    std::ofstream _of;
 #endif // !TRACE
+
 	};
     } // !vectorupdater
 } // !dim

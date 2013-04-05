@@ -49,9 +49,7 @@ namespace dim
 	class StdoutMonitor : public OStreamMonitor
 	{
 	public :
-	    StdoutMonitor(std::string _delim = "\t", unsigned int _width=20, char _fill=' ' ) :
-		OStreamMonitor( std::cout, _delim, _width, _fill)
-	    {}
+	    StdoutMonitor(std::string _delim = "\t", unsigned int _width=20, char _fill=' ', unsigned _stepTimer=1000) : OStreamMonitor( std::cout, _delim, _width, _fill, _stepTimer) {}
 
 	    virtual std::string className(void) const { return "StdoutMonitor"; }
 	};

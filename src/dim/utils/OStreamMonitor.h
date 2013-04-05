@@ -30,15 +30,35 @@
 #include <string>
 #include <iostream>
 
+#if __cplusplus > 199711L
+#include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
+
 #include <utils/eoLogger.h>
 #include <eoObject.h>
 
 #include "Monitor.h"
 
+#include <boost/utility/identity_type.hpp>
+
+#undef AUTO
+#if __cplusplus > 199711L
+#define AUTO(TYPE) auto
+#else // __cplusplus <= 199711L
+#define AUTO(TYPE) TYPE
+#endif
+
 namespace dim
 {
     namespace utils
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
 
 	/**
 	   Prints statistics to a given ostream.
@@ -49,20 +69,43 @@ namespace dim
 	*/
 	class OStreamMonitor : public Monitor
 	{
-	public :
-	    OStreamMonitor( std::ostream & _out, std::string _delim = "\t", unsigned int _width=20, char _fill=' ' ) :
-		out(_out), delim(_delim), width(_width), fill(_fill), firsttime(true)
+	public:
+	    OStreamMonitor(
+			   std::ostream & _out,
+			   std::string _delim = "\t",
+			   unsigned int _width=20,
+			   char _fill=' ',
+			   unsigned _stepTimer=1000
+			   )
+		: out(_out),
+		  delim(_delim),
+		  width(_width),
+		  fill(_fill),
+		  stepTimer(_stepTimer),
+		  start( std_or_boost::chrono::system_clock::now() ),
+		  lastElapsedTime(0),
+		  firsttime(true)
 	    {}
 
 	    Monitor& operator()(void);
 
 	    virtual std::string className(void) const { return "OStreamMonitor"; }
 
-	private :
+	private:
 	    std::ostream & out;
 	    std::string delim;
 	    unsigned int width;
 	    char fill;
+
+	    //! step timer
+	    unsigned stepTimer;
+
+	    //! start time
+	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start;
+
+	    //! last elapsed time
+	    unsigned lastElapsedTime;
+
 	    bool firsttime;
 	};
 

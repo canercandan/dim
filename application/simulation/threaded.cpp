@@ -122,10 +122,10 @@ int main (int argc, char *argv[])
 
     // a
     // double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
-    /*double alpha = */parser.createParam(double(0.2), "alpha", "Alpha", 'a', "Islands Model").value();
+    double alpha = parser.createParam(double(0.2), "alpha", "Alpha", 'a', "Islands Model").value();
     // b
     // double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
-    /*double beta = */parser.createParam(double(0.01), "beta", "Beta", 'b', "Islands Model").value();
+    double beta = parser.createParam(double(0.01), "beta", "Beta", 'b', "Islands Model").value();
     // p
     /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
     // d
@@ -229,8 +229,8 @@ int main (int argc, char *argv[])
 
     dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
-    // dim::vectorupdater::Easy<EOT> updater(alpha, beta);
-    dim::algo::Easy<EOT>::DummyVectorUpdater updater;
+    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    // dim::algo::Easy<EOT>::DummyVectorUpdater updater;
     dim::memorizer::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
     dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
