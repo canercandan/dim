@@ -38,7 +38,10 @@ def main():
 
     # print(cmd.split())
 
-    subprocess.call(cmd.split())
+    try:
+        subprocess.call(cmd.split())
+    except KeyboardInterrupt:
+        print("Interrupted by user.")
 
 # when executed, just run main():
 if __name__ == '__main__':
