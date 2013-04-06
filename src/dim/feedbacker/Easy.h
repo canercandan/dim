@@ -139,12 +139,8 @@ namespace dim
 		{
 #ifdef TRACE
 		    std::ostringstream ss;
-		    ss << "trace.feedbacker." << this->rank() << ".algo.txt";
-		    _of_algo.open(ss.str());
-
-		    std::ostringstream ss_data;
-		    ss_data << "trace.feedbacker." << this->rank() << ".algo.data.txt";
-		    _of_algo_data.open(ss_data.str());
+		    ss << "trace.feedbacker." << this->rank();
+		    _of.open(ss.str());
 #endif // !TRACE
 		}
 
@@ -154,7 +150,7 @@ namespace dim
 		     * Send feedbacks back to all islands (ANALYSE) *
 		     ************************************************/
 
-		    // _of_algo_data << pop.size() << " "; _of_algo_data.flush();
+		    // _of << pop.size() << " "; _of.flush();
 
 #if __cplusplus > 199711L
 		    for (auto& ind : pop)
@@ -197,17 +193,15 @@ namespace dim
 			    AUTO(double) alphaT = exp(log(alpha_f)/elapsed);
 			    Si = (1-alphaT)*Si + alphaT*Fi;
 
+#ifdef TRACE
+			    _of << Si << " "; _of.flush();
+#endif
+
 			    Ti = end; // t_i <- t
 		    	}
 		}
 
-		class Sender :
-#if __cplusplus > 199711L
-		    public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
-#else
-		    public core::Thread<EOT>
-#endif
-		    , public core::ParallelContext
+		class Sender : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
 		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
@@ -227,13 +221,7 @@ namespace dim
 		    size_t _to;
 		};
 
-		class Receiver :
-#if __cplusplus > 199711L
-		    public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
-#else
-		    public core::Thread<EOT>
-#endif
-		    , public core::ParallelContext
+		class Receiver : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
 		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
@@ -251,11 +239,7 @@ namespace dim
 		    size_t _from;
 		};
 
-#if __cplusplus > 199711L
-		virtual void addTo( core::ThreadsRunner< core::Pop<EOT>&, core::IslandData<EOT>& >& tr )
-#else
 		virtual void addTo( core::ThreadsRunner<EOT>& tr )
-#endif
 		{
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
@@ -273,8 +257,9 @@ namespace dim
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
 #ifdef TRACE
-		std::ofstream _of_algo, _of_algo_data;
+		std::ofstream _of;
 #endif // !TRACE
+
 	    };
 	} // !async
     }

@@ -198,8 +198,8 @@ namespace dim
 		{
 #ifdef TRACE
 		    std::ostringstream ss;
-		    ss << "trace.migrator." << this->rank() << ".algo.txt";
-		    _of_algo.open(ss.str());
+		    ss << "trace.migrator." << this->rank();
+		    _of.open(ss.str());
 #endif // !TRACE
 
 #if __cplusplus > 199711L
@@ -285,13 +285,7 @@ namespace dim
 		    pop.setInputSize( inputSize );
 		}
 
-		class Sender :
-#if __cplusplus > 199711L
-		    public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
-#else
-		    public core::Thread<EOT>
-#endif
-		    , public core::ParallelContext
+		class Sender : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
 		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
@@ -312,13 +306,7 @@ namespace dim
 		    size_t _to;
 		};
 
-		class Receiver :
-#if __cplusplus > 199711L
-		    public core::Thread< core::Pop<EOT>&, core::IslandData<EOT>& >
-#else
-		    public core::Thread<EOT>
-#endif
-		    , public core::ParallelContext
+		class Receiver : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
 		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
@@ -337,11 +325,7 @@ namespace dim
 		    size_t _from;
 		};
 
-#if __cplusplus > 199711L
-		virtual void addTo( core::ThreadsRunner< core::Pop<EOT>&, core::IslandData<EOT>& >& tr )
-#else
 		virtual void addTo( core::ThreadsRunner<EOT>& tr )
-#endif
 		{
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
@@ -359,8 +343,9 @@ namespace dim
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
 #ifdef TRACE
-		std::ofstream _of_comm, _of_algo;
+		std::ofstream _of;
 #endif // !TRACE
+
 	    };
 	} // !async
     } // !migrator

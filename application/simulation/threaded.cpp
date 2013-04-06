@@ -25,6 +25,7 @@
 #include <dim/feedbacker/Easy.h>
 #include <dim/migrator/Easy.h>
 #include <dim/vectorupdater/Easy.h>
+#include <dim/core/State.h>
 
 #if __cplusplus > 199711L
 namespace std_or_boost = std;
@@ -115,6 +116,7 @@ int main (int argc, char *argv[])
 
     eoParser parser(argc, argv);
     eoState state;    // keeps all things allocated
+    dim::core::State state_dim;    // keeps all things allocated
 
     /*****************************
      * Definition des paramètres *
@@ -135,6 +137,8 @@ int main (int argc, char *argv[])
     /*size_t penalty = */parser.createParam(size_t(1), "penalty", "penalty", 0, "Islands Model")/*.value()*/;
     // I
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
+
+    bool update = parser.createParam(bool(true), "update", "update", 'U', "Islands Model").value();
 
     /*********************************
      * Déclaration des composants EO *
@@ -221,19 +225,25 @@ int main (int argc, char *argv[])
      * Déclaration des composants DIM *
      **********************************/
 
-#if __cplusplus > 199711L
-    dim::core::ThreadsRunner< dim::core::Pop<EOT>&, dim::core::IslandData<EOT>& > tr;
-#else
     dim::core::ThreadsRunner< EOT > tr;
-#endif
 
     dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
     dim::feedbacker::async::Easy<EOT> feedbacker;
-    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
-    // dim::algo::Easy<EOT>::DummyVectorUpdater updater;
+
+    dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
+    if (update)
+	{
+	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alpha, beta);
+	}
+    else
+	{
+	    ptUpdater = new dim::algo::Easy<EOT>::DummyVectorUpdater();
+	}
+    state_dim.storeFunctor(ptUpdater);
+
     dim::memorizer::Easy<EOT> memorizer;
     dim::migrator::async::Easy<EOT> migrator;
-    dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
+    dim::algo::Easy<EOT> island( evolver, feedbacker, *ptUpdater, memorizer, migrator, checkpoint );
 
     tr.addHandler(feedbacker).addHandler(migrator).add(island);
 

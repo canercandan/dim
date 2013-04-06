@@ -60,7 +60,7 @@ namespace dim
 	    {
 #ifdef TRACE
 		std::ostringstream ss;
-		ss << "trace.updater." << this->rank() << ".txt";
+		ss << "trace.updater." << this->rank();
 		_of.open(ss.str());
 #endif // !TRACE
 	    }
@@ -175,7 +175,7 @@ namespace dim
 		    {
 			// typename EOT::Fitness Ri = R[i] / sum_multi;
 
-			R[i] = 1000 / this->size();
+			// R[i] = 1000 / this->size();
 
 #ifdef TRACE
 			_of << "(" << i << ") "
