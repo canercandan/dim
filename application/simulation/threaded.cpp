@@ -35,10 +35,6 @@ namespace std_or_boost = std;
 namespace std_or_boost = boost;
 #endif
 
-// using namespace std;
-// using namespace boost::mpi;
-// using namespace boost;
-
 typedef dim::core::Bit<double> EOT;
 
 class SimulatedOp : public eoMonOp<EOT>
@@ -101,15 +97,6 @@ int main (int argc, char *argv[])
     const size_t ALL = world.size();
     const size_t RANK = world.rank();
 
-    // if ( ALL < 4 )
-    // 	{
-    // 	    if ( 0 == RANK )
-    // 		{
-    // 		    cerr << "Needs at least 4 processes to be launched!" << endl;
-    // 		}
-    // 	    return 0;
-    // 	}
-
     /************************
      * Initialisation de EO *
      ************************/
@@ -140,6 +127,19 @@ int main (int argc, char *argv[])
 
     bool update = parser.createParam(bool(true), "update", "update", 'U', "Islands Model").value();
 
+    std::vector<unsigned> rewards(ALL, 1);
+    std::vector<unsigned> timeouts(ALL, 1);
+
+    for (size_t i = 0; i < ALL; ++i)
+	{
+	    std::ostringstream ss;
+	    ss << "reward" << i;
+	    rewards[i] = parser.createParam(unsigned(1), ss.str(), ss.str(), 0, "Islands Model").value();
+	    ss.str("");
+	    ss << "timeout" << i;
+	    timeouts[i] = parser.createParam(unsigned(1), ss.str(), ss.str(), 0, "Islands Model").value();
+	}
+
     /*********************************
      * Déclaration des composants EO *
      *********************************/
@@ -147,31 +147,8 @@ int main (int argc, char *argv[])
     /*unsigned chromSize = */parser.getORcreateParam(unsigned(0), "chromSize", "The length of the bitstrings", 'n',"Problem")/*.value()*/;
     eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
 
-    // size_t timeout = pow(10, RANK);
-    // size_t timeout = RANK+1;
-    // size_t timeout = 1;
-
-    // eoEvalFunc<EOT>* ptEval = NULL;
-    // ptEval = new SimulatedEval(1);
-    // state.storeFunctor(ptEval);
-
     eoEvalFunc<EOT>* ptEval = NULL;
-    if ( 0 == RANK )
-    	{
-    	    ptEval = new SimulatedEval(1);
-    	}
-    else if ( 1 == RANK )
-    	{
-    	    ptEval = new SimulatedEval(1);
-    	}
-    else if ( 2 == RANK )
-    	{
-    	    ptEval = new SimulatedEval(1);
-    	}
-    else if ( 3 == RANK )
-    	{
-    	    ptEval = new SimulatedEval(1);
-    	}
+    ptEval = new SimulatedEval( rewards[RANK] );
     state.storeFunctor(ptEval);
 
     eoEvalFuncCounter<EOT> eval(*ptEval);
@@ -200,25 +177,7 @@ int main (int argc, char *argv[])
      ****************************************/
 
     eoMonOp<EOT>* ptMon = NULL;
-    // ptMon = new SimulatedOp(timeout);
-    // state.storeFunctor(ptMon);
-
-    if ( 0 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    else if ( 1 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    else if ( 2 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
-    else if ( 3 == RANK )
-    	{
-    	    ptMon = new SimulatedOp(1);
-    	}
+    ptMon = new SimulatedOp( timeouts[RANK] );
     state.storeFunctor(ptMon);
 
     /**********************************
