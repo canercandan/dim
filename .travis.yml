@@ -1,3 +1,4 @@
 language: cpp
 script: cmake
 compiler: gcc
+mkdir build && cd build && cmake ..
