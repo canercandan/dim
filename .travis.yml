@@ -1,3 +1,6 @@
 language: cpp
-script: "mkdir build && cd build && cmake .."
+script: ./make_release.sh
 compiler: gcc
+before_install:
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq libopenmpi1.5-dev openmpi1.5-bin libboost-all-dev
