@@ -70,7 +70,7 @@ namespace dim
 	public:
 	    Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(__dummyEvolve), _feedback(__dummyFeedback), _update(__dummyUpdate), _memorize(__dummyMemorize), _migrate(__dummyMigrate), _tocontinue(true) {}
 
-	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true) {}
+	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, bool barrier = false) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true), _barrier(barrier) {}
 
 	    virtual ~Easy() {}
 
@@ -125,6 +125,11 @@ namespace dim
 			   _memorize.lastCall(pop, data);
 			   _migrate.lastCall(pop, data);
 
+			   if (_barrier)
+			       {
+				   this->world().barrier();
+			       }
+
 			   , total_time );
 #else // MEASURE
 		_evolve.firstCall(pop, data);
@@ -141,6 +146,11 @@ namespace dim
 			_update(pop, data);
 			_memorize(pop, data);
 			_migrate(pop, data);
+
+			if (_barrier)
+			    {
+				this->world().barrier();
+			    }
 		    }
 
 		_evolve.lastCall(pop, data);
@@ -167,6 +177,7 @@ namespace dim
 	    migrator::Base<EOT>& _migrate;
 
 	    std_or_boost::atomic<bool> _tocontinue;
+	    bool _barrier;
 	};
     } // !algo
 } // !dim
