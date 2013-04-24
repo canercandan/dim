@@ -21,7 +21,6 @@
 #define _CORE_ISLANDOPERATOR_H_
 
 #include "ParallelContext.h"
-#include "BF.h"
 #include "Pop.h"
 #include "IslandData.h"
 #include "Thread.h"
