@@ -56,18 +56,17 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/ ) : _alpha(alpha), _beta(beta)
+	    Easy( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/, bool delta = true )
+		: _alpha(alpha), _beta(beta), _delta(delta)
 	    {
 #ifdef TRACE
 		std::ostringstream ss;
 		ss << "trace.updater." << this->rank();
-		_of.open(ss.str());
+		_of.open(ss.str().c_str());
 #endif // !TRACE
 	    }
 
-#if __cplusplus <= 199711L
 	    static inline typename EOT::Fitness bounded_sum(typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); }
-#endif
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
@@ -86,8 +85,14 @@ namespace dim
 		std::vector< typename EOT::Fitness > R( this->size() );
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
-			R[i] = T[i] > tau ? S[i] : 0;
+			R[i] = T[i] >= tau ? S[i] : 0;
+// #ifdef TRACE
+// 			_of << R[i] << " ";
+// #endif
 		    }
+// #ifdef TRACE
+// 		_of << std::endl; std::cout.flush();
+// #endif
 
 		// Stategie par critère MAX
 		// int best = -1;
@@ -102,53 +107,76 @@ namespace dim
 		// 	}
 
 		// Stratégie par récompense proportionnelle
-#if __cplusplus > 199711L
-		auto sum_fits = std::accumulate(R.begin(), R.end(), 0., [](typename EOT::Fitness x, typename EOT::Fitness y){ return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0)); } );
-#else
-		typename EOT::Fitness sum_fits = std::accumulate(R.begin(), R.end(), 0., bounded_sum );
+		{
+		    typename EOT::Fitness sum_fits = std::accumulate(R.begin(), R.end(), 0., bounded_sum );
+
+#ifdef TRACE
+		    _of << sum_fits << " "; _of.flush();
 #endif
 
-#if __cplusplus > 199711L
-		for (auto& fit : R)
-		    {
-#else
-		for (size_t i = 0; i < R.size(); ++i)
-		    {
-			typename EOT::Fitness& fit = R[i];
-#endif
+		    if (sum_fits)
+			{
 
-			fit = fit > 0 ? fit / sum_fits * 1000 : 0;
-		    }
+			    unsigned sum_sum = 0;
+
+			    for (size_t i = 0; i < R.size()-1; ++i)
+				{
+				    R[i] = R[i] > 0 ? R[i] / sum_fits * 1000 : 0;
+				    sum_sum += R[i];
+// #ifdef TRACE
+// 			    _of << R[i] << " ";
+// #endif
+				}
+
+			    R.back() = 1000-sum_sum;
+// #ifdef TRACE
+// 		    _of << R.back();
+// 		    _of << std::endl; std::cout.flush();
+// #endif
+
+			}
+		    else
+			{
+			    tau = std_or_boost::chrono::system_clock::now();
+
+			    eo::log << eo::warnings << "S is null" << std::endl; eo::log.flush();
+
+			    return;
+
+			    unsigned sum = 0;
+
+			    for ( size_t i = 0; i < this->size()-1; ++i )
+				{
+				    R[i] = 1000 / this->size();
+				    sum += R[i];
+				}
+
+			    R.back() = 1000-sum;
+			}
+		}
 
 		// computation of epsilon vector (norm is 1)
-		double sum = 0;
-
 		std::vector< double > epsilon( this->size() );
 
-#if __cplusplus > 199711L
-		for ( auto& k : epsilon )
-		    {
-#else
-		for (size_t i = 0; i < epsilon.size(); ++i)
-		    {
-			double& k = epsilon[i];
-#endif
+		{
+		    unsigned sum = 0;
 
-			k = rng.rand() % 1000;
-			sum += k;
-		    }
+		    for (size_t i = 0; i < epsilon.size(); ++i)
+			{
+			    epsilon[i] = rng.rand() % 1000;
+			    sum += epsilon[i];
+			}
 
-#if __cplusplus > 199711L
-		for ( auto& k : epsilon )
-		    {
-#else
-		for (size_t i = 0; i < epsilon.size(); ++i)
-		    {
-			double& k = epsilon[i];
-#endif
+		    unsigned sum_sum = 0;
 
-			k = sum ? k / sum : 0;
-		    }
+		    for (size_t i = 0; i < epsilon.size()-1; ++i)
+			{
+			    epsilon[i] = sum ? epsilon[i] / sum * 1000 : 0;
+			    sum_sum += epsilon[i];
+			}
+
+		    epsilon.back() = 1000-sum_sum;
+		}
 
 		/*******************************************************************************
 		 * Si p_i^t est le vecteur de migration de ile numéro i au temps t             *
@@ -166,36 +194,66 @@ namespace dim
 		 *******************************************************************************/
 
 		AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.; // \DELTA{t}
-		AUTO(double) alphaT = exp(log(_alpha /*0.2*/)/elapsed);
-		AUTO(double) betaT = exp(log(_beta /*0.01*/)/elapsed);
+
+// #ifdef TRACE
+// 		_of << elapsed << " "; _of.flush();
+// #endif // !TRACE
+
+		if (!_delta)
+		    {
+			elapsed = 1.;
+		    }
+
+		AUTO(double) alphaT = _alpha ? exp(log(_alpha /*0.2*/)/elapsed) : 0;
+		// AUTO(double) betaT = _beta ? exp(log(_beta /*0.01*/)/elapsed) : 0;
+		AUTO(double) betaT = _beta;
+
+		// std::cout << betaT << " "; std::cout.flush();
 
 		// _of << deltaT << " "; _of.flush();
 
-		for ( size_t i = 0; i < this->size(); ++i )
+		// {
+		//     unsigned sum = 0;
+
+		//     for ( size_t i = 0; i < this->size()-1; ++i )
+		// 	{
+		// 	    R[i] = 1000 / this->size();
+		// 	    sum += R[i];
+		// 	}
+
+		//     R.back() = 1000-sum;
+		// }
+
+		// std::cout << std::accumulate(R.begin(), R.end(), 0.) << " "; std::cout.flush();
+
+		unsigned sum = 0;
+
+		for ( size_t i = 0; i < this->size()-1; ++i )
 		    {
 			// typename EOT::Fitness Ri = R[i] / sum_multi;
 
-			// R[i] = 1000 / this->size();
+// #ifdef TRACE
+// 			_of << "(" << i << ") "
+// 			    << (1 - betaT) << " * ( "
+// 			    << 1 - alphaT << " * "
+// 			    << data.proba[i] << " + "
+// 			    << alphaT << " * "
+// 			    << R[i] << " )"
+// 			    << " + " << betaT << " * " << 1000 << " * " << epsilon[i]
+// 			    << " = ";
+// #endif // !TRACE
 
-#ifdef TRACE
-			_of << "(" << i << ") "
-			    << (1 - betaT) << " * ( "
-			    << 1 - alphaT << " * "
-			    << data.proba[i] << " + "
-			    << alphaT << " * "
-			    << R[i] << " )"
-			    << " + " << betaT << " * " << 1000 << " * " << epsilon[i]
-			    << " = ";
-#endif // !TRACE
+			data.proba[i] = (1 - betaT) * ( ( 1 - alphaT ) * data.proba[i] + alphaT * R[i] ) + betaT * epsilon[i];
+			sum += data.proba[i];
 
-			data.proba[i] = (1 - betaT) * ( ( 1 - alphaT ) * data.proba[i] + alphaT * R[i] ) + betaT * 1000 * epsilon[i];
-
-#ifdef TRACE
-			_of << data.proba[i] << std::endl;
-			_of.flush();
-#endif // !TRACE
+// #ifdef TRACE
+// 			_of << data.proba[i] << std::endl;
+// 			_of.flush();
+// #endif // !TRACE
 
 		    }
+
+		data.proba.back() = 1000-sum;
 
 		tau = std_or_boost::chrono::system_clock::now();
 	    }
@@ -203,6 +261,7 @@ namespace dim
 	private:
 	    double _alpha;
 	    double _beta;
+	    bool _delta;
 
 #ifdef TRACE
 	    std::ofstream _of;
