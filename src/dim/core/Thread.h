@@ -20,15 +20,17 @@
 #ifndef _CORE_THREAD_H_
 #define _CORE_THREAD_H_
 
-#if __cplusplus > 199711L
-#include <thread>
-#else
+// #if __cplusplus > 199711L
+// #include <thread>
+// #else
 #include <boost/thread.hpp>
-#endif
+// #endif
 
 #include <vector>
 
 #include "BF.h"
+#include "Pop.h"
+#include "IslandData.h"
 
 namespace dim
 {
@@ -56,13 +58,13 @@ namespace dim
 
 	    void build(Pop<EOT>& pop, IslandData<EOT>& data)
 	    {
-		t = std_or_boost::thread( std_or_boost::ref(*this), std_or_boost::ref(pop), std_or_boost::ref(data) );
+		t = /*std_or_*/boost::thread( /*std_or_*/boost::ref(*this), /*std_or_*/boost::ref(pop), /*std_or_*/boost::ref(data) );
 	    }
 
 	    inline void join() { t.join(); }
 
 	protected:
-	    std_or_boost::thread t;
+	    /*std_or_*/boost::thread t;
 	};
 
 	template <typename EOT>
@@ -112,74 +114,74 @@ namespace dim
 	};
 
 #if __cplusplus > 199711L
-	namespace variadic
-	{
-	    template <class... Args>
-	    class ThreadsRunner;
+	// namespace variadic
+	// {
+	//     template <class... Args>
+	//     class ThreadsRunner;
 
-	    template <class... Args>
-	    class Thread
-	    {
-	    public:
-		virtual ~Thread() {}
+	//     template <class... Args>
+	//     class Thread
+	//     {
+	//     public:
+	// 	virtual ~Thread() {}
 
-		virtual void operator()(Args...) = 0;
+	// 	virtual void operator()(Args...) = 0;
 
-	    private:
-		friend class ThreadsRunner<Args...>;
+	//     private:
+	// 	friend class ThreadsRunner<Args...>;
 
-		void build(Args... args)
-		{
-		    t = std_or_boost::thread( std_or_boost::ref(*this), std_or_boost::ref(args)... );
-		}
+	// 	void build(Args... args)
+	// 	{
+	// 	    t = std::thread( std::ref(*this), std::ref(args)... );
+	// 	}
 
-		inline void join() { t.join(); }
+	// 	inline void join() { t.join(); }
 
-	    protected:
-		std_or_boost::thread t;
-	    };
+	//     protected:
+	// 	std::thread t;
+	//     };
 
-	    template <class... Args>
-	    class ThreadsHandler
-	    {
-	    public:
-		virtual ~ThreadsHandler() {}
+	//     template <class... Args>
+	//     class ThreadsHandler
+	//     {
+	//     public:
+	// 	virtual ~ThreadsHandler() {}
 
-		virtual void addTo(ThreadsRunner<Args...>&) = 0;
-	    };
+	// 	virtual void addTo(ThreadsRunner<Args...>&) = 0;
+	//     };
 
-	    template <class... Args>
-	    class ThreadsRunner
-	    {
-	    public:
-		void operator()(Args... args)
-		{
-		    for (auto& t : _vt) { t->build(args...); }
-		    for (auto& t : _vt) { t->join(); }
-		}
+	//     template <class... Args>
+	//     class ThreadsRunner
+	//     {
+	//     public:
+	// 	void operator()(Args... args)
+	// 	{
+	// 	    for (auto& t : _vt) { t->build(args...); }
+	// 	    for (auto& t : _vt) { t->join(); }
+	// 	}
 
-		ThreadsRunner& add(Thread<Args...>& t)
-		{
-		    _vt.push_back(&t);
-		    return *this;
-		}
+	// 	ThreadsRunner& add(Thread<Args...>& t)
+	// 	{
+	// 	    _vt.push_back(&t);
+	// 	    return *this;
+	// 	}
 
-		ThreadsRunner& add(Thread<Args...>* t)
-		{
-		    _vt.push_back(t);
-		    return *this;
-		}
+	// 	ThreadsRunner& add(Thread<Args...>* t)
+	// 	{
+	// 	    _vt.push_back(t);
+	// 	    return *this;
+	// 	}
 
-		ThreadsRunner& addHandler(ThreadsHandler<Args...>& t)
-		{
-		    t.addTo(*this);
-		    return *this;
-		}
+	// 	ThreadsRunner& addHandler(ThreadsHandler<Args...>& t)
+	// 	{
+	// 	    t.addTo(*this);
+	// 	    return *this;
+	// 	}
 
-	    private:
-		std::vector< Thread<Args...>* > _vt;
-	    };
-	} // !variadic
+	//     private:
+	// 	std::vector< Thread<Args...>* > _vt;
+	//     };
+	// } // !variadic
 #endif
 
     } // !core
