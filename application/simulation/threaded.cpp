@@ -17,6 +17,7 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
+#include <fstream>
 #include <boost/mpi.hpp>
 #include <eo>
 #include <dim/dim>
@@ -40,19 +41,41 @@ typedef dim::core::Bit<double> EOT;
 class SimulatedOp : public eoMonOp<EOT>
 {
 public:
-    SimulatedOp(size_t timeout) : _timeout(timeout) {}
+    SimulatedOp(double timeout) : _timeout(timeout)
+    {
+#ifdef TRACE
+	boost::mpi::communicator world;
+	std::ostringstream ss;
+	ss << "sleep." << world.rank();
+	_of.open(ss.str().c_str());
+#endif
+    }
 
     /// The class name.
     virtual std::string className() const { return "SimulatedOp"; }
 
     bool operator()(EOT&)
     {
-	std_or_boost::this_thread::sleep_for(std_or_boost::chrono::milliseconds( _timeout ));
+#ifdef TRACE
+	AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) start = std_or_boost::chrono::system_clock::now();
+#endif
+
+	/*std_or_*/boost::this_thread::sleep_for(/*std_or_*/boost::chrono::microseconds( int(_timeout * 1000) ));
+
+#ifdef TRACE
+	long elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(std_or_boost::chrono::system_clock::now()-start).count(); // micro
+	_of << elapsed / 1000. << " "; _of.flush();
+#endif
+
 	return true;
     }
 
 private:
-    size_t _timeout;
+    double _timeout;
+
+#ifdef TRACE
+    std::ofstream _of;
+#endif
 };
 
 class SimulatedEval : public eoEvalFunc<EOT>
@@ -110,15 +133,16 @@ int main (int argc, char *argv[])
      *****************************/
 
     // a
-    // double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
-    double alpha = parser.createParam(double(0.2), "alpha", "Alpha", 'a', "Islands Model").value();
+    // double alphaP = parser.createParam(double(0.8), "alphaP", "Alpha Probability", 'a', "Islands Model").value();
+    double alphaP = parser.createParam(double(0.2), "alpha", "Alpha Probability", 'a', "Islands Model").value();
+    double alphaF = parser.createParam(double(0.01), "alphaF", "Alpha Fitness", 'A', "Islands Model").value();
     // b
-    // double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
-    double beta = parser.createParam(double(0.01), "beta", "Beta", 'b', "Islands Model").value();
+    // double betaP = parser.createParam(double(0.99), "beta", "Beta Probability", 'b', "Islands Model").value();
+    double betaP = parser.createParam(double(0.01), "beta", "Beta Probability", 'b', "Islands Model").value();
     // p
     /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
     // d
-    size_t probaSame = parser.createParam(size_t(100/ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
+    double probaSame = parser.createParam(double(100./ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
     // r
     /*size_t reward = */parser.createParam(size_t(2), "reward", "reward", 'r', "Islands Model")/*.value()*/;
     /*size_t penalty = */parser.createParam(size_t(1), "penalty", "penalty", 0, "Islands Model")/*.value()*/;
@@ -126,18 +150,24 @@ int main (int argc, char *argv[])
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
 
     bool update = parser.createParam(bool(true), "update", "update", 'U', "Islands Model").value();
+    bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
+    bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
+    bool barrier = parser.createParam(bool(false), "barrier", "barrier", 0, "Islands Model").value();
+    unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
+    bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
+    bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
 
-    std::vector<unsigned> rewards(ALL, 1);
-    std::vector<unsigned> timeouts(ALL, 1);
+    std::vector<double> rewards(ALL, 1.);
+    std::vector<double> timeouts(ALL, 1.);
 
     for (size_t i = 0; i < ALL; ++i)
 	{
 	    std::ostringstream ss;
 	    ss << "reward" << i;
-	    rewards[i] = parser.createParam(unsigned(1), ss.str(), ss.str(), 0, "Islands Model").value();
+	    rewards[i] = parser.createParam(double(1.), ss.str(), ss.str(), 0, "Islands Model").value();
 	    ss.str("");
 	    ss << "timeout" << i;
-	    timeouts[i] = parser.createParam(unsigned(1), ss.str(), ss.str(), 0, "Islands Model").value();
+	    timeouts[i] = parser.createParam(double(1.), ss.str(), ss.str(), 0, "Islands Model").value();
 	}
 
     /*********************************
@@ -162,7 +192,7 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data;
 
-    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 1);
+    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, data, 1, stepTimer);
 
     /**************
      * EO routine *
@@ -187,12 +217,22 @@ int main (int argc, char *argv[])
     dim::core::ThreadsRunner< EOT > tr;
 
     dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
-    dim::feedbacker::async::Easy<EOT> feedbacker;
+
+    dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
+    if (feedback)
+	{
+	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, deltaFeedback);
+	}
+    else
+	{
+	    ptFeedbacker = new dim::algo::Easy<EOT>::DummyFeedbacker();
+	}
+    state_dim.storeFunctor(ptFeedbacker);
 
     dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
     if (update)
 	{
-	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alpha, beta);
+	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, deltaUpdate);
 	}
     else
 	{
@@ -201,10 +241,21 @@ int main (int argc, char *argv[])
     state_dim.storeFunctor(ptUpdater);
 
     dim::memorizer::Easy<EOT> memorizer;
-    dim::migrator::async::Easy<EOT> migrator;
-    dim::algo::Easy<EOT> island( evolver, feedbacker, *ptUpdater, memorizer, migrator, checkpoint );
 
-    tr.addHandler(feedbacker).addHandler(migrator).add(island);
+    dim::migrator::Base<EOT>* ptMigrator = NULL;
+    if (migrate)
+	{
+	    ptMigrator = new dim::migrator::async::Easy<EOT>();
+	}
+    else
+	{
+	    ptMigrator = new dim::algo::Easy<EOT>::DummyMigrator();
+	}
+    state_dim.storeFunctor(ptMigrator);
+
+    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, barrier );
+
+    tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
 
     /***************
      * Rock & Roll *
@@ -214,8 +265,8 @@ int main (int argc, char *argv[])
      * Création de la matrice de transition et distribution aux iles des vecteurs *
      ******************************************************************************/
 
-    dim::core::MigrationMatrix<EOT> probabilities( ALL );
-    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
+    dim::core::MigrationMatrix probabilities( ALL );
+    dim::core::InitMatrix initmatrix( initG, probaSame );
 
     if ( 0 == RANK )
     	{

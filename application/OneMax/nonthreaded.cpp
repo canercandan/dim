@@ -154,8 +154,8 @@ int main(int argc, char *argv[])
      * Création de la matrice de transition et distribution aux iles des vecteurs *
      ******************************************************************************/
 
-    dim::core::MigrationMatrix<EOT> probabilities( ALL );
-    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
+    dim::core::MigrationMatrix probabilities( ALL );
+    dim::core::InitMatrix initmatrix( initG, probaSame );
 
     // ublas::matrix< double > m(ALL, ALL);
 

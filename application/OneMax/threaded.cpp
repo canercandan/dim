@@ -17,29 +17,36 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
+#include <fstream>
 #include <boost/mpi.hpp>
 #include <eo>
 #include <ga.h>
 #include <dim/dim>
+#include <dim/algo/Easy.h>
+#include <dim/evolver/Easy.h>
 #include <dim/feedbacker/Easy.h>
 #include <dim/migrator/Easy.h>
 #include <dim/vectorupdater/Easy.h>
-#include <dim/algo/Easy.h>
+#include <dim/core/State.h>
 
-using namespace std;
-using namespace boost::mpi;
-using namespace boost;
+#if __cplusplus > 199711L
+namespace std_or_boost = std;
+#else
+#include <boost/thread/thread.hpp>
+#include <boost/chrono/chrono_io.hpp>
+namespace std_or_boost = boost;
+#endif
 
 typedef dim::core::Bit<double> EOT;
 
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
     /*************************
      * Initialisation de MPI *
      *************************/
 
-    environment env(argc, argv);
-    communicator world;
+    boost::mpi::environment env(argc, argv, MPI_THREAD_MULTIPLE, true);
+    boost::mpi::communicator world;
 
     /****************************
      * Il faut au moins 4 nœuds *
@@ -48,39 +55,55 @@ int main(int argc, char *argv[])
     const size_t ALL = world.size();
     const size_t RANK = world.rank();
 
-    // if ( ALL < 4 )
-    // 	{
-    // 	    if ( 0 == RANK )
-    // 		{
-    // 		    cerr << "Needs at least 4 processes to be launched!" << endl;
-    // 		}
-    // 	    return 0;
-    // 	}
-
     /************************
      * Initialisation de EO *
      ************************/
 
     eoParser parser(argc, argv);
     eoState state;    // keeps all things allocated
+    dim::core::State state_dim;    // keeps all things allocated
 
     /*****************************
      * Definition des paramètres *
      *****************************/
 
     // a
-    double alpha = parser.createParam(double(0.8), "alpha", "Alpha", 'a', "Islands Model").value();
+    // double alphaP = parser.createParam(double(0.8), "alphaP", "Alpha Probability", 'a', "Islands Model").value();
+    double alphaP = parser.createParam(double(0.2), "alpha", "Alpha Probability", 'a', "Islands Model").value();
+    double alphaF = parser.createParam(double(0.01), "alphaF", "Alpha Fitness", 'A', "Islands Model").value();
     // b
-    double beta = parser.createParam(double(0.99), "beta", "Beta", 'b', "Islands Model").value();
+    // double betaP = parser.createParam(double(0.99), "beta", "Beta Probability", 'b', "Islands Model").value();
+    double betaP = parser.createParam(double(0.01), "beta", "Beta Probability", 'b', "Islands Model").value();
     // p
     /*size_t probaMin = */parser.createParam(size_t(10), "probaMin", "Minimum probability to stay in the same island", 'p', "Islands Model").value();
     // d
-    size_t probaSame = parser.createParam(size_t(100/ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
+    double probaSame = parser.createParam(double(100./ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
     // r
     /*size_t reward = */parser.createParam(size_t(2), "reward", "reward", 'r', "Islands Model")/*.value()*/;
     /*size_t penalty = */parser.createParam(size_t(1), "penalty", "penalty", 0, "Islands Model")/*.value()*/;
     // I
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
+
+    bool update = parser.createParam(bool(true), "update", "update", 'U', "Islands Model").value();
+    bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
+    bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
+    bool barrier = parser.createParam(bool(false), "barrier", "barrier", 0, "Islands Model").value();
+    unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
+    bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
+    bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
+
+    std::vector<double> rewards(ALL, 1.);
+    std::vector<double> timeouts(ALL, 1.);
+
+    for (size_t i = 0; i < ALL; ++i)
+	{
+	    std::ostringstream ss;
+	    ss << "reward" << i;
+	    rewards[i] = parser.createParam(double(1.), ss.str(), ss.str(), 0, "Islands Model").value();
+	    ss.str("");
+	    ss << "timeout" << i;
+	    timeouts[i] = parser.createParam(double(1.), ss.str(), ss.str(), 0, "Islands Model").value();
+	}
 
     /*********************************
      * Déclaration des composants EO *
@@ -93,15 +116,15 @@ int main(int argc, char *argv[])
     eoEvalFuncCounter<EOT> eval(mainEval);
 
     /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
-    dim::core::Pop<EOT>& pop = dim::do_make::pop(parser, state, init);
+    dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
-    /*unsigned maxGen = */parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion")/*.value()*/;
     /*double targetFitness = */parser.getORcreateParam(double(chromSize), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
+    /*unsigned maxGen = */parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion")/*.value()*/;
     dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 
     dim::core::IslandData<EOT> data;
 
-    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data);
+    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, data, 1, stepTimer);
 
     /**************
      * EO routine *
@@ -126,7 +149,7 @@ int main(int argc, char *argv[])
 	    eo::log << eo::logging << RANK << ": kflip(" << (RANK-1) * 2 + 1 << ") ";
 	    ptMon = new eoDetPermutBitFlip<EOT>( (RANK-1) * 2 + 1 );
 	}
-    eo::log << eo::logging << endl;
+    eo::log << eo::logging << std::endl;
     eo::log.flush();
     state.storeFunctor(ptMon);
 
@@ -134,12 +157,48 @@ int main(int argc, char *argv[])
      * Déclaration des composants DIM *
      **********************************/
 
-    dim::evolver::Easy<EOT> evolver( eval, *ptMon );
-    dim::feedbacker::async::Easy<EOT> feedbacker;
-    dim::vectorupdater::Easy<EOT> updater(alpha, beta);
+    dim::core::ThreadsRunner< EOT > tr;
+
+    dim::evolver::Easy<EOT> evolver( /*eval*/mainEval, *ptMon );
+
+    dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
+    if (feedback)
+	{
+	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, deltaFeedback);
+	}
+    else
+	{
+	    ptFeedbacker = new dim::algo::Easy<EOT>::DummyFeedbacker();
+	}
+    state_dim.storeFunctor(ptFeedbacker);
+
+    dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
+    if (update)
+	{
+	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, deltaUpdate);
+	}
+    else
+	{
+	    ptUpdater = new dim::algo::Easy<EOT>::DummyVectorUpdater();
+	}
+    state_dim.storeFunctor(ptUpdater);
+
     dim::memorizer::Easy<EOT> memorizer;
-    dim::migrator::async::Easy<EOT> migrator;
-    dim::algo::Easy<EOT> island( evolver, feedbacker, updater, memorizer, migrator, checkpoint );
+
+    dim::migrator::Base<EOT>* ptMigrator = NULL;
+    if (migrate)
+	{
+	    ptMigrator = new dim::migrator::async::Easy<EOT>();
+	}
+    else
+	{
+	    ptMigrator = new dim::algo::Easy<EOT>::DummyMigrator();
+	}
+    state_dim.storeFunctor(ptMigrator);
+
+    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, barrier );
+
+    tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
 
     /***************
      * Rock & Roll *
@@ -149,26 +208,24 @@ int main(int argc, char *argv[])
      * Création de la matrice de transition et distribution aux iles des vecteurs *
      ******************************************************************************/
 
-    dim::core::MigrationMatrix<EOT> probabilities( ALL );
-    dim::core::InitMatrix<EOT> initmatrix( initG, probaSame );
-
-    // ublas::matrix< double > m(ALL, ALL);
+    dim::core::MigrationMatrix probabilities( ALL );
+    dim::core::InitMatrix initmatrix( initG, probaSame );
 
     if ( 0 == RANK )
-	{
-	    initmatrix( probabilities );
-	    std::cout << probabilities;
-	    data.proba = probabilities(RANK);
+    	{
+    	    initmatrix( probabilities );
+    	    std::cout << probabilities;
+    	    data.proba = probabilities(RANK);
 
-	    for (size_t i = 1; i < ALL; ++i)
-		{
-		    world.send( i, 100, probabilities(i) );
-		}
-	}
+    	    for (size_t i = 1; i < ALL; ++i)
+    		{
+    		    world.send( i, 100, probabilities(i) );
+    		}
+    	}
     else
-	{
-	    world.recv( 0, 100, data.proba );
-	}
+    	{
+    	    world.recv( 0, 100, data.proba );
+    	}
 
     /******************************************
      * Get the population size of all islands *
@@ -179,9 +236,9 @@ int main(int argc, char *argv[])
 
     apply<EOT>(eval, pop);
 
-    island( pop, data );
+    tr( pop, data );
 
     world.abort(0);
 
-    return 0;
+    return 0 ;
 }
