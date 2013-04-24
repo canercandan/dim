@@ -30,28 +30,28 @@ namespace dim
     {
 
 	template <typename EOT>
-	class GetMigrationProbability : public Updater, public eoValueParam<typename EOT::Fitness>
+	class GetMigrationProbability : public Updater, public eoValueParam<double>
 	{
 	public:
-	    GetMigrationProbability( const std::vector< typename EOT::Fitness >& vecProba, const size_t isl, std::string label = "Value" )
-		: eoValueParam<typename EOT::Fitness>(0, label), _vecProba(vecProba), _isl(isl) {}
+	    GetMigrationProbability( const std::vector<unsigned>& vecProba, const size_t isl, std::string label = "Value" )
+		: eoValueParam<double>(0, label), _vecProba(vecProba), _isl(isl) {}
 
 	    virtual void operator()()
 	    {
-		this->value() = _vecProba[_isl] / 10;
+		this->value() = _vecProba[_isl] / 10.;
 	    }
 
 	private:
-	    const std::vector< typename EOT::Fitness >& _vecProba;
+	    const std::vector<unsigned>& _vecProba;
 	    const size_t _isl;
 	};
 
 	template <typename EOT>
-	class GetSumVectorProbability : public Updater, public eoValueParam<typename EOT::Fitness>
+	class GetSumVectorProbability : public Updater, public eoValueParam<double>
 	{
 	public:
-	    GetSumVectorProbability( const std::vector< typename EOT::Fitness >& vecProba, std::string label = "Value" )
-		: eoValueParam<typename EOT::Fitness>(0, label), _vecProba(vecProba) {}
+	    GetSumVectorProbability( const std::vector<unsigned>& vecProba, std::string label = "Value" )
+		: eoValueParam<double>(0, label), _vecProba(vecProba) {}
 
 	    virtual void operator()()
 	    {
@@ -59,7 +59,7 @@ namespace dim
 	    }
 
 	private:
-	    const std::vector< typename EOT::Fitness >& _vecProba;
+	    const std::vector<unsigned>& _vecProba;
 	};
 
     } // !utils

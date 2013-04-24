@@ -39,7 +39,7 @@ namespace dim
     namespace do_make
 	{
 
-	    template <class EOT>
+	    template <typename EOT>
 	    utils::CheckPoint<EOT>& checkpoint(eoParser& _parser, eoState& _state, continuator::Base<EOT>& _continue, core::IslandData<EOT>& data, unsigned _frequency = 1, unsigned stepTimer = 1000 )
 	    {
 		const size_t ALL = data.size();
@@ -147,8 +147,17 @@ namespace dim
 
 		// TODO: just added temporarely to make statistic scripts working, but HAVE TO be removed
 		std::ostringstream ss_proba;
-		ss_proba << "P" << "*to" << RANK;
-		utils::FixedValue<unsigned int>& migProbaRet = _state.storeFunctor( new utils::FixedValue<unsigned int>( 0, ss_proba.str() ) );
+		ss_proba << "P" << RANK << "to*";
+		utils::GetSumVectorProbability<EOT>& migProba = _state.storeFunctor( new utils::GetSumVectorProbability<EOT>( data.proba, ss_proba.str() ) );
+		checkpoint.add(migProba);
+		fileMonitor.add(migProba);
+		if (printBest) { stdMonitor->add(migProba); }
+		// END TODO
+
+		// TODO: just added temporarely to make statistic scripts working, but HAVE TO be removed
+		std::ostringstream ss_proba_ret;
+		ss_proba_ret << "P" << "*to" << RANK;
+		utils::FixedValue<unsigned int>& migProbaRet = _state.storeFunctor( new utils::FixedValue<unsigned int>( 0, ss_proba_ret.str() ) );
 		fileMonitor.add(migProbaRet);
 		if (printBest) { stdMonitor->add(migProbaRet); }
 		// END TODO
