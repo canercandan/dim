@@ -85,11 +85,10 @@ namespace dim
 	    unsigned rSize;              // row size (== number of columns!)
 	};
 
-	template <typename EOT>
-	class MigrationMatrix : public SquareMatrix< typename EOT::Fitness >
+	class MigrationMatrix : public SquareMatrix< unsigned >
 	{
 	public:
-	    MigrationMatrix(unsigned s = 0) : SquareMatrix< typename EOT::Fitness >(s) {}
+	    MigrationMatrix(unsigned s = 0) : SquareMatrix< unsigned >(s) {}
 
 	    virtual void printOn(std::ostream & os) const
 	    {
@@ -121,11 +120,9 @@ namespace dim
 		os << std::endl;
 		os << "sum";
 
-		typename EOT::Fitness sum;
-
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
-			sum = 0;
+			unsigned sum = 0;
 			for (size_t j = 0; j < this->size(); ++j)
 			    {
 				sum = sum + (*this)(j,i);
@@ -136,32 +133,30 @@ namespace dim
 	    }
 	};
 
-	template <typename EOT>
-	class InitMatrix : public eoUF< SquareMatrix<typename EOT::Fitness>&, void >
+	class InitMatrix : public eoUF< SquareMatrix< unsigned >&, void >
 	{
 	public:
-	    InitMatrix(bool initG = false, typename EOT::Fitness same = 90) : _initG(initG), _same(same) {}
+	    InitMatrix(bool initG = false, double same = 90.) : _initG(initG), _same(same*10) {}
 
-	    void operator()(SquareMatrix<typename EOT::Fitness>& matrix)
+	    void operator()(SquareMatrix< unsigned >& matrix)
 	    {
-		typename EOT::Fitness sum;
-
 		for (size_t i = 0; i < matrix.size(); ++i)
 		    {
-			sum = 0;
+			unsigned sum = 0;
 
 			for (size_t j = 0; j < matrix.size(); ++j)
 			    {
 				if (i == j)
-				    matrix(i,j) = _same * 10;
+				    {
+					matrix(i,j) = _same;
+				    }
 				else
 				    {
 					if (_initG)
-					    matrix(i,j) = (1000 - _same * 10) / (matrix.size()-1);
+					    matrix(i,j) = (1000 - _same) / (matrix.size()-1);
 					else
-					    matrix(i,j) = rand();
-
-					sum = sum + matrix(i,j);
+					    matrix(i,j) = eo::rng.rand();
+					sum += matrix(i,j);
 				    }
 			    }
 
@@ -172,7 +167,7 @@ namespace dim
 					if (sum == 0)
 					    matrix(i,j) = 0;
 					else
-					    matrix(i,j) = matrix(i,j) / sum * (1000 - _same * 10);
+					    matrix(i,j) = double(matrix(i,j)) / sum * (1000. - _same);
 				    }
 			    }
 		    }
@@ -181,7 +176,7 @@ namespace dim
 
 	private:
 	    bool _initG;
-	    typename EOT::Fitness _same;
+	    unsigned _same;
 	};
 
     } // !core
