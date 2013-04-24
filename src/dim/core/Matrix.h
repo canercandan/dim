@@ -93,21 +93,17 @@ namespace dim
 	    virtual void printOn(std::ostream & os) const
 	    {
 		os << "Migration probability (in %) among islands" << std::endl;
-		os << "\t" << "1/l";
 
-		for (size_t i = 0; i < this->size() - 1; ++i)
+		for (size_t i = 0; i < this->size(); ++i)
 		    {
-			os << "\t" << i * 2 + 1 << "f";
+			os << "\t" << i;
 		    }
 
 		os << std::endl;
 
 		for (size_t i = 0; i < this->size(); ++i)
 		    {
-			if (i == 0)
-			    os << "1/l";
-			else
-			    os << i*2-1 << "f";
+			os << i;
 
 			for (size_t j = 0; j < this->size(); ++j)
 			    {
