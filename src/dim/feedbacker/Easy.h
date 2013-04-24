@@ -126,6 +126,8 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
+		Easy(double alpha = 0.01, bool delta = true) : _alpha(alpha), _delta(delta) {}
+
 		~Easy()
 		{
 		    for (size_t i = 0; i < this->_senders.size(); ++i)
@@ -140,7 +142,7 @@ namespace dim
 #ifdef TRACE
 		    std::ostringstream ss;
 		    ss << "trace.feedbacker." << this->rank();
-		    _of.open(ss.str());
+		    _of.open(ss.str().c_str());
 #endif // !TRACE
 		}
 
@@ -177,24 +179,40 @@ namespace dim
 		     * Update feedbacks *
 		     ********************/
 
+		    for (size_t i = 0; i < data.feedbacks.size(); ++i)
+			{
+			    data.feedbacks[i] = 0;
+			    // data.feedbackLastUpdatedTimes[i] = std_or_boost::chrono::system_clock::now();
+			}
+
+		    // _of << "[" << data.feedbackerReceivingQueue.size() << "] "; _of.flush();
+
 		    while ( !data.feedbackerReceivingQueue.empty() )
 		    	{
 		    	    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
 		    	    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
-		    	    // double t = std::get<1>(fbr);
+		    	    // double t = std_or_boost::get<1>(fbr);
 		    	    AUTO(size_t) from = std_or_boost::get<2>(fbr);
 		    	    AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
 			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
-			    const AUTO(double) alpha_f = 0.01;
 
 			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
-			    AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::milliseconds>( end - Ti ).count(); // delta{t} <- t - t_i
+			    AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - Ti ).count() / 1000.; // delta{t} <- t - t_i
 
-			    AUTO(double) alphaT = exp(log(alpha_f)/elapsed);
+			    if (!_delta)
+			    	{
+			    	    elapsed = 1.;
+				    // t = 1.;
+			    	}
+
+			    AUTO(double) alphaT = exp(log(_alpha)/elapsed);
 			    Si = (1-alphaT)*Si + alphaT*Fi;
 
 #ifdef TRACE
-			    _of << Si << " "; _of.flush();
+			    if (from == 1)
+				{
+				    _of << Si << " "; _of.flush();
+				}
 #endif
 
 			    Ti = end; // t_i <- t
@@ -254,6 +272,8 @@ namespace dim
 		}
 
 	    private:
+		double _alpha;
+		bool _delta;
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
 #ifdef TRACE
