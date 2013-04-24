@@ -199,7 +199,7 @@ namespace dim
 #ifdef TRACE
 		    std::ostringstream ss;
 		    ss << "trace.migrator." << this->rank();
-		    _of.open(ss.str());
+		    _of.open(ss.str().c_str());
 #endif // !TRACE
 
 #if __cplusplus > 199711L
