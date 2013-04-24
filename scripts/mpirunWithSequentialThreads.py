@@ -29,14 +29,15 @@ def main():
 
     parser.add_argument('program', nargs='+', help='the program arguments')
     parser.add_argument('-np', help='number of nodes used', type=int, required=True)
+    parser.add_argument('-gdb', help='gdb mode', action='store_true')
 
     args = parser.parse_args()
 
     # pprint(args)
 
-    cmd = 'mpirun %s' % ' : '.join(["-np 1 hwloc-bind pu:%d %s" % (i, ' '.join(args.program)) for i in range(args.np)])
+    cmd = 'mpirun %s' % ' : '.join(["-np 1 hwloc-bind pu:%d %s%s" % (i, 'xterm -e gdb --args ' if args.gdb else '', ''.join(args.program)) for i in range(args.np)])
 
-    # print(cmd.split())
+    # print(cmd)
 
     try:
         subprocess.call(cmd.split())
