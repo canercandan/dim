@@ -106,7 +106,7 @@ namespace dim
 
 		AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::chrono::time_point<std_or_boost::chrono::system_clock>))) end = std_or_boost::chrono::system_clock::now();
 
-		AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - timesQueue.front() ).count() / 1000.;
+		AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - timesQueue.front() ).count() / 1000.;
 
 		if (!elapsed) { elapsed = 10e-10; } // temporary solution in order to have a positive number in elapsed value
 		std_or_boost::tuple<T, double, size_t> ret(dataQueue.front(), elapsed, idQueue.front());
@@ -170,12 +170,12 @@ namespace dim
 	    typedef typename EOT::Fitness Fitness;
 #endif
 
-	    IslandData() : feedbacks(size()), feedbackLastUpdatedTimes(size()), vectorLastUpdatedTime(std_or_boost::chrono::system_clock::now()), proba(size()), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
+	    IslandData() : feedbacks(size(), 0), feedbackLastUpdatedTimes(size(), std_or_boost::chrono::system_clock::now()), vectorLastUpdatedTime(std_or_boost::chrono::system_clock::now()), proba(size(), 0), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
 
 	    std::vector< Fitness > feedbacks;
 	    std::vector< std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > > feedbackLastUpdatedTimes;
 	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > vectorLastUpdatedTime;
-	    std::vector< Fitness > proba;
+	    std::vector< unsigned > proba;
 
 	    DataQueueVector< Fitness > feedbackerSendingQueue;
 	    DataQueue< Fitness > feedbackerReceivingQueue;
