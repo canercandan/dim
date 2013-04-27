@@ -20,59 +20,10 @@
 
 # http://stackoverflow.com/questions/14952401/creating-double-boxplots-i-e-two-boxes-for-each-x-value
 
-import argparse, logging, sys
+import logging
+from parser import Parser
 
 logger = logging.getLogger("boxplot")
-
-class Parser(argparse.ArgumentParser):
-    """Wrapper class added logging support"""
-
-    def __init__(self, description='', formatter_class=argparse.ArgumentDefaultsHelpFormatter):
-        """
-        We add all the common options to manage verbosity.
-        """
-
-        argparse.ArgumentParser.__init__(self, description=description, formatter_class=formatter_class)
-
-        self.levels = {'debug': logging.DEBUG,
-                       'info': logging.INFO,
-                       'warning': logging.WARNING,
-                       'error': logging.ERROR,
-                       'quiet': logging.CRITICAL
-        }
-
-        self.add_argument('-v', '--verbose', choices=[x for x in self.levels.keys()], default='quiet', help='set a verbosity level')
-        self.add_argument('-l', '--levels', action='store_true', default=False, help='list all the verbosity levels')
-        self.add_argument('-o', '--output', help='all the logging messages are redirected to the specified filename.')
-        self.add_argument('-d', '--debug', action='store_const', const='debug', dest='verbose', help='Diplay all the messages.')
-        self.add_argument('-i', '--info', action='store_const', const='info', dest='verbose', help='Diplay the info messages.')
-        self.add_argument('-w', '--warning', action='store_const', const='warning', dest='verbose', help='Only diplay the warning and error messages.')
-        self.add_argument('-e', '--error', action='store_const', const='error', dest='verbose', help='Only diplay the error messages')
-        self.add_argument('-q', '--quiet', action='store_const', const='quiet', dest='verbose', help='Quiet level of verbosity only displaying the critical error messages.')
-
-    def __call__(self):
-        args = self.parse_args()
-
-        if args.levels:
-            print("Here's the verbose levels available:")
-            for keys in self.levels.keys():
-                print("\t", keys)
-            sys.exit()
-
-        if (args.output):
-            logging.basicConfig(
-                level=logging.DEBUG,
-                format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                filename=args.output, filemode='a'
-                )
-            return
-
-        logging.basicConfig(
-            level=self.levels.get(args.verbose, logging.NOTSET),
-            format='%(name)-12s: %(levelname)-8s %(message)s'
-            )
-
-        return args
 
 def main():
     parser = Parser(description='To trace boxplot.')
