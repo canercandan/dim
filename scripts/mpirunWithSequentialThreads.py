@@ -19,19 +19,26 @@
 #
 
 import subprocess
-import argparse, logging
+import logging
+from parser import Parser
 
 logger = logging.getLogger("mpirun")
 
 def main():
-    parser = argparse.ArgumentParser(description='Run mpi program with threads sequentialized.',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = Parser(description='Run mpi program with threads sequentialized.')
     parser.add_argument('program', nargs='+', help='the program arguments')
     parser.add_argument('-np', help='number of nodes used', type=int, default=4)
     parser.add_argument('-gdb', help='gdb mode', action='store_true')
-    args = parser.parse_args()
+    parser.add_argument('--gdb_cmd', help='gdb command to use', default='xterm -e gdb --args')
+    parser.add_argument('--hwloc_cmd', help='hwloc command to use', default='hwloc-bind pu:')
+    parser.add_argument('--mpi_cmd', help='mpi command to use', default='-np 1')
+    args = parser()
 
-    cmd = 'mpirun %s' % ' : '.join(["-np 1 hwloc-bind pu:%d %s%s" % (i, 'xterm -e gdb --args ' if args.gdb else '', ' '.join(args.program)) for i in range(args.np)])
+    logger.debug(args)
+
+    cmd = 'mpirun %s' % ' : '.join(["%s %s%d %s%s" % (args.mpi_cmd, args.hwloc_cmd, i, '%s ' % args.gdb_cmd if args.gdb else '', ' '.join(args.program)) for i in range(args.np)])
+
+    logger.debug(cmd)
 
     try:
         subprocess.call(cmd.split())
