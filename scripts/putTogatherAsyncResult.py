@@ -23,7 +23,7 @@ from parser import Parser
 import numpy as np
 import math
 
-logger = logging.getLogger("putTogatherAsyncResult")
+logger = logging.getLogger("putTogatherAyncResult")
 
 def getTimeMax(datafiles):
     """
@@ -85,7 +85,7 @@ def writeInfoToResult(info, newfile):
     for val in info['migrants']: newfile.write("%s " % val)
 
 def main():
-    parser = Parser(description='Put togather multiprocessed DIM execution file results.')
+    parser = Parser(description='Put togather file results for multiprocessed DIM asynchronious execution.')
     parser.add_argument('--prefix', '-p', help='monitor prefix name', default='result')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     args = parser()

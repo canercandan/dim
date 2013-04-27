@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 
-import sys, os
+import logging, sys
+from parser import Parser
 import pylab as pl;
 
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage:", os.path.basename(sys.argv[0]), "[MONITOR_PREFIX_NAME] [NUMBER_OF_ISLAND]")
-        sys.exit()
+logger = logging.getLogger("putTogatherSyncResult")
 
-    prefix = sys.argv[1]
-    N = int(sys.argv[2])
-    exec_path = sys.path[0]
+def main():
+    parser = Parser(description='Put togather file results for multiprocessed DIM synchronious execution.')
+    parser.add_argument('--prefix', '-p', help='monitor prefix name', default='result')
+    parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
+    parser.add_argument('--trace', '-t', help='plot values', action='store_true')
+    args = parser()
 
     files = []
-    for i in range(N):
-        files += [open("%s_monitor_%d" % (prefix, i), 'r')]
+    for i in range(args.islands):
+        files += [open("%s_monitor_%d" % (args.prefix, i), 'r')]
 
-    newfile = open("%s_monitor" % prefix, 'w')
-    newfile.write("".join(open("%s/result_header.txt" % exec_path).readlines()))
+    newfile = open("%s_monitor" % args.prefix, 'w')
+    newfile.write("".join(open("%s/result_header.txt" % sys.path[0]).readlines()))
 
     # on ignore la premiere ligne
-    for i in range(N):
+    for i in range(args.islands):
         files[i].readline()
 
     total = []
@@ -35,7 +36,7 @@ if __name__ == '__main__':
         best += [float(t0[5])]
         nbindi += [float(t0[2])]
         avg += [float(t0[3]) * float(t0[2])]
-        for i in range(1,N):
+        for i in range(1,args.islands):
             ti = files[i].readline().split()
             newfile.write('%s ' % ' '.join(ti[2:]) )
             best += [float(ti[5])]
@@ -46,8 +47,15 @@ if __name__ == '__main__':
 
         total += [nbindi]
 
-    pl.plot(total)
-    pl.show()
+    if trace:
+        pl.plot(total)
+        pl.show()
 
-    # print(total)
-    print("Done")
+    logger.debug(total)
+    logger.info("Done")
+
+# when executed, just run main():
+if __name__ == '__main__':
+    logger.debug('### script started ###')
+    main()
+    logger.debug('### script ended ###')
