@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+# Authors:
+# Caner Candan <caner@candan.fr>, http://caner.candan.fr
+#
+
+import logging, sys
+from parser import Parser
 import numpy as np
 import math
-import sys, os
-from pprint import pprint
+
+logger = logging.getLogger("putTogatherAsyncResult")
 
 def getTimeMax(datafiles):
     """
@@ -23,17 +43,17 @@ def createTimelines(timemax, datafiles):
     Create the timelines.
     """
 
-    timelines = [None]*N
-    for i in range(N):
+    timelines = [None]*len(datafiles)
+    for i in range(len(datafiles)):
         timelines[i] = [None]*(timemax+1)
 
-    for i in range(N):
+    for i in range(len(datafiles)):
         for line in datafiles[i]:
             time = math.floor(float(line[1]))
             timelines[i][time] = line[2:]
     return timelines
 
-def getTimelineInfo(timeline):
+def getTimelineInfo(timeline, N):
     """
     Parse the info data provided by a timeline and return.
     """
@@ -64,24 +84,21 @@ def writeInfoToResult(info, newfile):
     newfile.write('%(input_proba)s ' % info)
     for val in info['migrants']: newfile.write("%s " % val)
 
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage:", os.path.basename(sys.argv[0]), "[MONITOR_PREFIX_NAME] [NUMBER_OF_ISLAND]")
-        sys.exit()
+def main():
+    parser = Parser(description='Put togather multiprocessed DIM execution file results.')
+    parser.add_argument('--prefix', '-p', help='monitor prefix name', default='result')
+    parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
+    args = parser()
 
-    prefix = sys.argv[1]
-    N = int(sys.argv[2])
-    exec_path = sys.path[0]
+    datafiles = [None]*args.islands
+    for i in range(args.islands):
+        datafiles[i] = [ line.split() for line in open("%s_monitor_%d" % (args.prefix, i), 'r').readlines()[1:] ]
 
-    datafiles = [None]*N
-    for i in range(N):
-        datafiles[i] = [ line.split() for line in open("%s_monitor_%d" % (prefix, i), 'r').readlines()[1:] ]
-
-    newfile = open("%s_monitor" % prefix, 'w')
-    newfile.write("".join(open("%s/result_header.txt" % exec_path).readlines()))
+    newfile = open("%s_monitor" % args.prefix, 'w')
+    newfile.write("".join(open("%s/result_header.txt" % sys.path[0]).readlines()))
 
     timemax = getTimeMax(datafiles)
-    print("Timemax:", timemax)
+    logger.info("Timemax:", timemax)
 
     timelines = createTimelines(timemax, datafiles)
 
@@ -93,11 +110,11 @@ if __name__ == '__main__':
         avg = []
         evl = []
 
-        for i in range(N):
-            info = getTimelineInfo(timelines[i][time])
+        for i in range(args.islands):
+            info = getTimelineInfo(timelines[i][time], args.islands)
 
             if not info: continue
-            # pprint(info)
+            logger.debug(info)
 
             writeInfoToResult(info, newfile)
 
@@ -109,4 +126,10 @@ if __name__ == '__main__':
 
         newfile.write('\n')
 
-    print("Done")
+    logger.info("Done")
+
+# when executed, just run main():
+if __name__ == '__main__':
+    logger.debug('### script started ###')
+    main()
+    logger.debug('### script ended ###')
