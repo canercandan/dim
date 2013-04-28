@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='time', help='time in nanoseconds')
     args = parser()
 
-    print(args)
+    logger.debug(args)
 
     print("Time unit: %s" % args.time)
 
@@ -51,7 +51,7 @@ def main():
             fn = '%s.time.%d' % (f, i)
             d = open(fn).readline().split()
             d = [int(x) for x in d]
-            print( '%10.2f' % (np.mean(d)/1000), end=' ' )
+            print( '%10.2f' % (np.mean(d)*times[args.time]/1000), end=' ' )
         print()
 
 # when executed, just run main():
