@@ -174,7 +174,7 @@ int main (int argc, char *argv[])
      * Déclaration des composants EO *
      *********************************/
 
-    /*unsigned chromSize = */parser.getORcreateParam(unsigned(0), "chromSize", "The length of the bitstrings", 'n',"Problem")/*.value()*/;
+    unsigned chromSize = parser.getORcreateParam(unsigned(0), "chromSize", "The length of the bitstrings", 'n',"Problem").value();
     eoInit<EOT>& init = dim::do_make::genotype(parser, state, EOT(), 0);
 
     eoEvalFunc<EOT>* ptEval = NULL;
@@ -183,11 +183,11 @@ int main (int argc, char *argv[])
 
     eoEvalFuncCounter<EOT> eval(*ptEval);
 
-    /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
+    unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
     dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
-    /*double targetFitness = */parser.getORcreateParam(double(1000), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
-    /*unsigned maxGen = */parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion")/*.value()*/;
+    double targetFitness = parser.getORcreateParam(double(1000), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion").value();
+    unsigned maxGen = parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
     dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 
     dim::core::IslandData<EOT> data;
@@ -278,6 +278,25 @@ int main (int argc, char *argv[])
     		{
     		    world.send( i, 100, probabilities(i) );
     		}
+
+	    std::cout << "Island Model Parameters:" << std::endl
+		      << "alphaP: " << alphaP << std::endl
+		      << "alphaF: " << alphaF << std::endl
+		      << "betaP: " << betaP << std::endl
+		      << "probaSame: " << probaSame << std::endl
+		      << "initG: " << initG << std::endl
+		      << "update: " << update << std::endl
+		      << "feedback: " << feedback << std::endl
+		      << "migrate: " << migrate << std::endl
+		      << "barrier: " << barrier << std::endl
+		      << "stepTimer: " << stepTimer << std::endl
+		      << "deltaUpdate: " << deltaUpdate << std::endl
+		      << "deltaFeedback: " << deltaFeedback << std::endl
+		      << "chromSize: " << chromSize << std::endl
+		      << "popSize: " << popSize << std::endl
+		      << "targetFitness: " << targetFitness << std::endl
+		      << "maxGen: " << maxGen << std::endl
+		;
     	}
     else
     	{
