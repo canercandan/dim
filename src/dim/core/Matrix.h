@@ -132,7 +132,7 @@ namespace dim
 	class InitMatrix : public eoUF< SquareMatrix< unsigned >&, void >
 	{
 	public:
-	    InitMatrix(bool initG = false, double same = 90.) : _initG(initG), _same(same*10) {}
+	    InitMatrix(bool initG = false, double same = 90.) : _initG(initG), _same(unsigned(same*10.)) {}
 
 	    void operator()(SquareMatrix< unsigned >& matrix)
 	    {
