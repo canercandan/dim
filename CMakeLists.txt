@@ -78,6 +78,12 @@ IF (ENABLE_CMAKE_TESTING)
   ENABLE_TESTING()
 ENDIF (ENABLE_CMAKE_TESTING)
 
+IF(ENABLE_STATIC_LIBRARY)
+  SET(PROJECT_LIB "${PROJECT_NAME}_static")
+ELSE()
+  SET(PROJECT_LIB "${PROJECT_NAME}_shared")
+ENDIF()
+
 ######################################################################################
 
 

@@ -13,3 +13,6 @@ SET(EO_LIBRARYDIR "")
 
 # Enable tracing files
 # ADD_DEFINITIONS(-DTRACE)
+
+# Enable static instead shared library
+# SET(ENABLE_STATIC_LIBRARY)
