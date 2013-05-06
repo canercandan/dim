@@ -53,7 +53,11 @@ namespace dim
 	{
 	    if (stepTimer)
 		{
+#if __cplusplus > 199711L
 		    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::chrono::time_point<std_or_boost::chrono::system_clock>))) now = std_or_boost::chrono::system_clock::now();
+#else
+		    AUTO(BOOST_IDENTITY_TYPE((std_or_boost::chrono::time_point<std_or_boost::chrono::system_clock>))) now = std_or_boost::chrono::system_clock::now();
+#endif
 		    AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::milliseconds>(now-start).count();
 
 		    elapsed /= stepTimer;
