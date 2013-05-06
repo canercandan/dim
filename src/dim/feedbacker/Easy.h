@@ -51,19 +51,10 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
-		{
-		    _reqs.resize( this->size() );
-
-		    for (size_t i = 0; i < this->size(); ++i)
-			{
-			    if (i == this->rank()) { continue; }
-			    _reqs[i] = this->world().send_init( i, this->tag(), data.feedbacks[i] );
-			}
-		}
-
 		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
+		    std::vector< boost::mpi::request > reqs;
+
 		    /************************************************
 		     * Send feedbacks back to all islands (ANALYSE) *
 		     ************************************************/
@@ -89,7 +80,7 @@ namespace dim
 			    if (i == this->rank()) { continue; }
 
 			    data.feedbacks[i] = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
-			    this->world().start( _reqs[i] );
+		    	    reqs.push_back( this->world().isend( i, this->tag(), data.feedbacks[i] ) );
 			}
 
 		    // for island itself because of the MPI communication optimizing.
@@ -104,19 +95,15 @@ namespace dim
 		    for (size_t i = 0; i < this->size(); ++i)
 			{
 			    if (i == this->rank()) { continue; }
-			    recv_reqs.push_back( this->world().irecv( i, this->tag(), data.feedbacks[i] ) );
+			    reqs.push_back( this->world().irecv( i, this->tag(), data.feedbacks[i] ) );
 			}
 
 		    /****************************
 		     * Process all MPI requests *
 		     ****************************/
 
-		    boost::mpi::wait_all( _reqs.begin(), _reqs.end() );
-		    boost::mpi::wait_all( recv_reqs.begin(), recv_reqs.end() );
+		    boost::mpi::wait_all( reqs.begin(), reqs.end() );
 		}
-
-	    private:
-		std::vector< boost::mpi::request > _reqs;
 	    };
 	} // !sync
 
