@@ -119,17 +119,24 @@ def writeInfoToResult(args, info, newfile):
     """
 
     fields = args.outputFields.split(',')
-    for name in fields: newfile.write('%s ' % info[name])
+    for name in fields:
+        if args.detailedFields:
+            newfile.write('%s(%s) ' % (name, info[name]))
+        else:
+            newfile.write('%s ' % info[name])
 
 def main():
     parser = Parser(description='Put togather file results for multiprocessed DIM synchronious execution.')
     parser.add_argument('--prefix', '-p', help='monitor prefix name', default='result')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     parser.add_argument('--trace', '-P', help='plot values', action='store_true')
+    parser.add_argument('--tracedField', default='nbindi', help='select the agregated data field to trace (see -P)')
     parser.add_argument('--time_idx', type=int, default=1, help='time index')
     parser.add_argument('--start_idx', type=int, default=2, help='dump data started by this position')
     parser.add_argument('--inputFields', '-f', default='nbindi,avg,delta,best,input,output,probas,probasum,inputproba,migrants', help='fields order of the input result files')
     parser.add_argument('--outputFields', '-F', default='nbindi,avg,delta,best,input,output,probas,inputproba,migrants', help='fields order of the output result file')
+    parser.add_argument('--agregatedFields', '-a', default='best,nbindi,avg/nbindi,eval', help='agregated fields order of the output result file')
+    parser.add_argument('--agregatedFunctions', '-A', default='max,sum,avg,none', help='agregated functions order of the output result file')
     parser.add_argument('--timemax', '-T', type=int, help='fix the timemax value instead estimating it automagically')
     parser.add_argument('--timeunit', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='seconds')
     parser.add_argument('--timeinterval', '-I', type=int, help='interval of times between two records based on the selected time unit (see -t)', default=1)
@@ -138,6 +145,7 @@ def main():
     parser.add_argument('--microseconds', '-u', action='store_const', const='microseconds', dest='timeunit', help='timeunit in microseconds')
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='timeunit', help='timeunit in nanoseconds')
     parser.add_argument('--header', '-H', action='store_true', help='add the common header to the output file')
+    parser.add_argument('--detailedFields', '-D', action='store_true', help='add the name of each field into the result file')
     args = parser()
 
     # forward all the contents of result files to a two dimentionals table with island*stats records
@@ -163,7 +171,7 @@ def main():
     # fill out the empty timeline thanks to the strategy used for (duplicate previous timeline)
     fillEmptyTimelines(args, timelines)
 
-    total = [] # to trace results
+    collectToTrace = [] # to trace results
 
     # walk through the timeline until timemax with a fixed interval
     for time in range(0, args.timemax, args.timeinterval):
@@ -183,29 +191,56 @@ def main():
         # skip if info is not complete
         if not ok: continue
 
-        newfile.write('%s ' % time)
+        if args.detailedFields:
+            newfile.write('time(%s) ' % time)
+        else:
+            newfile.write('%s ' % time)
 
-        best = []
-        nbindi = []
-        avg = []
-        evl = []
+        fields = args.agregatedFields.split(',')
+        functions = args.agregatedFunctions.split(',')
+
+        agregatedInfos = {}
+        metaAgregatedInfos = {}
+
+        for name, function in zip(fields, functions):
+            if function in ['avg']:
+                metaAgregatedInfos[name] = []
+            agregatedInfos[name] = []
 
         for info in infos:
             writeInfoToResult(args, info, newfile)
 
-            best += [info['best']]
-            nbindi += [info['nbindi']]
-            avg += [info['avg'] * info['nbindi']]
+            for name, function in zip(fields, functions):
+                if function in ['max', 'sum']:
+                    agregatedInfos[name] += [info[name]]
+                elif function in ['avg']:
+                    x,w = name.split('/')
+                    metaAgregatedInfos[name] += [info[w]]
+                    agregatedInfos[name] += [ info[x] * info[w] ]
 
-        newfile.write( '%d %d %d' % (max(best) if len(best) else 0, sum(avg) / sum(nbindi) if sum(nbindi) else 0, 0) )
+        for name, function in zip(fields, functions):
+            if function in ['max']:
+                agregatedInfos[name] = max(agregatedInfos[name])
+            elif function in ['sum']:
+                agregatedInfos[name] = sum(agregatedInfos[name])
+            elif function in ['avg']:
+                agregatedInfos[name] = round(sum(agregatedInfos[name]) / sum(metaAgregatedInfos[name]), 2) if sum(metaAgregatedInfos[name]) else 0
+            else:
+                agregatedInfos[name] = 0
+
+        for name, function in zip(fields, functions):
+            if args.detailedFields:
+                newfile.write('%s_%s(%s) ' % (function, name, agregatedInfos[name]))
+            else:
+                newfile.write('%s ' % agregatedInfos[name])
         newfile.write('\n')
 
-        total += [nbindi]
+        collectToTrace += [ agregatedInfos[args.tracedField] ]
 
     if args.trace:
         import pylab as pl
 
-        pl.plot(total)
+        pl.plot(collectToTrace)
         pl.show()
 
     logger.info("Done")
