@@ -16,3 +16,6 @@ SET(EO_LIBRARYDIR "")
 
 # Enable static instead shared library
 # SET(ENABLE_STATIC_LIBRARY)
+
+# Enable warnings
+# ADD_DEFINITIONS( -Wall -W -Wextra )

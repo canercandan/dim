@@ -58,7 +58,7 @@ LINK_DIRECTORIES(${EO_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
 
 IF(UNIX)
   # enable warnings
-  ADD_DEFINITIONS( -Wall -W -Wextra )
+  # ADD_DEFINITIONS( -Wall -W -Wextra )
   # ADD_DEFINITIONS( -Weffc++)
   # ADD_DEFINITIONS( -g3 )
   # ADD_DEFINITIONS(-std=c++11 -D_GLIBCXX_USE_NANOSLEEP)
