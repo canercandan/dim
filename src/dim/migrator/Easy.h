@@ -46,323 +46,177 @@ namespace dim
 	namespace std_or_boost = boost;
 #endif
 
-	namespace sync
+	template <typename EOT>
+	class Easy : public Base<EOT>
 	{
-	    template <typename EOT>
-	    class Easy : public Base<EOT>
+	public:
+	    Easy(bool barrier = false) : _barrier(barrier) {}
+
+	    ~Easy()
 	    {
-	    public:
-		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
-		{
-		    _outputSizes.resize( this->size(), 0 );
-		}
-
-		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
-		{
-		    std::vector< boost::mpi::request > reqs;
-
-		    /***********************************
-		     * Send individuals to all islands *
-		     ***********************************/
+		for (size_t i = 0; i < this->_senders.size(); ++i)
 		    {
-			std::vector< core::Pop<EOT> > pops( this->size() );
+			delete _senders[i];
+			delete _receivers[i];
+		    }
+	    }
+
+	    virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+	    {
+#ifdef TRACE
+		std::ostringstream ss;
+		ss << "trace.migrator." << this->rank();
+		_of.open(ss.str().c_str());
+#endif // !TRACE
+
+		for (size_t i = 0; i < pop.size(); ++i)
+		    {
+			EOT& ind = pop[i];
+
+			data.migratorReceivingQueue.push( ind, this->rank() );
+		    }
+		pop.clear();
+	    }
+
+	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+	    {
+		/********************
+		 * Send individuals *
+		 ********************/
+
+		std::vector< size_t > outputSizes( this->size(), 0 );
+
+		for (size_t i = 0; i < pop.size(); ++i)
+		    {
+			EOT& ind = pop[i];
 
 			/*************
 			 * Selection *
 			 *************/
 
-#if __cplusplus > 199711L
-			for (auto& ind : pop)
+			double s = 0;
+			int r = rng.rand() % 1000 + 1;
+
+			size_t j;
+			for ( j = 0; j < this->size() && r > s; ++j )
 			    {
-#else
-			for (size_t i = 0; i < pop.size(); ++i)
+				s += data.proba[j];
+			    }
+			--j;
+
+			++outputSizes[j];
+
+			if (j == this->rank())
 			    {
-				EOT& ind = pop[i];
-#endif
-
-				double s = 0;
-				int r = rng.rand() % 1000 + 1;
-
-				size_t j;
-				for ( j = 0; j < this->size() && r > s; ++j )
-				    {
-					s += data.proba[j];
-				    }
-				--j;
-
-				pops[j].push_back(ind);
+				data.migratorReceivingQueue.push( ind, this->rank() );
+				continue;
 			    }
 
-			size_t outputSize = 0;
-
-			for (size_t i = 0; i < this->size(); ++i)
-			    {
-				if (i == this->rank()) { continue; }
-				_outputSizes[i] = pops[i].size();
-				outputSize += pops[i].size();
-			    }
-
-			pop.setOutputSizes( _outputSizes );
-			pop.setOutputSize( outputSize );
-
-			pop.clear();
-
-			for ( size_t i = 0; i < this->size(); ++i )
-			    {
-				if (i == this->rank()) { continue; }
-				reqs.push_back( this->world().isend( i, this->tag(), pops[i] ) );
-			    }
-
-#if __cplusplus > 199711L
-			for (auto& ind : pops[this->rank()])
-			    {
-#else
-			for (size_t i = 0; i < pops[this->rank()].size(); ++i)
-			    {
-				EOT& ind = pops[this->rank()][i];
-#endif
-
-				pop.push_back( ind );
-			    }
+			data.migratorSendingQueue.push( ind, j );
 		    }
 
-		    std::vector< core::Pop<EOT> > pops( this->size() );
+		pop.clear();
 
-		    /****************************************
-		     * Receive individuals from all islands *
-		     ****************************************/
+		pop.setOutputSizes( outputSizes );
+		pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
+
+		/*********************
+		 * Update population *
+		 *********************/
+
+		size_t inputSize = 0;
+
+		// a loop just in case we want more than 1 individual per generation coming to island
+		for (int k = 0; k < 1; ++k)
 		    {
-			for (size_t i = 0; i < this->size(); ++i)
-			    {
-				if (i == this->rank()) { continue; }
-				reqs.push_back( this->world().irecv( i, this->tag(), pops[i] ) );
-			    }
+			// This special pop function is waiting while the queue of individual is empty.
+			AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
+			AUTO(EOT) ind = std_or_boost::get<0>(imm);
+			AUTO(double) time = std_or_boost::get<1>(imm);
+
+			ind.receivedTime = time;
+			pop.push_back( ind );
+			++inputSize;
 		    }
 
-		    /****************************
-		     * Process all MPI requests *
-		     ****************************/
+		pop.setInputSize( inputSize );
+	    }
 
-		    boost::mpi::wait_all( reqs.begin(), reqs.end() );
-
-		    /*********************
-		     * Update population *
-		     *********************/
-		    {
-			size_t inputSize = 0;
-
-			for (size_t i = 0; i < this->size(); ++i)
-			    {
-				if (i == this->rank()) { continue; }
-
-#if __cplusplus > 199711L
-				for (auto& ind : pop)
-				    {
-#else
-				for (size_t j = 0; j < pop.size(); ++j)
-				    {
-					EOT& ind = pop[j];
-#endif
-
-					pop.push_back( ind );
-				    }
-
-				inputSize += pops[i].size();
-			    }
-
-			pop.setInputSize( inputSize );
-		    }
-		}
-
-	    private:
-		std::vector< size_t > _outputSizes;
-	    };
-	} // !sync
-
-	namespace async
-	{
-	    template <typename EOT>
-	    class Easy : public Base<EOT>
+	    class Sender : public core::Thread<EOT>, public core::ParallelContext
 	    {
 	    public:
-		Easy(bool barrier = false) : _barrier(barrier) {}
+		Sender(size_t to, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _to(to), _barrier(barrier) {}
 
-		~Easy()
+		void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		{
-		    for (size_t i = 0; i < this->_senders.size(); ++i)
+		    while (data.toContinue)
 			{
-			    delete _senders[i];
-			    delete _receivers[i];
-			}
-		}
+			    // waiting until there is an individual in the queue
+			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) em = data.migratorSendingQueue.pop( _to, true );
+			    AUTO(EOT) ind = std_or_boost::get<0>(em);
 
-		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
-		{
-#ifdef TRACE
-		    std::ostringstream ss;
-		    ss << "trace.migrator." << this->rank();
-		    _of.open(ss.str().c_str());
-#endif // !TRACE
+			    this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), ind);
 
-#if __cplusplus > 199711L
-		    for (auto& ind : pop)
-			{
-#else
-		    for (size_t i = 0; i < pop.size(); ++i)
-			{
-			    EOT& ind = pop[i];
-#endif
-
-			    data.migratorReceivingQueue.push( ind, this->rank() );
-			}
-		    pop.clear();
-		}
-
-		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
-		{
-		    /********************
-		     * Send individuals *
-		     ********************/
-
-		    std::vector< size_t > outputSizes( this->size(), 0 );
-
-#if __cplusplus > 199711L
-		    for (auto& ind : pop)
-			{
-#else
-		    for (size_t i = 0; i < pop.size(); ++i)
-		    	{
-			    EOT& ind = pop[i];
-#endif
-
-		    	    /*************
-		    	     * Selection *
-		    	     *************/
-
-		    	    double s = 0;
-		    	    int r = rng.rand() % 1000 + 1;
-
-		    	    size_t j;
-		    	    for ( j = 0; j < this->size() && r > s; ++j )
-		    		{
-		    		    s += data.proba[j];
-		    		}
-		    	    --j;
-
-		    	    ++outputSizes[j];
-
-		    	    if (j == this->rank())
-		    		{
-		    		    data.migratorReceivingQueue.push( ind, this->rank() );
-		    		    continue;
-		    		}
-
-		    	    data.migratorSendingQueue.push( ind, j );
-		    	}
-
-		    pop.clear();
-
-		    pop.setOutputSizes( outputSizes );
-		    pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
-
-		    /*********************
-		     * Update population *
-		     *********************/
-
-		    size_t inputSize = 0;
-
-		    // a loop just in case we want more than 1 individual per generation coming to island
-		    for (int k = 0; k < 1; ++k)
-		    	{
-		    	    // This special pop function is waiting while the queue of individual is empty.
-		    	    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
-		    	    AUTO(EOT) ind = std_or_boost::get<0>(imm);
-		    	    AUTO(double) time = std_or_boost::get<1>(imm);
-
-			    ind.receivedTime = time;
-		    	    pop.push_back( ind );
-		    	    ++inputSize;
-		    	}
-
-		    pop.setInputSize( inputSize );
-		}
-
-		class Sender : public core::Thread<EOT>, public core::ParallelContext
-		{
-		public:
-		    Sender(size_t to, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _to(to), _barrier(barrier) {}
-
-		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
-		    {
-			while (data.toContinue)
-			    {
-				// waiting until there is an individual in the queue
-				AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) em = data.migratorSendingQueue.pop( _to, true );
-				AUTO(EOT) ind = std_or_boost::get<0>(em);
-
-				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), ind);
-
-				if (_barrier)
-				    {
-					this->world().barrier();
-				    }
-			    }
-		    }
-
-		private:
-		    size_t _to;
-		    bool _barrier;
-		};
-
-		class Receiver : public core::Thread<EOT>, public core::ParallelContext
-		{
-		public:
-		    Receiver(size_t from, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _from(from), _barrier(barrier) {}
-
-		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
-		    {
-			while (data.toContinue)
-			    {
-				EOT ind;
-				this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), ind);
-				data.migratorReceivingQueue.push( ind, _from );
-
-				if (_barrier)
-				    {
-					this->world().barrier();
-				    }
-			    }
-		    }
-
-		private:
-		    size_t _from;
-		    bool _barrier;
-		};
-
-		virtual void addTo( core::ThreadsRunner<EOT>& tr )
-		{
-		    for (size_t i = 0; i < this->size(); ++i)
-			{
-			    if (i == this->rank()) { continue; }
-
-			    _senders.push_back( new Sender(i, this->tag()) );
-			    _receivers.push_back( new Receiver(i, this->tag()) );
-
-			    tr.add( _senders.back() );
-			    tr.add( _receivers.back() );
+			    if (_barrier)
+				{
+				    this->world().barrier();
+				}
 			}
 		}
 
 	    private:
+		size_t _to;
 		bool _barrier;
-		std::vector<Sender*> _senders;
-		std::vector<Receiver*> _receivers;
+	    };
+
+	    class Receiver : public core::Thread<EOT>, public core::ParallelContext
+	    {
+	    public:
+		Receiver(size_t from, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _from(from), _barrier(barrier) {}
+
+		void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		{
+		    while (data.toContinue)
+			{
+			    EOT ind;
+			    this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), ind);
+			    data.migratorReceivingQueue.push( ind, _from );
+
+			    if (_barrier)
+				{
+				    this->world().barrier();
+				}
+			}
+		}
+
+	    private:
+		size_t _from;
+		bool _barrier;
+	    };
+
+	    virtual void addTo( core::ThreadsRunner<EOT>& tr )
+	    {
+		for (size_t i = 0; i < this->size(); ++i)
+		    {
+			if (i == this->rank()) { continue; }
+
+			_senders.push_back( new Sender(i, this->tag()) );
+			_receivers.push_back( new Receiver(i, this->tag()) );
+
+			tr.add( _senders.back() );
+			tr.add( _receivers.back() );
+		    }
+	    }
+
+	private:
+	    bool _barrier;
+	    std::vector<Sender*> _senders;
+	    std::vector<Receiver*> _receivers;
 #ifdef TRACE
-		std::ofstream _of;
+	    std::ofstream _of;
 #endif // !TRACE
 
-	    };
-	} // !async
+	};
     } // !migrator
 } // !dim
 
