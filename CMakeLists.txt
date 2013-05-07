@@ -44,7 +44,7 @@ ADD_DEFINITIONS(-DWITH_BOOST)
 FIND_PACKAGE(EO COMPONENTS ga mpi serial)
 FIND_PACKAGE(Boost COMPONENTS serialization system chrono thread)
 
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src ${EO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} contrib)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src ${EO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} contrib)
 LINK_DIRECTORIES(${EO_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
 
 ######################################################################################

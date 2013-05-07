@@ -5,7 +5,8 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 // Message Passing Interface 1.1 -- 7.1.1. Environmental Inquiries
-#include <boost/mpi/environment.hpp>
+#include "environment.hpp"
+// #include <boost/mpi/environment.hpp>
 #include <boost/mpi/exception.hpp>
 #include <boost/mpi/detail/mpi_datatype_cache.hpp>
 #include <cassert>

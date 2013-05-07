@@ -18,7 +18,7 @@
  */
 
 #include <fstream>
-#include <boost/mpi.hpp>
+#include <contrib/boost/mpi/environment.hpp>
 #include <eo>
 #include <dim/dim>
 #include <dim/algo/Easy.h>
@@ -81,7 +81,11 @@ private:
 class SimulatedEval : public eoEvalFunc<EOT>
 {
 public:
+#if __cplusplus > 199711L
     SimulatedEval(typename EOT::Fitness fit) : _fit(fit) {}
+#else
+    SimulatedEval(EOT::Fitness fit) : _fit(fit) {}
+#endif
 
     /// The class name.
     virtual std::string className() const { return "SimulatedEval"; }
@@ -92,7 +96,11 @@ public:
     }
 
 private:
-    typename EOT::Fitness _fit;
+#if __cplusplus > 199711L
+    typename
+#endif
+    EOT::Fitness _fit;
+
 };
 
 class FitnessInit : public eoUF<EOT&, void>

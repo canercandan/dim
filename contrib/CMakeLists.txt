@@ -4,6 +4,6 @@
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
-# ADD_SUBDIRECTORY(boost)
+ADD_SUBDIRECTORY(boost)
 
 ######################################################################################

@@ -88,11 +88,11 @@ namespace dim
 			R[i] = T[i] >= tau ? S[i] : 0;
 // #ifdef TRACE
 // 			_of << R[i] << " ";
-// #endif
+// #endif //! TRACE
 		    }
 // #ifdef TRACE
 // 		_of << std::endl; std::cout.flush();
-// #endif
+// #endif //! TRACE
 
 		// Stategie par critère MAX
 		// int best = -1;
@@ -112,7 +112,7 @@ namespace dim
 
 // #ifdef TRACE
 // 		    _of << sum_fits << " "; _of.flush();
-// #endif
+// #endif //! TRACE
 
 		    if (sum_fits)
 			{
@@ -125,7 +125,7 @@ namespace dim
 				    sum_sum += R[i];
 // #ifdef TRACE
 // 			    _of << R[i] << " ";
-// #endif
+// #endif //! TRACE
 				}
 
 			    R.back() = 1000-sum_sum;
@@ -156,8 +156,10 @@ namespace dim
 		}
 
 		// _of << std::accumulate(R.begin(), R.end(), 0., bounded_sum ) << " ";
-		_of << R.back() << " ";
 
+#ifdef TRACE
+		_of << R.back() << " ";
+#endif //! TRACE
 
 		// computation of epsilon vector (norm is 1)
 		std::vector< double > epsilon( this->size() );

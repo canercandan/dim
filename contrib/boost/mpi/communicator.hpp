@@ -366,11 +366,11 @@ class BOOST_MPI_DECL communicator
    */
   void send(int dest, int tag) const;
 
-// #ifdef _MPI_PERSISTENT_
+#ifdef _MPI_PERSISTENT_
   request send_init(int dest, int tag) const;
 
   void start(request& req) const;
-// #endif // !_MPI_PERSISTENT_
+#endif // !_MPI_PERSISTENT_
 
   /**
    * @brief Receive data from a remote process.

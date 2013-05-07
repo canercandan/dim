@@ -94,7 +94,7 @@ void communicator::send(int dest, int tag) const
                           dest, tag, MPI_Comm(*this)));
 }
 
-// #ifdef _MPI_PERSISTENT_
+#ifdef _MPI_PERSISTENT_
 request communicator::send_init(int dest, int tag) const
 {
   request req;
@@ -109,7 +109,7 @@ void communicator::start(request& req) const
 {
   BOOST_MPI_CHECK_RESULT(MPI_Start, (&req.m_requests[0]));
 }
-// #endif // !_MPI_PERSISTENT_
+#endif // !_MPI_PERSISTENT_
 
 status communicator::recv(int source, int tag) const
 {
