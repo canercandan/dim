@@ -185,6 +185,8 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
+		Easy(bool barrier = false) : _barrier(barrier) {}
+
 		~Easy()
 		{
 		    for (size_t i = 0; i < this->_senders.size(); ++i)
@@ -288,7 +290,7 @@ namespace dim
 		class Sender : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
-		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
+		    Sender(size_t to, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _to(to), _barrier(barrier) {}
 
 		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		    {
@@ -299,17 +301,23 @@ namespace dim
 				AUTO(EOT) ind = std_or_boost::get<0>(em);
 
 				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), ind);
+
+				if (_barrier)
+				    {
+					this->world().barrier();
+				    }
 			    }
 		    }
 
 		private:
 		    size_t _to;
+		    bool _barrier;
 		};
 
 		class Receiver : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
-		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
+		    Receiver(size_t from, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _from(from), _barrier(barrier) {}
 
 		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		    {
@@ -318,11 +326,17 @@ namespace dim
 				EOT ind;
 				this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), ind);
 				data.migratorReceivingQueue.push( ind, _from );
+
+				if (_barrier)
+				    {
+					this->world().barrier();
+				    }
 			    }
 		    }
 
 		private:
 		    size_t _from;
+		    bool _barrier;
 		};
 
 		virtual void addTo( core::ThreadsRunner<EOT>& tr )
@@ -340,6 +354,7 @@ namespace dim
 		}
 
 	    private:
+		bool _barrier;
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
 #ifdef TRACE

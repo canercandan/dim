@@ -230,7 +230,7 @@ int main (int argc, char *argv[])
     dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
     if (feedback)
 	{
-	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, sensitivity, deltaFeedback);
+	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, sensitivity, deltaFeedback, barrier);
 	}
     else
 	{
@@ -254,7 +254,7 @@ int main (int argc, char *argv[])
     dim::migrator::Base<EOT>* ptMigrator = NULL;
     if (migrate)
 	{
-	    ptMigrator = new dim::migrator::async::Easy<EOT>();
+	    ptMigrator = new dim::migrator::async::Easy<EOT>(barrier);
 	}
     else
 	{

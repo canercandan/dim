@@ -113,7 +113,7 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(double alpha = 0.01, double sensitivity = 1., bool delta = true) : _alpha(alpha), _sensitivity(sensitivity), _delta(delta) {}
+		Easy(double alpha = 0.01, double sensitivity = 1., bool delta = true, bool barrier = false) : _alpha(alpha), _sensitivity(sensitivity), _delta(delta), _barrier(barrier) {}
 
 		~Easy()
 		{
@@ -203,7 +203,7 @@ namespace dim
 		class Sender : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
-		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
+		    Sender(size_t to, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _to(to), _barrier(barrier) {}
 
 		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		    {
@@ -213,17 +213,23 @@ namespace dim
 				AUTO(typename EOT::Fitness) fit = std_or_boost::get<0>( fbs );
 
 				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), fit);
+
+				if (_barrier)
+				    {
+					this->world().barrier();
+				    }
 			    }
 		    }
 
 		private:
 		    size_t _to;
+		    bool _barrier;
 		};
 
 		class Receiver : public core::Thread<EOT>, public core::ParallelContext
 		{
 		public:
-		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
+		    Receiver(size_t from, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _from(from), _barrier(barrier) {}
 
 		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		    {
@@ -232,10 +238,16 @@ namespace dim
 				typename EOT::Fitness fit;
 				this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), fit);
 				data.feedbackerReceivingQueue.push( fit, _from );
+
+				if (_barrier)
+				    {
+					this->world().barrier();
+				    }
 			    }
 		    }
 		private:
 		    size_t _from;
+		    bool _barrier;
 		};
 
 		virtual void addTo( core::ThreadsRunner<EOT>& tr )
@@ -244,8 +256,8 @@ namespace dim
 			{
 			    if (i == this->rank()) { continue; }
 
-			    _senders.push_back( new Sender(i, this->tag()) );
-			    _receivers.push_back( new Receiver(i, this->tag()) );
+			    _senders.push_back( new Sender(i, this->tag(), _barrier) );
+			    _receivers.push_back( new Receiver(i, this->tag(), _barrier) );
 
 			    tr.add( _senders.back() );
 			    tr.add( _receivers.back() );
@@ -256,6 +268,7 @@ namespace dim
 		double _alpha;
 		double _sensitivity;
 		bool _delta;
+		bool _barrier;
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;
 #ifdef TRACE
