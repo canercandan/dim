@@ -56,8 +56,8 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/, bool delta = true )
-		: _alpha(alpha), _beta(beta), _delta(delta)
+	    Easy( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/, double sensitivity = 1., bool delta = true )
+		: _alpha(alpha), _beta(beta), _sensitivity(sensitivity), _delta(delta)
 	    {
 #ifdef TRACE
 		std::ostringstream ss;
@@ -110,9 +110,9 @@ namespace dim
 		{
 		    typename EOT::Fitness sum_fits = std::accumulate(R.begin(), R.end(), 0., bounded_sum );
 
-#ifdef TRACE
-		    _of << sum_fits << " "; _of.flush();
-#endif
+// #ifdef TRACE
+// 		    _of << sum_fits << " "; _of.flush();
+// #endif
 
 		    if (sum_fits)
 			{
@@ -143,17 +143,21 @@ namespace dim
 
 			    return;
 
-			    unsigned sum = 0;
+			    // unsigned sum = 0;
 
-			    for ( size_t i = 0; i < this->size()-1; ++i )
-				{
-				    R[i] = 1000 / this->size();
-				    sum += R[i];
-				}
+			    // for ( size_t i = 0; i < this->size()-1; ++i )
+			    // 	{
+			    // 	    R[i] = 1000 / this->size();
+			    // 	    sum += R[i];
+			    // 	}
 
-			    R.back() = 1000-sum;
+			    // R.back() = 1000-sum;
 			}
 		}
+
+		// _of << std::accumulate(R.begin(), R.end(), 0., bounded_sum ) << " ";
+		_of << R.back() << " ";
+
 
 		// computation of epsilon vector (norm is 1)
 		std::vector< double > epsilon( this->size() );
@@ -204,14 +208,15 @@ namespace dim
 			elapsed = 1.;
 		    }
 
-		AUTO(double) alphaT = _alpha ? exp(log(_alpha /*0.2*/)/elapsed) : 0;
-		// AUTO(double) betaT = _beta ? exp(log(_beta /*0.01*/)/elapsed) : 0;
-		AUTO(double) betaT = _beta;
+		AUTO(double) alphaT = _alpha ? exp(log(_alpha /*0.2*/)/(elapsed*_sensitivity)) : 0;
+		AUTO(double) betaT = _beta ? exp(log(_beta /*0.01*/)/(elapsed*_sensitivity)) : 0;
+		// AUTO(double) betaT = _beta;
 
 		// std::cout << betaT << " "; std::cout.flush();
 
-		// _of << deltaT << " "; _of.flush();
-
+#ifdef TRACE
+		_of << alphaT << " " << betaT << " "; _of.flush();
+#endif // !TRACE
 		// {
 		//     unsigned sum = 0;
 
@@ -256,12 +261,17 @@ namespace dim
 		data.proba.back() = 1000-sum;
 
 		tau = std_or_boost::chrono::system_clock::now();
+
+#ifdef TRACE
+		_of << std::endl; _of.flush();
+#endif // !TRACE
 	    }
 
 	private:
 	    double _alpha;
 	    double _beta;
 	    bool _delta;
+	    double _sensitivity;
 
 #ifdef TRACE
 	    std::ofstream _of;

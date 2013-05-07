@@ -113,7 +113,7 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(double alpha = 0.01, bool delta = true) : _alpha(alpha), _delta(delta) {}
+		Easy(double alpha = 0.01, double sensitivity = 1., bool delta = true) : _alpha(alpha), _sensitivity(sensitivity), _delta(delta) {}
 
 		~Easy()
 		{
@@ -166,12 +166,6 @@ namespace dim
 		     * Update feedbacks *
 		     ********************/
 
-		    for (size_t i = 0; i < data.feedbacks.size(); ++i)
-			{
-			    data.feedbacks[i] = 0;
-			    // data.feedbackLastUpdatedTimes[i] = std_or_boost::chrono::system_clock::now();
-			}
-
 		    // _of << "[" << data.feedbackerReceivingQueue.size() << "] "; _of.flush();
 
 		    while ( !data.feedbackerReceivingQueue.empty() )
@@ -192,7 +186,7 @@ namespace dim
 				    // t = 1.;
 			    	}
 
-			    AUTO(double) alphaT = exp(log(_alpha)/elapsed);
+			    AUTO(double) alphaT = exp(log(_alpha)/(elapsed*_sensitivity));
 			    Si = (1-alphaT)*Si + alphaT*Fi;
 
 #ifdef TRACE
@@ -260,6 +254,7 @@ namespace dim
 
 	    private:
 		double _alpha;
+		double _sensitivity;
 		bool _delta;
 		std::vector<Sender*> _senders;
 		std::vector<Receiver*> _receivers;

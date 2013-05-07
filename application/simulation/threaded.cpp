@@ -156,6 +156,7 @@ int main (int argc, char *argv[])
     unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
+    double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
 
     std::vector<double> rewards(ALL, 1.);
     std::vector<double> timeouts(ALL, 1.);
@@ -221,7 +222,7 @@ int main (int argc, char *argv[])
     dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
     if (feedback)
 	{
-	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, deltaFeedback);
+	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, sensitivity, deltaFeedback);
 	}
     else
 	{
@@ -232,7 +233,7 @@ int main (int argc, char *argv[])
     dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
     if (update)
 	{
-	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, deltaUpdate);
+	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, deltaUpdate);
 	}
     else
 	{
@@ -292,6 +293,7 @@ int main (int argc, char *argv[])
 		      << "stepTimer: " << stepTimer << std::endl
 		      << "deltaUpdate: " << deltaUpdate << std::endl
 		      << "deltaFeedback: " << deltaFeedback << std::endl
+		      << "sensitivity: " << sensitivity << std::endl
 		      << "chromSize: " << chromSize << std::endl
 		      << "popSize: " << popSize << std::endl
 		      << "targetFitness: " << targetFitness << std::endl
