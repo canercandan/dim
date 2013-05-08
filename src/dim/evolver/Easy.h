@@ -30,7 +30,7 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op) : _eval(eval), _op(op) {}
+	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true) : _eval(eval), _op(op) _invalidate(invalidate) {}
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
 	    {
@@ -47,7 +47,11 @@ namespace dim
 
 			_op( candidate );
 
-			// candidate.invalidate(); // temporaly disabled for debug
+			if (_invalidate)
+			    {
+				candidate.invalidate();
+			    }
+
 			_eval( candidate );
 
 			if ( candidate.fitness() > ind.fitness() )
@@ -60,6 +64,7 @@ namespace dim
 	private:
 	    eoEvalFunc<EOT>& _eval;
 	    eoMonOp<EOT>& _op;
+	    bool _invalidate;
 	};
     } // !evolver
 } // !dim
