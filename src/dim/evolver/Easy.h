@@ -30,7 +30,7 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true) : _eval(eval), _op(op) _invalidate(invalidate) {}
+	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true) : _eval(eval), _op(op), _invalidate(invalidate) {}
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
 	    {
