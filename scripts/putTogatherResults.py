@@ -93,7 +93,7 @@ def getTimelineInfo(args, timeline):
 
         class List(list):
             """Wrapper changing print behavior"""
-            def __repr__(self): return ' '.join([str(x) for x in self])
+            def __str__(self): return ' '.join([str(x) for x in self])
 
         pos = fields.index(name)
         data = List(timeline[pos:pos+args.islands])
@@ -125,12 +125,64 @@ def writeInfoToResult(args, info, newfile):
         else:
             newfile.write('%s ' % info[name])
 
+def writeTimeline(args, infos, newfile, time, agregatedCollectToTrace, collectToTrace):
+    if args.detailedFields:
+        newfile.write('time(%s) ' % time)
+    else:
+        newfile.write('%s ' % time)
+
+    fields = args.agregatedFields.split(',')
+    functions = args.agregatedFunctions.split(',')
+
+    agregatedInfos = {}
+    metaAgregatedInfos = {}
+
+    for name, function in zip(fields, functions):
+        if function in ['avg']:
+            metaAgregatedInfos[name] = []
+        agregatedInfos[name] = []
+
+    for i, info in zip(range(args.islands), infos):
+        writeInfoToResult(args, info, newfile)
+
+        if args.traceIslandsField:
+            collectToTrace[i] += [info[args.traceIslandsField]]
+
+        for name, function in zip(fields, functions):
+            if function in ['max', 'sum']:
+                agregatedInfos[name] += [info[name]]
+            elif function in ['avg']:
+                x,w = name.split('/')
+                metaAgregatedInfos[name] += [info[w]]
+                agregatedInfos[name] += [ info[x] * info[w] ]
+
+    for name, function in zip(fields, functions):
+        if function in ['max']:
+            agregatedInfos[name] = max(agregatedInfos[name])
+        elif function in ['sum']:
+            agregatedInfos[name] = sum(agregatedInfos[name])
+        elif function in ['avg']:
+            agregatedInfos[name] = round(sum(agregatedInfos[name]) / sum(metaAgregatedInfos[name]), 2) if sum(metaAgregatedInfos[name]) else 0
+        else:
+            agregatedInfos[name] = 0
+
+    for name, function in zip(fields, functions):
+        if args.detailedFields:
+            newfile.write('%s_%s(%s) ' % (function, name, agregatedInfos[name]))
+        else:
+            newfile.write('%s ' % agregatedInfos[name])
+    newfile.write('\n')
+
+    if args.traceAgragatedDataField:
+        agregatedCollectToTrace += [ agregatedInfos[args.traceAgragatedDataField] ]
+
 def main():
     parser = Parser(description='Put togather file results for multiprocessed DIM synchronious execution.')
     parser.add_argument('--prefix', '-p', help='monitor prefix name', default='result')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     parser.add_argument('--trace', '-P', help='plot values', action='store_true')
-    parser.add_argument('--tracedField', default='nbindi', help='select the agregated data field to trace (see -P)')
+    parser.add_argument('--traceAgragatedDataField', help='select the agregated data field to trace (see -P)')
+    parser.add_argument('--traceIslandsField', help='select the islands data field to trace (see -P)')
     parser.add_argument('--time_idx', type=int, default=1, help='time index')
     parser.add_argument('--start_idx', type=int, default=2, help='dump data started by this position')
     parser.add_argument('--inputFields', '-f', default='nbindi,avg,delta,best,input,output,probas,probasum,inputproba,migrants', help='fields order of the input result files')
@@ -146,6 +198,7 @@ def main():
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='timeunit', help='timeunit in nanoseconds')
     parser.add_argument('--header', '-H', action='store_true', help='add the common header to the output file')
     parser.add_argument('--detailedFields', '-D', action='store_true', help='add the name of each field into the result file')
+    parser.add_argument('--printTimelines', '-L', action='store_true', help='print timelines using python syntax instead the default behavior')
     args = parser()
 
     # forward all the contents of result files to a two dimentionals table with island*stats records
@@ -171,7 +224,12 @@ def main():
     # fill out the empty timeline thanks to the strategy used for (duplicate previous timeline)
     fillEmptyTimelines(args, timelines)
 
-    collectToTrace = [] # to trace results
+    agregatedCollectToTrace = [] # to trace results
+
+    collectToTrace = [None]*args.islands
+    for i in range(args.islands): collectToTrace[i] = []
+
+    structuredTimelines = []
 
     # walk through the timeline until timemax with a fixed interval
     for time in range(0, args.timemax, args.timeinterval):
@@ -191,57 +249,24 @@ def main():
         # skip if info is not complete
         if not ok: continue
 
-        if args.detailedFields:
-            newfile.write('time(%s) ' % time)
+        if args.printTimelines:
+            structuredTimelines += [infos]
         else:
-            newfile.write('%s ' % time)
-
-        fields = args.agregatedFields.split(',')
-        functions = args.agregatedFunctions.split(',')
-
-        agregatedInfos = {}
-        metaAgregatedInfos = {}
-
-        for name, function in zip(fields, functions):
-            if function in ['avg']:
-                metaAgregatedInfos[name] = []
-            agregatedInfos[name] = []
-
-        for info in infos:
-            writeInfoToResult(args, info, newfile)
-
-            for name, function in zip(fields, functions):
-                if function in ['max', 'sum']:
-                    agregatedInfos[name] += [info[name]]
-                elif function in ['avg']:
-                    x,w = name.split('/')
-                    metaAgregatedInfos[name] += [info[w]]
-                    agregatedInfos[name] += [ info[x] * info[w] ]
-
-        for name, function in zip(fields, functions):
-            if function in ['max']:
-                agregatedInfos[name] = max(agregatedInfos[name])
-            elif function in ['sum']:
-                agregatedInfos[name] = sum(agregatedInfos[name])
-            elif function in ['avg']:
-                agregatedInfos[name] = round(sum(agregatedInfos[name]) / sum(metaAgregatedInfos[name]), 2) if sum(metaAgregatedInfos[name]) else 0
-            else:
-                agregatedInfos[name] = 0
-
-        for name, function in zip(fields, functions):
-            if args.detailedFields:
-                newfile.write('%s_%s(%s) ' % (function, name, agregatedInfos[name]))
-            else:
-                newfile.write('%s ' % agregatedInfos[name])
-        newfile.write('\n')
-
-        collectToTrace += [ agregatedInfos[args.tracedField] ]
+            writeTimeline(args, infos, newfile, time, agregatedCollectToTrace, collectToTrace)
 
     if args.trace:
         import pylab as pl
 
-        pl.plot(collectToTrace)
+        if args.traceAgragatedDataField:
+            # logger.debug(agregatedCollectToTrace)
+            pl.plot(agregatedCollectToTrace)
+        elif args.traceIslandsField:
+            # logger.debug(collectToTrace)
+            pl.plot(collectToTrace)
         pl.show()
+
+    if args.printTimelines:
+        newfile.write("%s" % structuredTimelines)
 
     logger.info("Done")
 
