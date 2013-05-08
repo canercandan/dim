@@ -225,7 +225,7 @@ int main (int argc, char *argv[])
 
     dim::core::ThreadsRunner< EOT > tr;
 
-    dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon );
+    dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon, false );
 
     dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
     if (feedback)
