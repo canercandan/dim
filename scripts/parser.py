@@ -17,6 +17,7 @@
 #
 
 import argparse, logging, sys
+from collections import OrderedDict
 
 class Parser(argparse.ArgumentParser):
     """Wrapper class added logging support"""
@@ -28,12 +29,12 @@ class Parser(argparse.ArgumentParser):
 
         argparse.ArgumentParser.__init__(self, description=description, formatter_class=formatter_class)
 
-        self.levels = {'debug': logging.DEBUG,
-                       'info': logging.INFO,
-                       'warning': logging.WARNING,
-                       'error': logging.ERROR,
-                       'quiet': logging.CRITICAL,
-        }
+        self.levels = OrderedDict([('debug', logging.DEBUG),
+                                   ('info', logging.INFO),
+                                   ('warning', logging.WARNING),
+                                   ('error', logging.ERROR),
+                                   ('quiet', logging.CRITICAL),
+                                   ])
 
         self.add_argument('--verbose', '-v', choices=[x for x in self.levels.keys()], default='quiet', help='set a verbosity level')
         self.add_argument('--levels', '-l', action='store_true', default=False, help='list all the verbosity levels')

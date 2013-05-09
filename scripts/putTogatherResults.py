@@ -22,9 +22,10 @@ import logging, sys
 from math import floor
 from parser import Parser
 import numpy as np
+from collections import OrderedDict
 
 logger = logging.getLogger("putTogatherResults")
-timeunits = {'seconds': 10**0, 'milliseconds': 10**3, 'microseconds': 10**6, 'nanoseconds': 10**9,}
+timeunits = OrderedDict([('seconds', 10**0), ('milliseconds', 10**3), ('microseconds', 10**6), ('nanoseconds', 10**9),])
 
 def getTimeMax(args, datafiles):
     """
