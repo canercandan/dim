@@ -37,7 +37,7 @@ def main():
     args = parser()
 
     args.gdb = '%(gdb_cmd)s ' % args.__dict__ if args.gdb else ''
-    args.mca = '-mca %(mca)s ' % args.__dict__ if args.mca else ''
+    args.mca = '-mca \'%(mca)s\' ' % args.__dict__ if args.mca else ''
     args.program = ' '.join(args.program)
 
     parameters = ["%(mpi_cmd)s %(mca)s %(hwloc_cmd)s%(i)d %(gdb)s %(program)s" % args.__dict__ for args.__dict__['i'] in range(args.np)]
