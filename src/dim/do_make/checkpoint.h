@@ -45,8 +45,8 @@ namespace dim
 		const size_t ALL = data.size();
 		const size_t RANK = data.rank();
 
-		bool printBest = _parser.createParam(false, "printBestStat", "Print Best/avg/stdev every gen.", '\0', "Output").value();
-		std::string monitorPrefix = _parser.createParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
+		bool printBest = _parser.getORcreateParam(false, "printBestStat", "Print Best/avg/stdev every gen.", '\0', "Output").value();
+		std::string monitorPrefix = _parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
 
 		utils::CheckPoint<EOT>& checkpoint = _state.storeFunctor( new utils::CheckPoint<EOT>( _continue ) );
 

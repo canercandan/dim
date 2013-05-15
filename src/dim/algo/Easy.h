@@ -69,7 +69,7 @@ namespace dim
 	public:
 	    Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(__dummyEvolve), _feedback(__dummyFeedback), _update(__dummyUpdate), _memorize(__dummyMemorize), _migrate(__dummyMigrate), _tocontinue(true) {}
 
-	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, bool barrier = false) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true), _barrier(barrier) {}
+	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, bool barrier = false, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true), _barrier(barrier), _monitorPrefix(monitorPrefix) {}
 
 	    virtual ~Easy() {}
 
@@ -80,25 +80,25 @@ namespace dim
 #ifdef MEASURE
 		std::ostringstream ss;
 
-		ss.str(""); ss << "total.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".total.time." << this->rank();
 		measureFiles["total"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << "gen.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".gen.time." << this->rank();
 		measureFiles["gen"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << "evolve.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".evolve.time." << this->rank();
 		measureFiles["evolve"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << "feedback.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".feedback.time." << this->rank();
 		measureFiles["feedback"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << "update.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".update.time." << this->rank();
 		measureFiles["update"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << "memorize.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".memorize.time." << this->rank();
 		measureFiles["memorize"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << "migrate.time." << this->rank();
+		ss.str(""); ss << _monitorPrefix << ".migrate.time." << this->rank();
 		measureFiles["migrate"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 
@@ -159,6 +159,7 @@ namespace dim
 
 	    std_or_boost::atomic<bool> _tocontinue;
 	    bool _barrier;
+	    std::string _monitorPrefix;
 	};
     } // !algo
 } // !dim

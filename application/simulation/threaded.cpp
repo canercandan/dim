@@ -201,6 +201,7 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data;
 
+    std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
     dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, data, 1, stepTimer);
 
     /**************
@@ -262,7 +263,7 @@ int main (int argc, char *argv[])
 	}
     state_dim.storeFunctor(ptMigrator);
 
-    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, barrier );
+    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, barrier, monitorPrefix );
 
     tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
 
