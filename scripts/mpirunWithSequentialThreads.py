@@ -40,7 +40,7 @@ def main():
     args.mca = '-mca \'%(mca)s\' ' % args.__dict__ if args.mca else ''
     args.program = ' '.join(args.program)
 
-    parameters = ["%(mpi_cmd)s %(mca)s %(hwloc_cmd)s%(i)d %(gdb)s %(program)s" % args.__dict__ for args.__dict__['i'] in range(args.np)]
+    parameters = ["%(mpi_cmd)s %(mca)s -- %(hwloc_cmd)s%(i)d %(gdb)s %(program)s" % args.__dict__ for args.__dict__['i'] in range(args.np)]
 
     cmd = 'mpirun %s' % ' : '.join(parameters)
 
