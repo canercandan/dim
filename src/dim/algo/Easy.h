@@ -1,4 +1,3 @@
-
 // -*- mode: c++; c-indent-level: 4; c++-member-init-indent: 8; comment-column: 35; -*-
 
 /* This program is free software; you can redistribute it and/or modify
@@ -48,7 +47,7 @@
 	op;								\
 	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
 	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
-	measureFiles[name] << elapsed << " "; measureFiles[name].flush(); \
+	*(measureFiles[name]) << elapsed << " "; measureFiles[name]->flush(); \
     }
 #else
 # define DO_MEASURE(op, measureFiles, name) { op; }
@@ -76,31 +75,31 @@ namespace dim
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
-		std::map<std::string, std::ofstream> measureFiles;
+		std::map<std::string, std::ofstream*> measureFiles;
 
 #ifdef MEASURE
 		std::ostringstream ss;
 
 		ss.str(""); ss << "total.time." << this->rank();
-		measureFiles["total"].open(ss.str().c_str());
+		measureFiles["total"] = new std::ofstream(ss.str().c_str());
 
 		ss.str(""); ss << "gen.time." << this->rank();
-		measureFiles["gen"].open(ss.str().c_str());
+		measureFiles["gen"] = new std::ofstream(ss.str().c_str());
 
 		ss.str(""); ss << "evolve.time." << this->rank();
-		measureFiles["evolve"].open(ss.str().c_str());
+		measureFiles["evolve"] = new std::ofstream(ss.str().c_str());
 
 		ss.str(""); ss << "feedback.time." << this->rank();
-		measureFiles["feedback"].open(ss.str().c_str());
+		measureFiles["feedback"] = new std::ofstream(ss.str().c_str());
 
 		ss.str(""); ss << "update.time." << this->rank();
-		measureFiles["update"].open(ss.str().c_str());
+		measureFiles["update"] = new std::ofstream(ss.str().c_str());
 
 		ss.str(""); ss << "memorize.time." << this->rank();
-		measureFiles["memorize"].open(ss.str().c_str());
+		measureFiles["memorize"] = new std::ofstream(ss.str().c_str());
 
 		ss.str(""); ss << "migrate.time." << this->rank();
-		measureFiles["migrate"].open(ss.str().c_str());
+		measureFiles["migrate"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 
 		DO_MEASURE(
@@ -134,6 +133,13 @@ namespace dim
 			       }
 
 			   , measureFiles, "total" );
+
+#ifdef MEASURE
+		for ( std::map<std::string, std::ofstream*>::iterator it = measureFiles.begin(); it != measureFiles.end(); ++it )
+		    {
+			delete it->second;
+		    }
+#endif // !MEASURE
 	    }
 
 	public:
