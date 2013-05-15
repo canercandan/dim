@@ -18,7 +18,7 @@
  */
 
 #include <fstream>
-#include <boost/mpi.hpp>
+#include <contrib/boost/mpi/environment.hpp>
 #include <eo>
 #include <ga.h>
 #include <dim/dim>
@@ -91,19 +91,7 @@ int main (int argc, char *argv[])
     unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
-
-    std::vector<double> rewards(ALL, 1.);
-    std::vector<double> timeouts(ALL, 1.);
-
-    for (size_t i = 0; i < ALL; ++i)
-	{
-	    std::ostringstream ss;
-	    ss << "reward" << i;
-	    rewards[i] = parser.createParam(double(1.), ss.str(), ss.str(), 0, "Islands Model").value();
-	    ss.str("");
-	    ss << "timeout" << i;
-	    timeouts[i] = parser.createParam(double(1.), ss.str(), ss.str(), 0, "Islands Model").value();
-	}
+    double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
 
     /*********************************
      * Déclaration des composants EO *
@@ -115,11 +103,11 @@ int main (int argc, char *argv[])
     dim::evaluation::OneMax<EOT> mainEval;
     eoEvalFuncCounter<EOT> eval(mainEval);
 
-    /*unsigned popSize = */parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine")/*.value()*/;
+    unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
     dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
-    /*double targetFitness = */parser.getORcreateParam(double(chromSize), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion")/*.value()*/;
-    /*unsigned maxGen = */parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion")/*.value()*/;
+    double targetFitness = parser.getORcreateParam(double(chromSize), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion").value();
+    unsigned maxGen = parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
     dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 
     dim::core::IslandData<EOT> data;
@@ -164,7 +152,7 @@ int main (int argc, char *argv[])
     dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
     if (feedback)
 	{
-	    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, deltaFeedback);
+	    ptFeedbacker = new dim::feedbacker::Easy<EOT>(alphaF, sensitivity, deltaFeedback, barrier);
 	}
     else
 	{
@@ -175,7 +163,7 @@ int main (int argc, char *argv[])
     dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
     if (update)
 	{
-	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, deltaUpdate);
+	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, deltaUpdate);
 	}
     else
 	{
@@ -188,7 +176,7 @@ int main (int argc, char *argv[])
     dim::migrator::Base<EOT>* ptMigrator = NULL;
     if (migrate)
 	{
-	    ptMigrator = new dim::migrator::async::Easy<EOT>();
+	    ptMigrator = new dim::migrator::Easy<EOT>(barrier);
 	}
     else
 	{
@@ -221,6 +209,26 @@ int main (int argc, char *argv[])
     		{
     		    world.send( i, 100, probabilities(i) );
     		}
+
+	    std::cout << "Island Model Parameters:" << std::endl
+		      << "alphaP: " << alphaP << std::endl
+		      << "alphaF: " << alphaF << std::endl
+		      << "betaP: " << betaP << std::endl
+		      << "probaSame: " << probaSame << std::endl
+		      << "initG: " << initG << std::endl
+		      << "update: " << update << std::endl
+		      << "feedback: " << feedback << std::endl
+		      << "migrate: " << migrate << std::endl
+		      << "barrier: " << barrier << std::endl
+		      << "stepTimer: " << stepTimer << std::endl
+		      << "deltaUpdate: " << deltaUpdate << std::endl
+		      << "deltaFeedback: " << deltaFeedback << std::endl
+		      << "sensitivity: " << sensitivity << std::endl
+		      << "chromSize: " << chromSize << std::endl
+		      << "popSize: " << popSize << std::endl
+		      << "targetFitness: " << targetFitness << std::endl
+		      << "maxGen: " << maxGen << std::endl
+		;
     	}
     else
     	{
