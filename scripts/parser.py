@@ -22,7 +22,7 @@ from collections import OrderedDict
 class Parser(argparse.ArgumentParser):
     """Wrapper class added logging support"""
 
-    def __init__(self, description='', formatter_class=argparse.ArgumentDefaultsHelpFormatter):
+    def __init__(self, description='', verbose='quiet', formatter_class=argparse.ArgumentDefaultsHelpFormatter):
         """
         We add all the common options to manage verbosity.
         """
@@ -36,7 +36,7 @@ class Parser(argparse.ArgumentParser):
                                    ('quiet', logging.CRITICAL),
                                    ])
 
-        self.add_argument('--verbose', '-v', choices=[x for x in self.levels.keys()], default='quiet', help='set a verbosity level')
+        self.add_argument('--verbose', '-v', choices=[x for x in self.levels.keys()], default=verbose, help='set a verbosity level')
         self.add_argument('--levels', '-l', action='store_true', default=False, help='list all the verbosity levels')
         self.add_argument('--output', '-o', help='all the logging messages are redirected to the specified filename.')
         self.add_argument('--debug', '-d', action='store_const', const='debug', dest='verbose', help='Diplay all the messages.')
