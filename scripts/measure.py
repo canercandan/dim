@@ -36,6 +36,12 @@ def parse_data(args):
                 fn = '%s%s%d' % (f, args.suffix, i)
                 d = [int(x) for x in open(fn).readline().split()]
                 island[f] = np.mean(d)*timeunits[args.time]/1000
+
+            if args.percent:
+                s = sum([island[f] for f in args.percent_files])
+                for f in args.percent_files:
+                    island[f] = (island[f]/s) * 100
+
             data[i] = island
     except FileNotFoundError as e:
         logger.error('File not found: %s' % e)
@@ -47,13 +53,16 @@ def print_data(args, data):
 
     print("%10s " % " ", end=' ')
     for i in range(args.islands):
-        print("%10d" % i, end=' ')
+        print("%12d" % i, end=' ')
     print()
 
     for f in args.files:
         print("%10s:" % f, end=' ')
         for i in range(args.islands):
-            print( '%10.2f' % data[i][f], end=' ' )
+            if args.percent and f not in ['gen', 'total']:
+                print( '%10.2f %%' % data[i][f], end=' ' )
+            else:
+                print( '%12.2f' % data[i][f], end=' ' )
         print()
 
 def main():
@@ -67,9 +76,11 @@ def main():
     parser.add_argument('--microseconds', '-u', action='store_const', const='microseconds', dest='time', help='time in microseconds')
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='time', help='time in nanoseconds')
     parser.add_argument('--percent', '-p', action='store_true', help='use percents')
+    parser.add_argument('--percent_files', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
     args = parser()
 
     args.files = args.files.split(',')
+    args.percent_files = args.percent_files.split(',')
 
     data = parse_data(args)
     print_data(args, data)
