@@ -42,16 +42,16 @@
 #include "Base.h"
 
 #ifdef MEASURE
-# define DO_MEASURE(op, f)						\
+# define DO_MEASURE(op, measureFiles, name)				\
     {									\
 	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start = std_or_boost::chrono::system_clock::now(); \
 	op;								\
 	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
 	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
-	f << elapsed << " "; f.flush();					\
+	measureFiles[name] << elapsed << " "; measureFiles[name].flush(); \
     }
 #else
-# define DO_MEASURE(op, f) { op; }
+# define DO_MEASURE(op, measureFiles, name) { op; }
 #endif // !MEASURE
 
 namespace dim
@@ -76,29 +76,32 @@ namespace dim
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
+		std::map<std::string, std::ofstream> measureFiles;
+
 #ifdef MEASURE
 		std::ostringstream ss;
 
 		ss.str(""); ss << "total.time." << this->rank();
-		std::ofstream total_time(ss.str());
+		measureFiles["total"].open(ss.str());
 
 		ss.str(""); ss << "gen.time." << this->rank();
-		std::ofstream gen_time(ss.str());
+		measureFiles["gen"].open(ss.str());
 
 		ss.str(""); ss << "evolve.time." << this->rank();
-		std::ofstream evolve_time(ss.str());
+		measureFiles["evolve"].open(ss.str());
 
 		ss.str(""); ss << "feedback.time." << this->rank();
-		std::ofstream feedback_time(ss.str());
+		measureFiles["feedback"].open(ss.str());
 
 		ss.str(""); ss << "update.time." << this->rank();
-		std::ofstream update_time(ss.str());
+		measureFiles["update"].open(ss.str());
 
 		ss.str(""); ss << "memorize.time." << this->rank();
-		std::ofstream memorize_time(ss.str());
+		measureFiles["memorize"].open(ss.str());
 
 		ss.str(""); ss << "migrate.time." << this->rank();
-		std::ofstream migrate_time(ss.str());
+		measureFiles["migrate"].open(ss.str());
+#endif // !MEASURE
 
 		DO_MEASURE(
 
@@ -111,12 +114,12 @@ namespace dim
 
 			   while ( ( data.toContinue = _checkpoint(pop) ) )
 			       {
-				   DO_MEASURE( DO_MEASURE(_evolve(pop, data), evolve_time);
-					       DO_MEASURE(_feedback(pop, data), feedback_time);
-					       DO_MEASURE(_update(pop, data), update_time);
-					       DO_MEASURE(_memorize(pop, data), memorize_time);
-					       DO_MEASURE(_migrate(pop, data), migrate_time);
-					       , gen_time );
+				   DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
+					       DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
+					       DO_MEASURE(_update(pop, data), measureFiles, "update");
+					       DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
+					       DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
+					       , measureFiles, "gen" );
 			       }
 
 			   _evolve.lastCall(pop, data);
@@ -130,35 +133,7 @@ namespace dim
 				   this->world().barrier();
 			       }
 
-			   , total_time );
-#else // MEASURE
-		_evolve.firstCall(pop, data);
-		_feedback.firstCall(pop, data);
-		_update.firstCall(pop, data);
-		_memorize.firstCall(pop, data);
-		_migrate.firstCall(pop, data);
-
-
-		while ( ( data.toContinue = _checkpoint(pop) ) )
-		    {
-			_evolve(pop, data);
-			_feedback(pop, data);
-			_update(pop, data);
-			_memorize(pop, data);
-			_migrate(pop, data);
-
-			if (_barrier)
-			    {
-				this->world().barrier();
-			    }
-		    }
-
-		_evolve.lastCall(pop, data);
-		_feedback.lastCall(pop, data);
-		_update.lastCall(pop, data);
-		_memorize.lastCall(pop, data);
-		_migrate.lastCall(pop, data);
-#endif // !MEASURE
+			   , measureFiles, "total" );
 	    }
 
 	public:
