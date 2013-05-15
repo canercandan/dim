@@ -82,25 +82,25 @@ namespace dim
 		std::ostringstream ss;
 
 		ss.str(""); ss << "total.time." << this->rank();
-		measureFiles["total"].open(ss.str());
+		measureFiles["total"].open(ss.str().c_str());
 
 		ss.str(""); ss << "gen.time." << this->rank();
-		measureFiles["gen"].open(ss.str());
+		measureFiles["gen"].open(ss.str().c_str());
 
 		ss.str(""); ss << "evolve.time." << this->rank();
-		measureFiles["evolve"].open(ss.str());
+		measureFiles["evolve"].open(ss.str().c_str());
 
 		ss.str(""); ss << "feedback.time." << this->rank();
-		measureFiles["feedback"].open(ss.str());
+		measureFiles["feedback"].open(ss.str().c_str());
 
 		ss.str(""); ss << "update.time." << this->rank();
-		measureFiles["update"].open(ss.str());
+		measureFiles["update"].open(ss.str().c_str());
 
 		ss.str(""); ss << "memorize.time." << this->rank();
-		measureFiles["memorize"].open(ss.str());
+		measureFiles["memorize"].open(ss.str().c_str());
 
 		ss.str(""); ss << "migrate.time." << this->rank();
-		measureFiles["migrate"].open(ss.str());
+		measureFiles["migrate"].open(ss.str().c_str());
 #endif // !MEASURE
 
 		DO_MEASURE(
