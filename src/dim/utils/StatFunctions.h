@@ -61,7 +61,7 @@ namespace dim
 
 	    size_t operator() ( const core::Pop<EOT>& )
 	    {
-		return _data.migratorSendingQueue.size(_data.rank());
+		return _data.migratorSendingQueue.size();
 	    }
 
 	private:
