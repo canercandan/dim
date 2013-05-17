@@ -157,6 +157,16 @@ namespace dim
 		AUTO(typename BOOST_IDENTITY_TYPE((DataQueue< T >)))& dataQueue = (*this)[id];
 		return dataQueue.size();
 	    }
+
+	    size_t size()
+	    {
+		size_t sum = 0;
+		for (size_t i = 0; i < std::vector< DataQueue< T > >::size(); ++i)
+		    {
+			sum += size(i);
+		    }
+		return sum;
+	    }
 	};
 
 	template <typename EOT>
