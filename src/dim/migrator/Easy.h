@@ -50,7 +50,7 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy(bool barrier = false) : _barrier(barrier) {}
+	    Easy(size_t nmigrations, bool barrier = false) : _nmigrations(nmigrations), _barrier(barrier) {}
 
 	    ~Easy()
 	    {
@@ -127,7 +127,14 @@ namespace dim
 		size_t inputSize = 0;
 
 		// a loop just in case we want more than 1 individual per generation coming to island
-		for (int k = 0; k < 1; ++k)
+
+		// waiting until the queue is fulfilled
+		while ( data.migratorReceivingQueue.empty() ) {}
+
+		size_t size = data.migratorReceivingQueue.size();
+		if ( _nmigrations && _nmigrations < size ) { size = _nmigrations; }
+
+		for (int k = 0; k < size; ++k)
 		    {
 			// This special pop function is waiting while the queue of individual is empty.
 			AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
@@ -209,6 +216,7 @@ namespace dim
 	    }
 
 	private:
+	    size_t _nmigrations;
 	    bool _barrier;
 	    std::vector<Sender*> _senders;
 	    std::vector<Receiver*> _receivers;

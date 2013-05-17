@@ -63,6 +63,8 @@ namespace dim
 			checkpoint.add(*stdMonitor);
 		    }
 
+		std::ostringstream ss;
+
 		utils::FixedValue<unsigned int>& islNum = _state.storeFunctor( new utils::FixedValue<unsigned int>( RANK, "Island" ) );
 		fileMonitor.add(islNum);
 		if (printBest) { stdMonitor->add(islNum); }
@@ -72,73 +74,64 @@ namespace dim
 		fileMonitor.add(tCounter);
 		if (printBest) { stdMonitor->add(tCounter); }
 
-		// utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
-		// checkpoint.add(genCounter);
-		// fileMonitor.add(genCounter);
-		// if (printBest) { stdMonitor->add(genCounter); }
+		utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
+		checkpoint.add(genCounter);
+		fileMonitor.add(genCounter);
+		if (printBest) { stdMonitor->add(genCounter); }
 
-		// std::ostringstream ss_size;
-		// ss_size << "nb_individual_isl" << RANK;
-		// utils::FuncPtrStat<EOT, size_t>& popSizeStat = utils::makeFuncPtrStat( utils::getPopSize<EOT>, _state, ss_size.str() );
-		// checkpoint.add(popSizeStat);
-		// fileMonitor.add(popSizeStat);
-		// if (printBest) { stdMonitor->add(popSizeStat); }
+		ss.str(""); ss << "nb_individual_isl" << RANK;
+		utils::FuncPtrStat<EOT, size_t>& popSizeStat = utils::makeFuncPtrStat( utils::getPopSize<EOT>, _state, ss.str() );
+		checkpoint.add(popSizeStat);
+		fileMonitor.add(popSizeStat);
+		if (printBest) { stdMonitor->add(popSizeStat); }
 
-		// std::ostringstream ss_sending_queue_size;
-		// ss_sending_queue_size << "sending_queue_size_isl" << RANK;
-		// utils::GetMigratorSendingQueueSize<EOT>& sendingQueueSizeFunc = _state.storeFunctor( new utils::GetMigratorSendingQueueSize<EOT>( data ) );
-		// utils::FunctorStat<EOT, size_t>& sendingQueueSizeStat = utils::makeFunctorStat( sendingQueueSizeFunc, _state, ss_sending_queue_size.str() );
-		// checkpoint.add(sendingQueueSizeStat);
-		// fileMonitor.add(sendingQueueSizeStat);
-		// if (printBest) { stdMonitor->add(sendingQueueSizeStat); }
+		ss.str(""); ss << "sending_queue_size_isl" << RANK;
+		utils::GetMigratorSendingQueueSize<EOT>& sendingQueueSizeFunc = _state.storeFunctor( new utils::GetMigratorSendingQueueSize<EOT>( data ) );
+		utils::FunctorStat<EOT, size_t>& sendingQueueSizeStat = utils::makeFunctorStat( sendingQueueSizeFunc, _state, ss.str() );
+		checkpoint.add(sendingQueueSizeStat);
+		fileMonitor.add(sendingQueueSizeStat);
+		if (printBest) { stdMonitor->add(sendingQueueSizeStat); }
 
-		std::ostringstream ss_receiving_queue_size;
-		ss_receiving_queue_size << "receiving_queue_size_isl" << RANK;
+		ss.str(""); ss << "receiving_queue_size_isl" << RANK;
 		utils::GetMigratorReceivingQueueSize<EOT>& receivingQueueSizeFunc = _state.storeFunctor( new utils::GetMigratorReceivingQueueSize<EOT>( data ) );
-		utils::FunctorStat<EOT, size_t>& receivingQueueSizeStat = utils::makeFunctorStat( receivingQueueSizeFunc, _state, ss_receiving_queue_size.str() );
+		utils::FunctorStat<EOT, size_t>& receivingQueueSizeStat = utils::makeFunctorStat( receivingQueueSizeFunc, _state, ss.str() );
 		checkpoint.add(receivingQueueSizeStat);
 		fileMonitor.add(receivingQueueSizeStat);
 		if (printBest) { stdMonitor->add(receivingQueueSizeStat); }
 
-		std::ostringstream ss_avg;
-		ss_avg << "avg_ones_isl" << RANK;
-		utils::AverageStat<EOT>& avg = _state.storeFunctor( new utils::AverageStat<EOT>( ss_avg.str() ) );
+		ss.str(""); ss << "avg_ones_isl" << RANK;
+		utils::AverageStat<EOT>& avg = _state.storeFunctor( new utils::AverageStat<EOT>( ss.str() ) );
 		checkpoint.add(avg);
 		fileMonitor.add(avg);
 		if (printBest) { stdMonitor->add(avg); }
 
-		std::ostringstream ss_delta;
-		ss_delta << "delta_avg_ones_isl" << RANK;
-		utils::AverageDeltaFitnessStat<EOT>& avg_delta = _state.storeFunctor( new utils::AverageDeltaFitnessStat<EOT>( ss_delta.str() ) );
+		ss.str(""); ss << "delta_avg_ones_isl" << RANK;
+		utils::AverageDeltaFitnessStat<EOT>& avg_delta = _state.storeFunctor( new utils::AverageDeltaFitnessStat<EOT>( ss.str() ) );
 		checkpoint.add(avg_delta);
 		fileMonitor.add(avg_delta);
 		if (printBest) { stdMonitor->add(avg_delta); }
 
-		std::ostringstream ss_best;
-		ss_best << "best_value_isl" << RANK;
-		utils::BestFitnessStat<EOT>& best = _state.storeFunctor( new utils::BestFitnessStat<EOT>( ss_best.str() ) );
+		ss.str(""); ss << "best_value_isl" << RANK;
+		utils::BestFitnessStat<EOT>& best = _state.storeFunctor( new utils::BestFitnessStat<EOT>( ss.str() ) );
 		checkpoint.add(best);
 		fileMonitor.add(best);
 		if (printBest) { stdMonitor->add(best); }
 
-		std::ostringstream ss_input_size;
-		ss_input_size << "nb_input_ind_isl" << RANK;
-		utils::FuncPtrStat<EOT, size_t>& inputSizeStat = utils::makeFuncPtrStat( utils::getPopInputSize<EOT>, _state, ss_input_size.str() );
+		ss.str(""); ss << "nb_input_ind_isl" << RANK;
+		utils::FuncPtrStat<EOT, size_t>& inputSizeStat = utils::makeFuncPtrStat( utils::getPopInputSize<EOT>, _state, ss.str() );
 		checkpoint.add(inputSizeStat);
 		fileMonitor.add(inputSizeStat);
 		if (printBest) { stdMonitor->add(inputSizeStat); }
 
-		std::ostringstream ss_output_size;
-		ss_output_size << "nb_output_ind_isl" << RANK;
-		utils::FuncPtrStat<EOT, size_t>& outputSizeStat = utils::makeFuncPtrStat( utils::getPopOutputSize<EOT>, _state, ss_output_size.str() );
+		ss.str(""); ss << "nb_output_ind_isl" << RANK;
+		utils::FuncPtrStat<EOT, size_t>& outputSizeStat = utils::makeFuncPtrStat( utils::getPopOutputSize<EOT>, _state, ss.str() );
 		checkpoint.add(outputSizeStat);
 		fileMonitor.add(outputSizeStat);
 		if (printBest) { stdMonitor->add(outputSizeStat); }
 
 		for (size_t i = 0; i < data.proba.size(); ++i)
 		    {
-			std::ostringstream ss;
-			ss << "P" << RANK << "to" << i;
+			ss.str(""); ss << "P" << RANK << "to" << i;
 			utils::GetMigrationProbability<EOT>& migProba = _state.storeFunctor( new utils::GetMigrationProbability<EOT>( data.proba, i, ss.str() ) );
 			checkpoint.add(migProba);
 			fileMonitor.add(migProba);
@@ -146,26 +139,23 @@ namespace dim
 		    }
 
 		// TODO: just added temporarely to make statistic scripts working, but HAVE TO be removed
-		std::ostringstream ss_proba;
-		ss_proba << "P" << RANK << "to*";
-		utils::GetSumVectorProbability<EOT>& migProba = _state.storeFunctor( new utils::GetSumVectorProbability<EOT>( data.proba, ss_proba.str() ) );
+		ss.str(""); ss << "P" << RANK << "to*";
+		utils::GetSumVectorProbability<EOT>& migProba = _state.storeFunctor( new utils::GetSumVectorProbability<EOT>( data.proba, ss.str() ) );
 		checkpoint.add(migProba);
 		fileMonitor.add(migProba);
 		if (printBest) { stdMonitor->add(migProba); }
 		// END TODO
 
 		// TODO: just added temporarely to make statistic scripts working, but HAVE TO be removed
-		std::ostringstream ss_proba_ret;
-		ss_proba_ret << "P" << "*to" << RANK;
-		utils::FixedValue<unsigned int>& migProbaRet = _state.storeFunctor( new utils::FixedValue<unsigned int>( 0, ss_proba_ret.str() ) );
+		ss.str(""); ss << "P" << "*to" << RANK;
+		utils::FixedValue<unsigned int>& migProbaRet = _state.storeFunctor( new utils::FixedValue<unsigned int>( 0, ss.str() ) );
 		fileMonitor.add(migProbaRet);
 		if (printBest) { stdMonitor->add(migProbaRet); }
 		// END TODO
 
 		for (size_t i = 0; i < ALL; ++i)
 		    {
-			std::ostringstream ss;
-			ss << "nb_migrants_isl" << RANK << "to" << i;
+			ss.str(""); ss << "nb_migrants_isl" << RANK << "to" << i;
 			utils::OutputSizePerIsland<EOT>& out = _state.storeFunctor( new utils::OutputSizePerIsland<EOT>( i, ss.str() ) );
 			checkpoint.add(out);
 			fileMonitor.add(out);

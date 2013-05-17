@@ -160,6 +160,7 @@ int main (int argc, char *argv[])
     bool update = parser.createParam(bool(true), "update", "update", 'U', "Islands Model").value();
     bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
     bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
+    unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
     bool barrier = parser.createParam(bool(false), "barrier", "barrier", 0, "Islands Model").value();
     unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
@@ -255,7 +256,7 @@ int main (int argc, char *argv[])
     dim::migrator::Base<EOT>* ptMigrator = NULL;
     if (migrate)
 	{
-	    ptMigrator = new dim::migrator::Easy<EOT>(barrier);
+	    ptMigrator = new dim::migrator::Easy<EOT>(nmigrations, barrier);
 	}
     else
 	{
