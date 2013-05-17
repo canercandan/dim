@@ -45,168 +45,248 @@ namespace dim
 	namespace std_or_boost = boost;
 #endif
 
-	template <typename EOT>
-	class Easy : public Base<EOT>
+	namespace sync
 	{
-	public:
-	    Easy(double alpha = 0.01, double sensitivity = 1., bool delta = true, bool barrier = false) : _alpha(alpha), _sensitivity(sensitivity), _delta(delta), _barrier(barrier) {}
-
-	    ~Easy()
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		for (size_t i = 0; i < this->_senders.size(); ++i)
-		    {
-			delete _senders[i];
-			delete _receivers[i];
-		    }
-	    }
+	    public:
+		Easy(double alpha = 0.01) : _alpha(alpha) {}
 
-	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
-	    {
+		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		{
 #ifdef TRACE
-		std::ostringstream ss;
-		ss << "trace.feedbacker." << this->rank();
-		_of.open(ss.str().c_str());
+		    std::ostringstream ss;
+		    ss << "trace.feedbacker." << this->rank();
+		    _of.open(ss.str().c_str());
 #endif // !TRACE
-	    }
+		}
 
-	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+		{
+		    std::vector< boost::mpi::request > reqs;
+
+		    /************************************************
+		     * Send feedbacks back to all islands (ANALYSE) *
+		     ************************************************/
+
+		    std::vector<typename EOT::Fitness> sums(this->size(), 0);
+		    std::vector<int> nbs(this->size(), 0);
+
+		    for (size_t i = 0; i < pop.size(); ++i)
+			{
+			    EOT& ind = pop[i];
+			    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
+			    ++nbs[ind.getLastIsland()];
+			}
+
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+
+			    AUTO(double) effectiveness = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
+			    reqs.push_back( this->world().isend( i, this->tag(), effectiveness ) );
+			}
+
+		    /**************************************
+		     * Receive feedbacks from all islands *
+		     **************************************/
+
+		    std::vector< typename EOT::Fitness > effectivenesses(this->size());
+
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+
+			    reqs.push_back( this->world().irecv( i, this->tag(), effectivenesses[i] ) );
+			}
+
+		    // for island itself because of the MPI communication optimizing.
+		    effectivenesses[this->rank()] = nbs[this->rank()] > 0 ? sums[this->rank()] / nbs[this->rank()] : 0;
+
+		    /****************************
+		     * Process all MPI requests *
+		     ****************************/
+
+		    boost::mpi::wait_all( reqs.begin(), reqs.end() );
+
+		    /********************
+		     * Update feedbacks *
+		     ********************/
+
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    AUTO(typename EOT::Fitness)& Si = data.feedbacks[i];
+			    AUTO(typename EOT::Fitness)& Fi = effectivenesses[i];
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[i];
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
+
+			    Si = (1-_alpha)*Si + _alpha*Fi;
+			    Ti = end;
+			}
+		}
+
+	    private:
+		double _alpha;
+#ifdef TRACE
+		std::ofstream _of;
+#endif // !TRACE
+
+	    };
+	} // !sync
+
+	namespace async
+	{
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
 	    {
-		/************************************************
-		 * Send feedbacks back to all islands (ANALYSE) *
-		 ************************************************/
+	    public:
+		Easy(double alpha = 0.01, double sensitivity = 1., bool delta = true) : _alpha(alpha), _sensitivity(sensitivity), _delta(delta) {}
 
-		// _of << pop.size() << " "; _of.flush();
+		~Easy()
+		{
+		    for (size_t i = 0; i < this->_senders.size(); ++i)
+			{
+			    delete _senders[i];
+			    delete _receivers[i];
+			}
+		}
 
-		for (size_t i = 0; i < pop.size(); ++i)
-		    {
-			EOT& ind = pop[i];
+		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		{
+#ifdef TRACE
+		    std::ostringstream ss;
+		    ss << "trace.feedbacker." << this->rank();
+		    _of.open(ss.str().c_str());
+#endif // !TRACE
+		}
 
-			// AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - data.vectorLastUpdatedTime ).count() / 1000.;
-			AUTO(double) effectiveness = ind.fitness() - ind.getLastFitness();
+		void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+		{
+		    /************************************************
+		     * Send feedbacks back to all islands (ANALYSE) *
+		     ************************************************/
 
-			if ( ind.getLastIsland() == static_cast<int>( this->rank() ) )
-			    {
-				data.feedbackerReceivingQueue.push( effectiveness, this->rank() );
-				continue;
-			    }
+		    // _of << pop.size() << " "; _of.flush();
 
-			data.feedbackerSendingQueue.push( effectiveness, ind.getLastIsland() );
-		    }
+		    for (size_t i = 0; i < pop.size(); ++i)
+			{
+			    EOT& ind = pop[i];
 
-		/********************
-		 * Update feedbacks *
-		 ********************/
+			    // AUTO(unsigned) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - data.vectorLastUpdatedTime ).count() / 1000.;
+			    AUTO(double) effectiveness = ind.fitness() - ind.getLastFitness();
 
-		// _of << "[" << data.feedbackerReceivingQueue.size() << "] "; _of.flush();
+			    if ( ind.getLastIsland() == static_cast<int>( this->rank() ) )
+				{
+				    data.feedbackerReceivingQueue.push( effectiveness, this->rank() );
+				    continue;
+				}
 
-		while ( !data.feedbackerReceivingQueue.empty() )
-		    {
-			AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
-			AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
-			// double t = std_or_boost::get<1>(fbr);
-			AUTO(size_t) from = std_or_boost::get<2>(fbr);
-			AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
-			AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
+			    data.feedbackerSendingQueue.push( effectiveness, ind.getLastIsland() );
+			}
 
-			AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
-			AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - Ti ).count() / 1000.; // delta{t} <- t - t_i
+		    /********************
+		     * Update feedbacks *
+		     ********************/
 
-			if (!_delta)
-			    {
-				elapsed = 1.;
-				// t = 1.;
-			    }
+		    // _of << "[" << data.feedbackerReceivingQueue.size() << "] "; _of.flush();
 
-			AUTO(double) alphaT = exp(log(_alpha)/(elapsed*_sensitivity));
-			Si = (1-alphaT)*Si + alphaT*Fi;
+		    while ( !data.feedbackerReceivingQueue.empty() )
+			{
+			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
+			    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
+			    // double t = std_or_boost::get<1>(fbr);
+			    AUTO(size_t) from = std_or_boost::get<2>(fbr);
+			    AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
+
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
+			    AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( end - Ti ).count() / 1000.; // delta{t} <- t - t_i
+
+			    if (!_delta)
+				{
+				    elapsed = 1.;
+				    // t = 1.;
+				}
+
+			    AUTO(double) alphaT = exp(log(_alpha)/(elapsed*_sensitivity));
+			    Si = (1-alphaT)*Si + alphaT*Fi;
 
 #ifdef TRACE
-			if (from == 1)
-			    {
-				_of << Si << " "; _of.flush();
-			    }
+			    if (from == 1)
+				{
+				    _of << Si << " "; _of.flush();
+				}
 #endif
 
-			Ti = end; // t_i <- t
-		    }
-	    }
-
-	    class Sender : public core::Thread<EOT>, public core::ParallelContext
-	    {
-	    public:
-		Sender(size_t to, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _to(to), _barrier(barrier) {}
-
-		void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
-		{
-		    while (data.toContinue)
-			{
-			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbs = data.feedbackerSendingQueue.pop( _to, true );
-			    AUTO(typename EOT::Fitness) fit = std_or_boost::get<0>( fbs );
-
-			    this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), fit);
-
-			    if (_barrier)
-				{
-				    this->world().barrier();
-				}
+			    Ti = end; // t_i <- t
 			}
 		}
 
-	    private:
-		size_t _to;
-		bool _barrier;
-	    };
-
-	    class Receiver : public core::Thread<EOT>, public core::ParallelContext
-	    {
-	    public:
-		Receiver(size_t from, size_t tag = 0, bool barrier = false) : ParallelContext(tag), _from(from), _barrier(barrier) {}
-
-		void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		class Sender : public core::Thread<EOT>, public core::ParallelContext
 		{
-		    while (data.toContinue)
-			{
-			    typename EOT::Fitness fit;
-			    this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), fit);
-			    data.feedbackerReceivingQueue.push( fit, _from );
+		public:
+		    Sender(size_t to, size_t tag = 0) : ParallelContext(tag), _to(to) {}
 
-			    if (_barrier)
-				{
-				    this->world().barrier();
-				}
-			}
-		}
-	    private:
-		size_t _from;
-		bool _barrier;
-	    };
-
-	    virtual void addTo( core::ThreadsRunner<EOT>& tr )
-	    {
-		for (size_t i = 0; i < this->size(); ++i)
+		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		    {
-			if (i == this->rank()) { continue; }
+			while (data.toContinue)
+			    {
+				AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbs = data.feedbackerSendingQueue.pop( _to, true );
+				AUTO(typename EOT::Fitness) fit = std_or_boost::get<0>( fbs );
 
-			_senders.push_back( new Sender(i, this->tag(), _barrier) );
-			_receivers.push_back( new Receiver(i, this->tag(), _barrier) );
-
-			tr.add( _senders.back() );
-			tr.add( _receivers.back() );
+				this->world().send(_to, this->size() * ( this->rank() + _to ) + this->tag(), fit);
+			    }
 		    }
-	    }
 
-	private:
-	    double _alpha;
-	    double _sensitivity;
-	    bool _delta;
-	    bool _barrier;
-	    std::vector<Sender*> _senders;
-	    std::vector<Receiver*> _receivers;
+		private:
+		    size_t _to;
+		};
+
+		class Receiver : public core::Thread<EOT>, public core::ParallelContext
+		{
+		public:
+		    Receiver(size_t from, size_t tag = 0) : ParallelContext(tag), _from(from) {}
+
+		    void operator()(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
+		    {
+			while (data.toContinue)
+			    {
+				typename EOT::Fitness fit;
+				this->world().recv(_from, this->size() * ( this->rank() + _from ) + this->tag(), fit);
+				data.feedbackerReceivingQueue.push( fit, _from );
+			    }
+		    }
+		private:
+		    size_t _from;
+		};
+
+		virtual void addTo( core::ThreadsRunner<EOT>& tr )
+		{
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    if (i == this->rank()) { continue; }
+
+			    _senders.push_back( new Sender(i, this->tag()) );
+			    _receivers.push_back( new Receiver(i, this->tag()) );
+
+			    tr.add( _senders.back() );
+			    tr.add( _receivers.back() );
+			}
+		}
+
+	    private:
+		double _alpha;
+		double _sensitivity;
+		bool _delta;
+		std::vector<Sender*> _senders;
+		std::vector<Receiver*> _receivers;
 #ifdef TRACE
-	    std::ofstream _of;
+		std::ofstream _of;
 #endif // !TRACE
 
-	};
+	    };
+	}
     }
 }
 

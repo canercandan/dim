@@ -38,6 +38,11 @@ namespace std_or_boost = boost;
 
 typedef dim::core::Bit<double> EOT;
 
+struct DummyOp : public eoMonOp<EOT>
+{
+    bool operator()(EOT&) {}
+};
+
 class SimulatedOp : public eoMonOp<EOT>
 {
 public:
@@ -161,7 +166,7 @@ int main (int argc, char *argv[])
     bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
     bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
     unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
-    bool barrier = parser.createParam(bool(false), "barrier", "barrier", 0, "Islands Model").value();
+    bool sync = parser.createParam(bool(false), "sync", "sync", 0, "Islands Model").value();
     unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
@@ -218,7 +223,14 @@ int main (int argc, char *argv[])
      ****************************************/
 
     eoMonOp<EOT>* ptMon = NULL;
-    ptMon = new SimulatedOp( timeouts[RANK] );
+    if (sync)
+	{
+	    ptMon = new DummyOp;
+	}
+    else
+	{
+	    ptMon = new SimulatedOp( timeouts[RANK] );
+	}
     state.storeFunctor(ptMon);
 
     /**********************************
@@ -232,7 +244,14 @@ int main (int argc, char *argv[])
     dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
     if (feedback)
 	{
-	    ptFeedbacker = new dim::feedbacker::Easy<EOT>(alphaF, sensitivity, deltaFeedback, barrier);
+	    if (sync)
+		{
+		    ptFeedbacker = new dim::feedbacker::sync::Easy<EOT>(alphaF);
+		}
+	    else
+		{
+		    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, sensitivity, deltaFeedback);
+		}
 	}
     else
 	{
@@ -243,7 +262,7 @@ int main (int argc, char *argv[])
     dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
     if (update)
 	{
-	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, deltaUpdate);
+	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
 	}
     else
 	{
@@ -256,7 +275,14 @@ int main (int argc, char *argv[])
     dim::migrator::Base<EOT>* ptMigrator = NULL;
     if (migrate)
 	{
-	    ptMigrator = new dim::migrator::Easy<EOT>(nmigrations, barrier);
+	    if (sync)
+		{
+		    ptMigrator = new dim::migrator::sync::Easy<EOT>();
+		}
+	    else
+		{
+		    ptMigrator = new dim::migrator::async::Easy<EOT>(nmigrations);
+		}
 	}
     else
 	{
@@ -264,9 +290,12 @@ int main (int argc, char *argv[])
 	}
     state_dim.storeFunctor(ptMigrator);
 
-    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, barrier, monitorPrefix );
+    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, monitorPrefix );
 
-    tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
+    if (!sync)
+	{
+	    tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
+	}
 
     /***************
      * Rock & Roll *
@@ -299,7 +328,7 @@ int main (int argc, char *argv[])
 		      << "update: " << update << std::endl
 		      << "feedback: " << feedback << std::endl
 		      << "migrate: " << migrate << std::endl
-		      << "barrier: " << barrier << std::endl
+		      << "sync: " << sync << std::endl
 		      << "stepTimer: " << stepTimer << std::endl
 		      << "deltaUpdate: " << deltaUpdate << std::endl
 		      << "deltaFeedback: " << deltaFeedback << std::endl
@@ -326,7 +355,14 @@ int main (int argc, char *argv[])
 
     apply<EOT>(fitInit, pop);
 
-    tr( pop, data );
+    if (sync)
+	{
+	    island( pop, data );
+	}
+    else
+	{
+	    tr( pop, data );
+	}
 
     world.abort(0);
 

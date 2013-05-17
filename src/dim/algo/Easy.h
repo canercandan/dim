@@ -69,7 +69,7 @@ namespace dim
 	public:
 	    Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(__dummyEvolve), _feedback(__dummyFeedback), _update(__dummyUpdate), _memorize(__dummyMemorize), _migrate(__dummyMigrate), _tocontinue(true) {}
 
-	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, bool barrier = false, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true), _barrier(barrier), _monitorPrefix(monitorPrefix) {}
+	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _tocontinue(true), _monitorPrefix(monitorPrefix) {}
 
 	    virtual ~Easy() {}
 
@@ -127,11 +127,6 @@ namespace dim
 			   _memorize.lastCall(pop, data);
 			   _migrate.lastCall(pop, data);
 
-			   if (_barrier)
-			       {
-				   this->world().barrier();
-			       }
-
 			   , measureFiles, "total" );
 
 #ifdef MEASURE
@@ -158,7 +153,6 @@ namespace dim
 	    migrator::Base<EOT>& _migrate;
 
 	    std_or_boost::atomic<bool> _tocontinue;
-	    bool _barrier;
 	    std::string _monitorPrefix;
 	};
     } // !algo
