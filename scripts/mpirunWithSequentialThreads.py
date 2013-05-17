@@ -29,20 +29,19 @@ def main():
     parser.add_argument('program', nargs='+', help='the program arguments')
     parser.add_argument('-np', help='number of nodes used', type=int, default=4)
     parser.add_argument('-gdb', help='gdb mode', action='store_true')
-    parser.add_argument('-mca', help='modular component architectur modules', default='btl self,sm,tcp')
+    parser.add_argument('--mca_btl', help='modular component architecture modules for btl (mpirun(1))', default='self,sm,tcp')
     parser.add_argument('--gdb_cmd', help='gdb command to use', default='xterm -e gdb --args')
     parser.add_argument('--hwloc_cmd', help='hwloc command to use', default='hwloc-bind pu:')
-    parser.add_argument('--mpi_cmd', help='mpi command to use', default='-np 1')
     parser.add_argument('--test', '-t', action='store_true', help='just display the wrapped command line without executing it')
     args = parser()
 
     args.gdb = '%(gdb_cmd)s ' % args.__dict__ if args.gdb else ''
-    args.mca = '-mca \'%(mca)s\' ' % args.__dict__ if args.mca else ''
     args.program = ' '.join(args.program)
 
-    parameters = ["%(mpi_cmd)s %(mca)s -- %(hwloc_cmd)s%(i)d %(gdb)s %(program)s" % args.__dict__ for args.__dict__['i'] in range(args.np)]
+    parameters = ["-np 1 %(hwloc_cmd)s%(i)d %(gdb)s %(program)s" % args.__dict__ for args.__dict__['i'] in range(args.np)]
 
-    cmd = 'mpirun %s' % ' : '.join(parameters)
+    mca = '-mca "btl %(mca_btl)s" ' % args.__dict__ if args.mca_btl else ''
+    cmd = 'mpirun %s%s' % ( mca, ' : '.join(parameters) )
 
     if args.test:
         print(cmd)
