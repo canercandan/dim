@@ -73,11 +73,8 @@ namespace dim
 		     ********************/
 
 		    std::vector< size_t > outputSizes( this->size(), 0 );
-		    std::vector< core::Pop<EOT> > pops( this->size() );
 
 		    {
-			std_or_boost::lock_guard<std_or_boost::mutex> lock(pop.mutex);
-
 			for (size_t i = 0; i < pop.size(); ++i)
 			    {
 				EOT& ind = pop[i];
@@ -97,7 +94,7 @@ namespace dim
 				--j;
 
 				++outputSizes[j];
-				pops[j].push_back(ind);
+				_islandData[j].migratorReceivingQueue.push(ind, this->rank());
 			    }
 
 			pop.clear();
@@ -106,16 +103,26 @@ namespace dim
 			pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
 		    }
 
-		    for ( size_t i = 0; i < this->size(); ++i )
+		    /*********************
+		     * Update population *
+		     *********************/
+
+		    size_t inputSize = 0;
+
+		    size_t size = data.migratorReceivingQueue.size();
+		    for (int k = 0; k < size; ++k)
 			{
-			    core::Pop<EOT>& newpop = pops[i];
-			    for (size_t j = 0; j < newpop.size(); ++j)
-				{
-				    EOT& ind = newpop[j];
-				    std_or_boost::lock_guard<std_or_boost::mutex> lock(_islandPop[i].mutex);
-				    _islandPop[i].push_back( ind );
-				}
+			    // This special pop function is waiting while the queue of individual is empty.
+			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
+			    AUTO(EOT) ind = std_or_boost::get<0>(imm);
+			    AUTO(double) time = std_or_boost::get<1>(imm);
+
+			    ind.receivedTime = time;
+			    pop.push_back( ind );
+			    ++inputSize;
 			}
+
+		    pop.setInputSize( inputSize );
 		}
 
 	    private:
