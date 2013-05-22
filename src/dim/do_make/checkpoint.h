@@ -165,7 +165,7 @@ namespace dim
 		return checkpoint;
 	    }
 
-    } // !do
+    } // !do_make
 } // !dim
 
 #endif // !_DO_MAKE_CHECKPOINT_H_
