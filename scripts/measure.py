@@ -33,7 +33,7 @@ def parse_data(args):
         for i in range(args.islands):
             island = {}
             for f in args.files:
-                fn = '%s%s%d' % (f, args.suffix, i)
+                fn = '%s%s%s%d' % (args.prefix, f, args.suffix, i)
                 d = [int(x) for x in open(fn).readline().split()]
                 island[f] = np.mean(d)*timeunits[args.time]/1000
 
@@ -69,6 +69,7 @@ def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen,evolve,feedback,update,memorize,migrate')
+    parser.add_argument('--prefix', help='set the prefix time files', default='result.')
     parser.add_argument('--suffix', help='set the suffix time files', default='.time.')
     parser.add_argument('--time', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='milliseconds')
     parser.add_argument('--seconds', '-s', action='store_const', const='seconds', dest='time', help='time in seconds')
