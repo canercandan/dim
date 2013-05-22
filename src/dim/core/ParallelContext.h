@@ -30,17 +30,23 @@ namespace dim
 	class ParallelContext
 	{
 	public:
-	    ParallelContext(size_t tag = 0) : _tag(tag) {}
+	    ParallelContext(size_t tag = 0) : _size(_world.size()), _rank(_world.rank()), _tag(tag) {}
 	    virtual ~ParallelContext() {}
 
-	    inline size_t size() const { return this->_world.size(); }
-	    inline size_t rank() const { return this->_world.rank(); }
+	    inline size_t size() const { return _size; }
+	    inline size_t rank() const { return _rank; }
+
+	    inline void size(size_t v) { _size = v; }
+	    inline void rank(size_t v) { _rank = v; }
+
 	    inline boost::mpi::communicator& world() { return this->_world; }
 	    inline size_t tag() const { return _tag; }
 
 	private:
-	    const size_t _tag;
 	    boost::mpi::communicator _world;
+	    size_t _size;
+	    size_t _rank;
+	    const size_t _tag;
 	};
 
     } // !core
