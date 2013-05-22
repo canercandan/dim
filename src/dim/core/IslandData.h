@@ -23,11 +23,13 @@
 #if __cplusplus > 199711L
 #include <tuple>
 #include <mutex>
+#include <condition_variable>
 #include <atomic>
 #include <chrono>
 #else
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
 #include <boost/tuple/tuple_io.hpp>
 #include <boost/chrono/chrono_io.hpp>
 #include <boost/atomic.hpp>
@@ -60,10 +62,10 @@ namespace dim
 	template <typename T>
 	struct DataQueue
 	{
-#if __cplusplus <= 199711L
 	    DataQueue() {}
+	    DataQueue(const DataQueue& d) { *this = d; }
 
-	    DataQueue(const DataQueue& d)
+	    DataQueue& operator=(const DataQueue& d)
 	    {
 	    	if ( &d != this )
 	    	    {
@@ -71,8 +73,10 @@ namespace dim
 	    		timesQueue = d.timesQueue;
 	    		idQueue = d.idQueue;
 	    	    }
+		return *this;
 	    }
-#endif
+
+	    virtual ~DataQueue() {}
 
 	    std_or_boost::mutex mutex;
 	    std::queue<T> dataQueue;
@@ -182,6 +186,29 @@ namespace dim
 
 	    IslandData() : feedbacks(size(), 0), feedbackLastUpdatedTimes(size(), std_or_boost::chrono::system_clock::now()), vectorLastUpdatedTime(std_or_boost::chrono::system_clock::now()), proba(size(), 0), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
 
+	    IslandData(const IslandData& d) : feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true)
+	    {
+		*this = d;
+	    }
+
+	    IslandData& operator=(const IslandData& d)
+	    {
+	    	if ( &d != this )
+	    	    {
+			feedbacks = d.feedbacks;
+			feedbackLastUpdatedTimes = d.feedbackLastUpdatedTimes;
+			vectorLastUpdatedTime = d.vectorLastUpdatedTime;
+			proba = d.proba;
+			feedbackerSendingQueue = d.feedbackerSendingQueue;
+			feedbackerReceivingQueue = d.feedbackerReceivingQueue;
+			migratorSendingQueue = d.migratorSendingQueue;
+			migratorReceivingQueue = d.migratorReceivingQueue;
+		    }
+		return *this;
+	    }
+
+	    virtual ~IslandData() {}
+
 	    std::vector< Fitness > feedbacks;
 	    std::vector< std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > > feedbackLastUpdatedTimes;
 	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > vectorLastUpdatedTime;
@@ -194,6 +221,8 @@ namespace dim
 	    DataQueue< EOT > migratorReceivingQueue;
 
 	    std_or_boost::atomic<bool> toContinue;
+	    std_or_boost::condition_variable cv;
+	    std_or_boost::mutex cv_m;
 	};
 
     } // !core
