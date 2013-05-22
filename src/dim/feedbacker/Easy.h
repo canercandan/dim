@@ -45,6 +45,66 @@ namespace dim
 	namespace std_or_boost = boost;
 #endif
 
+	namespace smp
+	{
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
+	    {
+	    public:
+		Easy(std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData, double alpha = 0.01) : _islandPop(islandPop), _islandData(islandData), _alpha(alpha) {}
+
+		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		{
+#ifdef TRACE
+		    std::ostringstream ss;
+		    ss << "trace.feedbacker." << this->rank();
+		    _of.open(ss.str().c_str());
+#endif // !TRACE
+		}
+
+		void operator()(core::Pop<EOT>& __pop, core::IslandData<EOT>& __data)
+		{
+		    core::Pop<EOT>& pop = _islandPop[this->rank()];
+		    core::IslandData<EOT>& data = _islandData[this->rank()];
+
+		    /************************************************
+		     * Send feedbacks back to all islands (ANALYSE) *
+		     ************************************************/
+
+		    std::vector<typename EOT::Fitness> sums(this->size(), 0);
+		    std::vector<int> nbs(this->size(), 0);
+
+		    for (size_t i = 0; i < pop.size(); ++i)
+			{
+			    EOT& ind = pop[i];
+			    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
+			    ++nbs[ind.getLastIsland()];
+			}
+
+		    for (size_t i = 0; i < this->size(); ++i)
+			{
+			    AUTO(typename EOT::Fitness)& Si = _islandData[i].feedbacks[this->rank()];
+			    AUTO(typename EOT::Fitness) Fi = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = _islandData[i].feedbackLastUpdatedTimes[this->rank()];
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
+
+			    Si = (1-_alpha)*Si + _alpha*Fi;
+			    Ti = end;
+			}
+		}
+
+	    private:
+		std::vector< core::Pop<EOT> >& _islandPop;
+		std::vector< core::IslandData<EOT> >& _islandData;
+
+		double _alpha;
+#ifdef TRACE
+		std::ofstream _of;
+#endif // !TRACE
+
+	    };
+	} // !smp
+
 	namespace sync
 	{
 	    template <typename EOT>

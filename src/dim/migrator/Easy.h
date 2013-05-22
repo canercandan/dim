@@ -46,6 +46,89 @@ namespace dim
 	namespace std_or_boost = boost;
 #endif
 
+	namespace smp
+	{
+	    template <typename EOT>
+	    class Easy : public Base<EOT>
+	    {
+	    public:
+		Easy(std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData) : _islandPop(islandPop), _islandData(islandData) {}
+
+		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
+		{
+#ifdef TRACE
+		    std::ostringstream ss;
+		    ss << "trace.migrator." << this->rank();
+		    _of.open(ss.str().c_str());
+#endif // !TRACE
+		}
+
+		void operator()(core::Pop<EOT>& __pop, core::IslandData<EOT>& __data)
+		{
+		    core::Pop<EOT>& pop = _islandPop[this->rank()];
+		    core::IslandData<EOT>& data = _islandData[this->rank()];
+
+		    /********************
+		     * Send individuals *
+		     ********************/
+
+		    std::vector< size_t > outputSizes( this->size(), 0 );
+		    std::vector< core::Pop<EOT> > pops( this->size() );
+
+		    {
+			std_or_boost::lock_guard<std_or_boost::mutex> lock(pop.mutex);
+
+			for (size_t i = 0; i < pop.size(); ++i)
+			    {
+				EOT& ind = pop[i];
+
+				/*************
+				 * Selection *
+				 *************/
+
+				double s = 0;
+				int r = rng.rand() % 1000 + 1;
+
+				size_t j;
+				for ( j = 0; j < this->size() && r > s; ++j )
+				    {
+					s += data.proba[j];
+				    }
+				--j;
+
+				++outputSizes[j];
+				pops[j].push_back(ind);
+			    }
+
+			pop.clear();
+
+			pop.setOutputSizes( outputSizes );
+			pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
+		    }
+
+		    for ( size_t i = 0; i < this->size(); ++i )
+			{
+			    core::Pop<EOT>& newpop = pops[i];
+			    for (size_t j = 0; j < newpop.size(); ++j)
+				{
+				    EOT& ind = newpop[j];
+				    std_or_boost::lock_guard<std_or_boost::mutex> lock(_islandPop[i].mutex);
+				    _islandPop[i].push_back( ind );
+				}
+			}
+		}
+
+	    private:
+		std::vector< core::Pop<EOT> >& _islandPop;
+		std::vector< core::IslandData<EOT> >& _islandData;
+
+#ifdef TRACE
+		std::ofstream _of;
+#endif // !TRACE
+
+	    };
+	} // !smp
+
 	namespace sync
 	{
 	    template <typename EOT>
