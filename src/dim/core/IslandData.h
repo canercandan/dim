@@ -35,6 +35,8 @@
 #include <boost/atomic.hpp>
 #endif
 
+#include <boost/thread/barrier.hpp>
+
 #include <vector>
 #include <queue>
 
@@ -184,9 +186,19 @@ namespace dim
 	    typedef typename EOT::Fitness Fitness;
 #endif
 
-	    IslandData() : feedbacks(size(), 0), feedbackLastUpdatedTimes(size(), std_or_boost::chrono::system_clock::now()), vectorLastUpdatedTime(std_or_boost::chrono::system_clock::now()), proba(size(), 0), feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true) {}
+	    IslandData(int __size = -1, int __rank = -1)
+		: ParallelContext(0, __size, __rank),
+		  feedbacks(size()),
+		  feedbackLastUpdatedTimes(size(), std_or_boost::chrono::system_clock::now()),
+		  vectorLastUpdatedTime(std_or_boost::chrono::system_clock::now()),
+		  proba(size(), 0),
+		  feedbackerSendingQueue(size()),
+		  migratorSendingQueue(size()),
+		  toContinue(true),
+		  bar(size())
+	    {}
 
-	    IslandData(const IslandData& d) : feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true)
+	    IslandData(const IslandData& d) : feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true), bar(size())
 	    {
 		*this = d;
 	    }
@@ -223,6 +235,7 @@ namespace dim
 	    std_or_boost::atomic<bool> toContinue;
 	    std_or_boost::condition_variable cv;
 	    std_or_boost::mutex cv_m;
+	    boost::barrier bar;
 	};
 
     } // !core

@@ -284,7 +284,8 @@ int main (int argc, char *argv[])
     dim::core::ThreadsRunner< EOT > tr;
 
     std::vector< dim::core::Pop<EOT> > islandPop(nislands);
-    std::vector< dim::core::IslandData<EOT> > islandData(nislands, data);
+    std::vector< dim::core::IslandData<EOT> > islandData(nislands/*, data*/);
+    // std::vector< dim::core::IslandData<EOT> > islandData;
 
     dim::core::MigrationMatrix probabilities( nislands );
     dim::core::InitMatrix initmatrix( initG, 100./nislands );
@@ -298,8 +299,10 @@ int main (int argc, char *argv[])
 
 	    islandPop[i].append(popSize, init);
 
-	    islandData[i].size(nislands);
-	    islandData[i].rank(i);
+	    islandData[i] = dim::core::IslandData<EOT>(nislands, i);
+
+	    // islandData[i].size(nislands);
+	    // islandData[i].rank(i);
 
 	    islandData[i].proba = probabilities(i);
 	    apply<EOT>(eval, islandPop[i]);
