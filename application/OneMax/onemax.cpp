@@ -304,6 +304,9 @@ int main (int argc, char *argv[])
 	    // islandData[i].size(nislands);
 	    // islandData[i].rank(i);
 
+	    std::cout << islandData[i].size() << " " << islandData[i].rank() << std::endl;
+
+
 	    islandData[i].proba = probabilities(i);
 	    apply<EOT>(eval, islandPop[i]);
 

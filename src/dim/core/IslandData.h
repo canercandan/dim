@@ -198,7 +198,12 @@ namespace dim
 		  bar(size())
 	    {}
 
-	    IslandData(const IslandData& d) : feedbackerSendingQueue(size()), migratorSendingQueue(size()), toContinue(true), bar(size())
+	    IslandData(const IslandData& d)
+		: ParallelContext(0, d.size(), d.rank()),
+		  feedbackerSendingQueue(size()),
+		  migratorSendingQueue(size()),
+		  toContinue(true),
+		  bar(size())
 	    {
 		*this = d;
 	    }
@@ -207,6 +212,8 @@ namespace dim
 	    {
 	    	if ( &d != this )
 	    	    {
+			size(d.size());
+			rank(d.rank());
 			feedbacks = d.feedbacks;
 			feedbackLastUpdatedTimes = d.feedbackLastUpdatedTimes;
 			vectorLastUpdatedTime = d.vectorLastUpdatedTime;
@@ -233,8 +240,8 @@ namespace dim
 	    DataQueue< EOT > migratorReceivingQueue;
 
 	    std_or_boost::atomic<bool> toContinue;
-	    std_or_boost::condition_variable cv;
-	    std_or_boost::mutex cv_m;
+	    // std_or_boost::condition_variable cv;
+	    // std_or_boost::mutex cv_m;
 	    boost::barrier bar;
 	};
 

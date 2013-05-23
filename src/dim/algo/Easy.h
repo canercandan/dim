@@ -115,37 +115,17 @@ namespace dim
 			       _memorize.firstCall(pop, data);
 			       _migrate.firstCall(pop, data);
 
-			       // if (!this->rank())
-			       // 	   {
-			       // 	       while ( ( __data.toContinue = _checkpoint(pop) ) )
-			       // 		   {
-			       // 		       DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
-			       // 				   DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
-			       // 				   DO_MEASURE(_update(pop, data), measureFiles, "update");
-			       // 				   DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
-			       // 				   DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
-			       // 				   , measureFiles, "gen" );
+			       while ( ( __data.toContinue = _checkpoint(pop) ) )
+				   {
+				       DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
+						   DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
+						   DO_MEASURE(_update(pop, data), measureFiles, "update");
+						   DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
+						   DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
+						   , measureFiles, "gen" );
 
-			       // 		       __data.cv.notify_all();
-			       // 		   }
-			       // 	   }
-			       // else
-			       // 	   {
-			       // 	       std_or_boost::unique_lock<std_or_boost::mutex> lk(__data.cv_m);
-
-				       while ( ( __data.toContinue = _checkpoint(pop) ) )
-					   {
-					       DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
-							   DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
-							   DO_MEASURE(_update(pop, data), measureFiles, "update");
-							   DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
-							   DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
-							   , measureFiles, "gen" );
-
-					       // __data.cv.wait(lk);
-					       __data.bar.wait();
-					   }
-				   // }
+				       __data.bar.wait();
+				   }
 
 			       _evolve.lastCall(pop, data);
 			       _feedback.lastCall(pop, data);
