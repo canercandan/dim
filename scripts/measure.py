@@ -87,7 +87,7 @@ def trace_data(args, data):
     pl.xlabel( '%s%s' % (args.xlabel, ' (affinity: %s)' % args.affinity if args.affinity > 1 else '') )
     pl.ylabel('%s (%s)' % (args.ylabel, args.time))
     pl.grid(args.no_grid)
-    pl.title(args.traceFile)
+    pl.title('%s %s' % (args.traceFile, args.title))
 
     if args.show:
         pl.show()
@@ -115,6 +115,7 @@ def main():
     parser.add_argument('--show', '-S', action='store_true', help='plot instead creating a new file')
     parser.add_argument('--xlabel', help='label for x-axe', default='generations')
     parser.add_argument('--ylabel', help='label for y-axe', default='time')
+    parser.add_argument('--title', help='title', default='')
     parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
     args = parser()
 
