@@ -34,13 +34,14 @@ def parse_data(args):
             island = {}
             for f in args.files:
                 fn = '%s%s%s%d' % (args.prefix, f, args.suffix, i)
-                d = [int(x) for x in open(fn).readline().split()]
-                island[f] = np.mean(d)*timeunits[args.time]/1000
+                d = [int(x)*timeunits[args.time]/1000 for x in open(fn).readline().split()]
+                m = np.mean(d);
+                island[f] = {'mean': m, 'data': d}
 
             if args.percent:
-                s = sum([island[f] for f in args.percent_files])
+                s = sum([island[f]['mean'] for f in args.percent_files])
                 for f in args.percent_files:
-                    island[f] = (island[f]/s) * 100
+                    island[f]['percent'] = (island[f]['mean']/s) * 100
 
             data[i] = island
     except FileNotFoundError as e:
@@ -53,17 +54,45 @@ def print_data(args, data):
 
     print("%10s " % " ", end=' ')
     for i in range(args.islands):
-        print("%12d" % i, end=' ')
+        if args.percent and args.percentMean:
+            print("%17d" % i, end=' ')
+        else:
+            print("%12d" % i, end=' ')
     print()
 
     for f in args.files:
         print("%10s:" % f, end=' ')
         for i in range(args.islands):
             if args.percent and f not in ['gen', 'total']:
-                print( '%10.2f %%' % data[i][f], end=' ' )
+                if args.percentMean:
+                    print( '%(mean)6.2f (%(percent)6.2f %%)' % data[i][f], end=' ' )
+                else:
+                    print( '%(percent)10.2f %%' % data[i][f], end=' ' )
             else:
-                print( '%12.2f' % data[i][f], end=' ' )
+                if args.percent and args.percentMean:
+                    print( '%(mean)17.2f' % data[i][f], end=' ' )
+                else:
+                    print( '%(mean)12.2f' % data[i][f], end=' ' )
         print()
+
+def trace_data(args, data):
+    if not args.trace: return
+
+    import pylab as pl
+
+    for i in range(args.islands):
+        pl.plot(data[i][args.traceFile]['data'][::args.affinity])
+
+    pl.legend(["island %d" % i for i in range(args.islands)])
+    pl.xlabel( '%s%s' % (args.xlabel, ' (affinity: %s)' % args.affinity if args.affinity > 1 else '') )
+    pl.ylabel('%s (%s)' % (args.ylabel, args.time))
+    pl.grid(args.no_grid)
+    pl.title(args.traceFile)
+
+    if args.show:
+        pl.show()
+    else:
+        pl.savefig(args.outputFile)
 
 def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
@@ -77,7 +106,16 @@ def main():
     parser.add_argument('--microseconds', '-u', action='store_const', const='microseconds', dest='time', help='time in microseconds')
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='time', help='time in nanoseconds')
     parser.add_argument('--percent', '-p', action='store_true', help='use percents')
+    parser.add_argument('--percentMean', action='store_true', help='use percents + means')
     parser.add_argument('--percent_files', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
+    parser.add_argument('--trace', '-P', help='plot measures', action='store_true')
+    parser.add_argument('--traceFile', help='plot the defined file', default='gen')
+    parser.add_argument('--affinity', '-a', help='plot the defined file', type=int, default=1)
+    parser.add_argument('--outputFile', '-O', help='output file where the figure will be saved', default='output.png')
+    parser.add_argument('--show', '-S', action='store_true', help='plot instead creating a new file')
+    parser.add_argument('--xlabel', help='label for x-axe', default='generations')
+    parser.add_argument('--ylabel', help='label for y-axe', default='time')
+    parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
     args = parser()
 
     args.files = args.files.split(',')
@@ -85,6 +123,7 @@ def main():
 
     data = parse_data(args)
     print_data(args, data)
+    trace_data(args, data)
 
 # when executed, just run main():
 if __name__ == '__main__':
