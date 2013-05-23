@@ -15,6 +15,7 @@ IF(ENABLE_CMAKE_TESTING)
     t-multithreaded-comm
     t-multithreaded-comm-boost-mpi
     t-multithreaded-comm-boost-mpi-functor
+    t-boost-barrier
     )
 
   LINK_LIBRARIES(boost_mpi_shared ${EO_LIBRARIES} ${Boost_LIBRARIES} ${PROJECT_NAME}_shared)
