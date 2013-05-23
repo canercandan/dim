@@ -451,8 +451,8 @@ namespace dim
 	    size_t outputSize;
 	    std::vector<size_t> outputSizes;
 
-	public:
-	    std_or_boost::mutex mutex;
+	// public:
+	//     std_or_boost::mutex mutex;
 
 	}; // class Pop
 
