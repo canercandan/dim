@@ -44,7 +44,6 @@ namespace dim
 		for (size_t i = 0; i < pop.size(); ++i)
 		    {
 			EOT& ind = pop[i];
-			ind.addFitness();
 			ind.addIsland(this->rank());
 		    }
 	    }

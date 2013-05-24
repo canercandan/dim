@@ -155,10 +155,12 @@ namespace dim
 		if ( getLastIsland() == int(isl) )
 		    {
 			++(lastIslands.back().first);
+			lastFitnesses.back() = this->invalid() ? -1 : this->fitness();
 		    }
 		else
 		    {
 			lastIslands.push_back( std::make_pair( 0, isl ) );
+			lastFitnesses.push_back( this->invalid() ? -1 : this->fitness() );
 		    }
 
 		if (!historySize) { return; }
@@ -169,11 +171,6 @@ namespace dim
 			lastIslands.pop_front();
 			lastFitnesses.pop_front();
 		    }
-	    }
-
-	    void addFitness()
-	    {
-		lastFitnesses.push_back( this->invalid() ? -1 : this->fitness() );
 	    }
 
 	    inline int getLastIsland() const { return lastIslands.empty() ? -1 : lastIslands.back().second; }
@@ -227,7 +224,7 @@ namespace dim
 	    inline size_t getLastIslandsSize() const {return lastIslands.size();}
 
 	    inline void setHistorySize(size_t size) { historySize = size; }
-	    inline size_t getHistorySize(size_t size) const { return historySize; }
+	    inline size_t getHistorySize() const { return historySize; }
 
 	private:
 #if __cplusplus > 199711L
