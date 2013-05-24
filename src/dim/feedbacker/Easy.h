@@ -73,20 +73,50 @@ namespace dim
 
 		    std::vector<typename EOT::Fitness> sums(this->size(), 0);
 		    std::vector<int> nbs(this->size(), 0);
-
 		    for (size_t i = 0; i < pop.size(); ++i)
-			{
-			    EOT& ind = pop[i];
-			    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
-			    ++nbs[ind.getLastIsland()];
-			}
+		    	{
+		    	    EOT& ind = pop[i];
+		    	    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
+		    	    ++nbs[ind.getLastIsland()];
+		    	}
+
+		    // for (size_t i = 0; i < pop.size(); ++i)
+		    // 	{
+		    // 	    EOT& ind = pop[i];
+		    // 	    AUTO(double) effectiveness = ind.fitness() - ind.getLastFitness();
+		    // 	    _islandData[ ind.getLastIsland() ].feedbackerReceivingQueue.push( effectiveness, this->rank() );
+		    // 	}
 
 		    for (size_t i = 0; i < this->size(); ++i)
-			{
-			    AUTO(typename EOT::Fitness)& Si = _islandData[i].feedbacks[this->rank()];
-			    AUTO(typename EOT::Fitness) Fi = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
-			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = _islandData[i].feedbackLastUpdatedTimes[this->rank()];
+		    	{
+		    	    AUTO(double) effectiveness = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
+		    	    _islandData[i].feedbackerReceivingQueue.push( effectiveness, this->rank() );
+		    	}
+
+		    /********************
+		     * Update feedbacks *
+		     ********************/
+
+// #ifdef TRACE
+// 		    _of << data.feedbackerReceivingQueue.size() << " "; _of.flush();
+// #endif // !TRACE
+
+		    // size_t size = data.feedbackerReceivingQueue.size();
+		    for (int k = 0; k < this->size() && !data.feedbackerReceivingQueue.empty(); ++k)
+		    	{
+		    // while ( !data.feedbackerReceivingQueue.empty() )
+		    // 	{
+			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
+			    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
+			    // double t = std_or_boost::get<1>(fbr);
+			    AUTO(size_t) from = std_or_boost::get<2>(fbr);
+			    AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
+			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
 			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
+
+#ifdef TRACE
+			    _of << from << " "; _of.flush();
+#endif // !TRACE
 
 			    Si = (1-_alpha)*Si + _alpha*Fi;
 			    Ti = end;
