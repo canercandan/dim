@@ -27,29 +27,107 @@ import sys
 logger = logging.getLogger("measure")
 timeunits = OrderedDict([('seconds', 10**0), ('milliseconds', 10**3), ('microseconds', 10**6), ('nanoseconds', 10**9),])
 
-def parse_data(args):
-    data = [None]*args.islands
-    try:
-        for i in range(args.islands):
+class DataParser:
+    def __init__(self, args, yield_mode=True):
+        self.args = args
+        self.yield_mode = yield_mode
+
+        self.files = []
+        try:
+            for i in range(args.islands):
+                island = {}
+                for f in args.files:
+                    fn = '%s%s%s%d' % (args.prefix, f, args.suffix, i)
+                    island[f] = open(fn)
+                self.files += [island]
+        except FileNotFoundError as e:
+            logger.error('File not found: %s' % e)
+            sys.exit()
+
+    def parse(self):
+        data = []
+
+        for i in range(self.args.islands):
             island = {}
-            for f in args.files:
-                fn = '%s%s%s%d' % (args.prefix, f, args.suffix, i)
-                d = [int(x)*timeunits[args.time]/1000 for x in open(fn).readline().split()]
+            for f in self.args.files:
+                d = [int(x)*timeunits[self.args.time]/1000 for x in self.files[i][f].readlines()]
                 m = np.mean(d);
                 island[f] = {'mean': m, 'data': d}
 
-            if args.percent:
-                s = sum([island[f]['mean'] for f in args.percent_files])
-                for f in args.percent_files:
+            if self.args.percent:
+                s = sum([island[f]['mean'] for f in self.args.percent_files])
+                for f in self.args.percent_files:
                     island[f]['percent'] = (island[f]['mean']/s) * 100
 
-            data[i] = island
-    except FileNotFoundError as e:
-        logger.error('File not found: %s' % e)
-        sys.exit()
-    return data
+            data += [island]
+
+        return data
+
+    def __call__(self):
+        while True: yield self.parse()
+
+class DataUpdater:
+    def __init__(self, args, island=0):
+        if not args.trace: return
+        import pylab as pl
+        import matplotlib.animation as animation
+
+        self.args = args
+        self.island = island
+
+        self.fig = pl.figure()
+
+        self.axes = []
+        self.lines = []
+
+        for i in range(args.islands):
+            ax = self.fig.add_subplot(2,args.islands/2,i+1)
+
+            line = {}
+            for f in args.files:
+                line[f], = ax.plot([0]*args.scale)
+
+            ax.set_ylim(0, args.yscale)
+            ax.set_title('island %d' % i)
+
+            ax.set_xlabel( '%s%s' % (args.xlabel, ' (affinity: %s)' % args.affinity if args.affinity > 1 else '') )
+            ax.set_ylabel('%s (%s)' % (args.ylabel, args.time))
+            ax.grid(args.no_grid)
+            # ax.set_title('%s %s' % (args.selectFile, args.title))
+
+            self.axes += [ax]
+            self.lines += [line]
+
+        self.fig.legend([self.lines[0][f] for f in args.files], loc='upper left', labels=args.files)
+
+        self.dp = DataParser(args)
+        self.anim = animation.FuncAnimation(self.fig, self, self.dp, interval=args.interval)
+
+        if args.show:
+            pl.show()
+        else:
+            pl.savefig(args.outputFile)
+
+    def __call__(self, data):
+        for i in range(self.args.islands):
+            for f in self.args.files:
+                d = data[i][f]['data'][::self.args.affinity]
+
+                if not self.args.scale:
+                    self.lines[i][f].set_xdata(range(len(self.lines[i][f].get_xdata()) + len(d)))
+                    self.lines[i][f].set_ydata(np.append(self.lines[i][f].get_ydata(), d))
+                    self.axes[i].relim()
+                    self.axes[i].autoscale()
+                    self.axes[i].set_ylim(0, self.args.yscale)
+                else:
+                    self.lines[i][f].set_ydata(np.append(self.lines[i][f].get_ydata(), d)[-self.args.scale:])
 
 def print_data(args, data):
+    if args.clear:
+        from os import system
+        system('clear')
+        # print(chr(27) + "[2J")
+
     print("Time unit: %s" % args.time)
 
     print("%10s " % " ", end=' ')
@@ -60,10 +138,15 @@ def print_data(args, data):
             print("%12d" % i, end=' ')
     print()
 
+    notpercent = []
+    for f in args.files:
+        if f not in args.percent_files:
+            notpercent += [f]
+
     for f in args.files:
         print("%10s:" % f, end=' ')
         for i in range(args.islands):
-            if args.percent and f not in ['gen', 'total']:
+            if args.percent and f not in notpercent:
                 if args.percentMean:
                     print( '%(mean)6.2f (%(percent)6.2f %%)' % data[i][f], end=' ' )
                 else:
@@ -77,17 +160,21 @@ def print_data(args, data):
 
 def trace_data(args, data):
     if not args.trace: return
-
     import pylab as pl
 
-    for i in range(args.islands):
-        pl.plot(data[i][args.traceFile]['data'][::args.affinity])
+    if not args.traceFiles:
+        for i in range(args.islands):
+            pl.plot(data[i][args.selectFile]['data'][::args.affinity])
+        pl.legend(["island %d" % i for i in range(args.islands)])
+    else:
+        for f in args.files:
+            pl.plot(data[args.selectIsland][f]['data'][::args.affinity])
+        pl.legend(args.files)
 
-    pl.legend(["island %d" % i for i in range(args.islands)])
     pl.xlabel( '%s%s' % (args.xlabel, ' (affinity: %s)' % args.affinity if args.affinity > 1 else '') )
     pl.ylabel('%s (%s)' % (args.ylabel, args.time))
     pl.grid(args.no_grid)
-    pl.title('%s %s' % (args.traceFile, args.title))
+    pl.title('%s %s' % (args.selectFile, args.title))
 
     if args.show:
         pl.show()
@@ -97,7 +184,7 @@ def trace_data(args, data):
 def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
-    parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen,evolve,feedback,update,memorize,migrate')
+    parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate')
     parser.add_argument('--prefix', help='set the prefix time files', default='result.')
     parser.add_argument('--suffix', help='set the suffix time files', default='.time.')
     parser.add_argument('--time', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='milliseconds')
@@ -109,10 +196,17 @@ def main():
     parser.add_argument('--percentMean', action='store_true', help='use percents + means')
     parser.add_argument('--percent_files', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
     parser.add_argument('--trace', '-P', help='plot measures', action='store_true')
-    parser.add_argument('--traceFile', help='plot the defined file', default='gen')
+    parser.add_argument('--animate', '-A', help='animate measures', action='store_true')
+    parser.add_argument('--scale', type=int, default=100, help='scale of animation view (0 means dynamic)')
+    parser.add_argument('--yscale', type=int, default=50, help='scale of animation view for y-axe')
+    parser.add_argument('--interval', type=int, default=100, help='interval data of animation view')
+    parser.add_argument('--selectFile', help='plot the defined file', default='gen_sync')
+    parser.add_argument('--selectIsland', help='plot the defined island', type=int, default=0)
+    parser.add_argument('--traceFiles', help='plot the whole of defined files instead islands (see -f and --selectIsland)', action='store_true')
     parser.add_argument('--affinity', '-a', help='plot the defined file', type=int, default=1)
     parser.add_argument('--outputFile', '-O', help='output file where the figure will be saved', default='output.png')
     parser.add_argument('--show', '-S', action='store_true', help='plot instead creating a new file')
+    parser.add_argument('--clear', '-C', action='store_true', help='clear console screen for each update')
     parser.add_argument('--xlabel', help='label for x-axe', default='generations')
     parser.add_argument('--ylabel', help='label for y-axe', default='time')
     parser.add_argument('--title', help='title', default='')
@@ -122,9 +216,13 @@ def main():
     args.files = args.files.split(',')
     args.percent_files = args.percent_files.split(',')
 
-    data = parse_data(args)
-    print_data(args, data)
-    trace_data(args, data)
+    if args.animate:
+        du = DataUpdater(args)
+    else:
+        dp = DataParser(args, yield_mode=False)
+        data = dp.parse()
+        print_data(args, data)
+        trace_data(args, data)
 
 # when executed, just run main():
 if __name__ == '__main__':
