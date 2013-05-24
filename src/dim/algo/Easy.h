@@ -47,7 +47,7 @@
 	op;								\
 	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
 	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
-	*(measureFiles[name]) << elapsed << " "; measureFiles[name]->flush(); \
+	*(measureFiles[name]) << elapsed << std::endl; measureFiles[name]->flush(); \
     }
 #else
 # define DO_MEASURE(op, measureFiles, name) { op; }
@@ -91,6 +91,9 @@ namespace dim
 		    ss.str(""); ss << _monitorPrefix << ".gen.time." << this->rank();
 		    measureFiles["gen"] = new std::ofstream(ss.str().c_str());
 
+		    ss.str(""); ss << _monitorPrefix << ".gen_sync.time." << this->rank();
+		    measureFiles["gen_sync"] = new std::ofstream(ss.str().c_str());
+
 		    ss.str(""); ss << _monitorPrefix << ".evolve.time." << this->rank();
 		    measureFiles["evolve"] = new std::ofstream(ss.str().c_str());
 
@@ -117,14 +120,18 @@ namespace dim
 
 			       while ( ( __data.toContinue = _checkpoint(pop) ) )
 				   {
-				       DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
-						   DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
-						   DO_MEASURE(_update(pop, data), measureFiles, "update");
-						   DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
-						   DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
-						   , measureFiles, "gen" );
+				       DO_MEASURE(
 
-				       __data.bar.wait();
+						  DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
+							      DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
+							      DO_MEASURE(_update(pop, data), measureFiles, "update");
+							      DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
+							      DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
+							      , measureFiles, "gen" );
+
+						  __data.bar.wait();
+
+						  , measureFiles, "gen_sync" );
 				   }
 
 			       _evolve.lastCall(pop, data);
