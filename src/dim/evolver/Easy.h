@@ -56,8 +56,14 @@ namespace dim
 
 			if ( candidate.fitness() > ind.fitness() )
 			    {
-				ind = candidate;
+				ind = std::move(candidate);
 			    }
+
+			// typename EOT::Fitness lastfitness = ind.fitness();
+			// _op(ind);
+			// if (_invalidate) { ind.invalidate(); }
+			// _eval(ind);
+			// if (ind.fitness() <= lastfitness) { ind.fitness( lastfitness ); }
 		    }
 	    }
 
