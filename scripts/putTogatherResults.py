@@ -186,7 +186,7 @@ def main():
     parser.add_argument('--traceIslandsField', help='select the islands data field to trace (see -P)')
     parser.add_argument('--time_idx', type=int, default=1, help='time index')
     parser.add_argument('--start_idx', type=int, default=2, help='dump data started by this position')
-    parser.add_argument('--inputFields', '-f', default='nbindi,avg,delta,best,input,output,probas,probasum,inputproba,migrants', help='fields order of the input result files')
+    parser.add_argument('--inputFields', '-f', default='migration,nbindi,sending_queue_size,receiving_queue_size,avg,delta,best,input,output,probas,probasum,inputproba,migrants', help='fields order of the input result files')
     parser.add_argument('--outputFields', '-F', default='nbindi,avg,delta,best,input,output,probas,inputproba,migrants', help='fields order of the output result file')
     parser.add_argument('--agregatedFields', '-a', default='best,nbindi,avg/nbindi,eval', help='agregated fields order of the output result file')
     parser.add_argument('--agregatedFunctions', '-A', default='max,sum,avg,none', help='agregated functions order of the output result file')
