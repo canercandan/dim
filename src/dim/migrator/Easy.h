@@ -20,6 +20,13 @@
 #ifndef _MIGRATOR_EASY_H_
 #define _MIGRATOR_EASY_H_
 
+// For time mesuring
+#if __cplusplus > 199711L
+#include <chrono>
+#else
+#include <boost/chrono/chrono_io.hpp>
+#endif
+
 #include <vector>
 #include <queue>
 #include <algorithm>
@@ -35,6 +42,19 @@
 #else // __cplusplus <= 199711L
 #define AUTO(TYPE) TYPE
 #endif
+
+#ifdef MEASURE
+# define DO_MEASURE(op, measureFiles, name)				\
+    {									\
+	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start = std_or_boost::chrono::system_clock::now(); \
+	op;								\
+	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
+	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
+	*(measureFiles[name]) << elapsed << std::endl; measureFiles[name]->flush(); \
+    }
+#else
+# define DO_MEASURE(op, measureFiles, name) { op; }
+#endif // !MEASURE
 
 namespace dim
 {
@@ -52,85 +72,126 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData) : _islandPop(islandPop), _islandData(islandData) {}
+		Easy(std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData, std::string& monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
-#ifdef TRACE
 		    std::ostringstream ss;
-		    ss << "trace.migrator." << this->rank();
+
+#ifdef TRACE
+		    ss.str(""); ss << "trace.migrator." << this->rank();
 		    _of.open(ss.str().c_str());
 #endif // !TRACE
+
+#ifdef MEASURE
+		    ss.str(""); ss << _monitorPrefix << ".migrate_total.time." << this->rank();
+		    _measureFiles["migrate_total"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".migrate_send.time." << this->rank();
+		    _measureFiles["migrate_send"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".migrate_push.time." << this->rank();
+		    _measureFiles["migrate_push"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".migrate_update.time." << this->rank();
+		    _measureFiles["migrate_update"] = new std::ofstream(ss.str().c_str());
+#endif // !MEASURE
+		}
+
+		virtual void lastCall(core::Pop<EOT>&, core::IslandData<EOT>&)
+		{
+#ifdef MEASURE
+		    for ( std::map<std::string, std::ofstream*>::iterator it = _measureFiles.begin(); it != _measureFiles.end(); ++it )
+			{
+			    delete it->second;
+			}
+#endif // !MEASURE
 		}
 
 		void operator()(core::Pop<EOT>& __pop, core::IslandData<EOT>& __data)
 		{
-		    core::Pop<EOT>& pop = _islandPop[this->rank()];
-		    core::IslandData<EOT>& data = _islandData[this->rank()];
+		    DO_MEASURE(
 
-		    /********************
-		     * Send individuals *
-		     ********************/
+			       core::Pop<EOT>& pop = _islandPop[this->rank()];
+			       core::IslandData<EOT>& data = _islandData[this->rank()];
 
-		    std::vector< size_t > outputSizes( this->size(), 0 );
+			       /********************
+				* Send individuals *
+				********************/
 
-		    {
-			for (size_t i = 0; i < pop.size(); ++i)
-			    {
-				EOT& ind = pop[i];
+			       DO_MEASURE(
+					  std::vector< size_t > outputSizes( this->size(), 0 );
 
-				/*************
-				 * Selection *
-				 *************/
+					  {
+					      for (size_t i = 0; i < pop.size(); ++i)
+						  {
+						      EOT& ind = pop[i];
 
-				double s = 0;
-				int r = rng.rand() % 1000 + 1;
+						      /*************
+						       * Selection *
+						       *************/
 
-				size_t j;
-				for ( j = 0; j < this->size() && r > s; ++j )
-				    {
-					s += data.proba[j];
-				    }
-				--j;
+						      double s = 0;
+						      int r = rng.rand() % 1000 + 1;
 
-				++outputSizes[j];
-				_islandData[j].migratorReceivingQueue.push(ind, this->rank());
-			    }
+						      size_t j;
+						      for ( j = 0; j < this->size() && r > s; ++j )
+							  {
+							      s += data.proba[j];
+							  }
+						      --j;
 
-			pop.clear();
+						      DO_MEASURE(
+								 ++outputSizes[j];
+#ifdef TRACE
+								 _of << ind.getLastFitnesses().size() << " ";
+#endif // !TRACE
+								 _islandData[j].migratorReceivingQueue.push(std::move(ind), this->rank());
+								 , _measureFiles, "migrate_push");
+						  }
 
-			pop.setOutputSizes( outputSizes );
-			pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
-		    }
+					      pop.clear();
 
-		    /*********************
-		     * Update population *
-		     *********************/
+					      pop.setOutputSizes( outputSizes );
+					      pop.setOutputSize( std::accumulate(outputSizes.begin(), outputSizes.end(), 0) );
+					  }
+					  , _measureFiles, "migrate_send" );
 
-		    size_t inputSize = 0;
+			       /*********************
+				* Update population *
+				*********************/
 
-		    size_t size = data.migratorReceivingQueue.size();
-		    for (int k = 0; k < size; ++k)
-			{
-			    // This special pop function is waiting while the queue of individual is empty.
-			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
-			    AUTO(EOT) ind = std_or_boost::get<0>(imm);
-			    AUTO(double) time = std_or_boost::get<1>(imm);
+			       DO_MEASURE(
+					  size_t inputSize = 0;
 
-			    ind.receivedTime = time;
-			    pop.push_back( ind );
-			    ++inputSize;
-			}
+					  size_t size = data.migratorReceivingQueue.size();
+					  for (int k = 0; k < size; ++k)
+					      {
+						  // This special pop function is waiting while the queue of individual is empty.
+						  AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
+						  AUTO(EOT) ind = std::move(std_or_boost::get<0>(imm));
+						  AUTO(double) time = std_or_boost::get<1>(imm);
 
-		    pop.setInputSize( inputSize );
+						  ind.receivedTime = time;
+						  pop.push_back( std::move(ind) );
+						  ++inputSize;
+					      }
+
+					  pop.setInputSize( inputSize );
+					  , _measureFiles, "migrate_update" );
+
+			       , _measureFiles, "migrate_total" );
 		}
 
 	    private:
 		std::vector< core::Pop<EOT> >& _islandPop;
 		std::vector< core::IslandData<EOT> >& _islandData;
 
+		std::string _monitorPrefix;
+
 #ifdef TRACE
 		std::ofstream _of;
+		std::map<std::string, std::ofstream*> _measureFiles;
 #endif // !TRACE
 
 	    };
