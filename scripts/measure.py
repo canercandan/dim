@@ -28,9 +28,8 @@ logger = logging.getLogger("measure")
 timeunits = OrderedDict([('seconds', 10**0), ('milliseconds', 10**3), ('microseconds', 10**6), ('nanoseconds', 10**9),])
 
 class DataParser:
-    def __init__(self, args, yield_mode=True):
+    def __init__(self, args):
         self.args = args
-        self.yield_mode = yield_mode
 
         self.files = []
         try:
@@ -50,7 +49,7 @@ class DataParser:
         for i in range(self.args.islands):
             island = {}
             for f in self.args.files:
-                d = [int(x)*timeunits[self.args.time]/1000 for x in self.files[i][f].readlines()]
+                d = [int(x)*timeunits[self.args.time]/10**6 for x in self.files[i][f].readlines()]
                 m = np.mean(d);
                 island[f] = {'mean': m, 'data': d}
 
@@ -67,13 +66,12 @@ class DataParser:
         while True: yield self.parse()
 
 class DataUpdater:
-    def __init__(self, args, island=0):
-        if not args.trace: return
+    def __init__(self, args):
+        if not args.animate: return
         import pylab as pl
         import matplotlib.animation as animation
 
         self.args = args
-        self.island = island
 
         self.fig = pl.figure()
 
@@ -103,10 +101,7 @@ class DataUpdater:
         self.dp = DataParser(args)
         self.anim = animation.FuncAnimation(self.fig, self, self.dp, interval=args.interval)
 
-        if args.show:
-            pl.show()
-        else:
-            pl.savefig(args.outputFile)
+        pl.show()
 
     def __call__(self, data):
         for i in range(self.args.islands):
