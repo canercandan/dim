@@ -22,6 +22,7 @@ import logging
 from parser import Parser
 import pylab as pl
 import numpy as np
+import results_mixer
 
 logger = logging.getLogger("plot")
 
@@ -40,12 +41,17 @@ def main():
     parser.add_argument('--smoothing', '-S', type=int, help='smooth the data set, give a level of smoothing (0 = no smoothing)', default=0)
     parser.add_argument('--no-marker', action='store_false', help='dont trace markers')
     parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
-    parser.add_argument('resultFile', help='result file has to use the python syntax')
+    parser.add_argument('--animate', '-A', help='animate measures', action='store_true')
+    parser.add_argument('--scale', type=int, default=100, help='scale of animation view (0 means dynamic)')
+    parser.add_argument('--yscale', type=int, default=50, help='scale of animation view for y-axe')
+    parser.add_argument('--interval', type=int, default=100, help='interval data of animation view')
     args = parser()
 
     logger.debug(args)
 
-    data = eval(open(args.resultFile).readline())
+    rm = results_mixer.ResultsMixer(**vars(args))
+    data = rm.parse()
+
     selectedData = []
 
     if args.sumrank: selectedData = [[0]*args.islands]
