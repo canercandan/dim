@@ -31,12 +31,15 @@ class DataParser:
     def __init__(self, args):
         self.args = args
 
+        self.openFiles()
+
+    def openFiles(self):
         self.files = []
         try:
-            for i in range(args.islands):
+            for i in range(self.args.islands):
                 island = {}
-                for f in args.files:
-                    fn = '%s%s%s%d' % (args.prefix, f, args.suffix, i)
+                for f in self.args.files:
+                    fn = '%s%s%s%d' % (self.args.prefix, f, self.args.suffix, i)
                     island[f] = open(fn)
                 self.files += [island]
         except FileNotFoundError as e:
@@ -45,20 +48,35 @@ class DataParser:
 
     def parse(self):
         data = []
+        reopen = True
+
+        while reopen:
+            reopen = False
+            for i in range(self.args.islands):
+                island = {}
+                for f in self.args.files:
+                    island[f] = self.files[i][f].readlines()
+
+                    if not island[f]:
+                        self.openFiles()
+                        data = []
+                        reopen = True
+                        break
+
+                if reopen: break
+
+                data += [island]
 
         for i in range(self.args.islands):
-            island = {}
             for f in self.args.files:
-                d = [int(x)*timeunits[self.args.time]/10**6 for x in self.files[i][f].readlines()]
-                m = np.mean(d);
-                island[f] = {'mean': m, 'data': d}
+                d = [int(x)*timeunits[self.args.time]/10**6 for x in data[i][f]]
+                m = np.mean(d) if d else 0;
+                data[i][f] = {'mean': m, 'data': d}
 
             if self.args.percent:
                 s = sum([island[f]['mean'] for f in self.args.percent_files])
                 for f in self.args.percent_files:
-                    island[f]['percent'] = (island[f]['mean']/s) * 100
-
-            data += [island]
+                    data[i][f]['percent'] = (data[i][f]['mean']/s) * 100
 
         return data
 
@@ -104,6 +122,10 @@ class DataUpdater:
         pl.show()
 
     def __call__(self, data):
+        if not data: return
+
+        logger.debug(data)
+
         for i in range(self.args.islands):
             for f in self.args.files:
                 d = data[i][f]['data'][::self.args.affinity]
@@ -214,7 +236,7 @@ def main():
     if args.animate:
         du = DataUpdater(args)
     else:
-        dp = DataParser(args, yield_mode=False)
+        dp = DataParser(args)
         data = dp.parse()
         print_data(args, data)
         trace_data(args, data)
