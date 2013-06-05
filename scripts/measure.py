@@ -50,22 +50,29 @@ class DataParser:
         data = []
         reopen = True
 
-        while reopen:
-            reopen = False
+        if not self.args.respawn:
             for i in range(self.args.islands):
                 island = {}
                 for f in self.args.files:
                     island[f] = self.files[i][f].readlines()
-
-                    if not island[f]:
-                        self.openFiles()
-                        data = []
-                        reopen = True
-                        break
-
-                if reopen: break
-
                 data += [island]
+        else:
+            while reopen:
+                reopen = False
+                for i in range(self.args.islands):
+                    island = {}
+                    for f in self.args.files:
+                        island[f] = self.files[i][f].readlines()
+
+                        if not island[f]:
+                            self.openFiles()
+                            data = []
+                            reopen = True
+                            break
+
+                    if reopen: break
+
+                    data += [island]
 
         for i in range(self.args.islands):
             for f in self.args.files:
@@ -228,6 +235,7 @@ def main():
     parser.add_argument('--ylabel', help='label for y-axe', default='time')
     parser.add_argument('--title', help='title', default='')
     parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
+    parser.add_argument('--respawn', '-R', action='store_true', help='plot instead creating a new file')
     args = parser()
 
     args.files = args.files.split(',')
