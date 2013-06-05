@@ -30,6 +30,7 @@ def main():
     parser = Parser(description='To trace data.')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     parser.add_argument('--field', '-f', help='field to trace', default='nbindi')
+    parser.add_argument('--xfield', '-F', help='field to trace for x-axe, if no field is defined then the time is used')
     parser.add_argument('--attractiveness', '-a', action='store_true', help='instead tracing a field, trace the attractiveness thanks to coming probability')
     parser.add_argument('--sumrank', '-r', action='store_true', help='trace the cumulate of sum of times the islands lead')
     parser.add_argument('--xlabel', help='label for x-axe', default='time (in seconds)')
@@ -41,6 +42,7 @@ def main():
     parser.add_argument('--smoothing', '-S', type=int, help='smooth the data set, give a level of smoothing (0 = no smoothing)', default=0)
     parser.add_argument('--no-marker', action='store_false', help='dont trace markers')
     parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
+    parser.add_argument('--affinity', '-A', help='plot the defined file', type=int, default=1)
     args = parser()
 
     logger.debug(args)
@@ -52,7 +54,7 @@ def main():
 
     if args.sumrank: selectedData = [[0]*args.islands]
 
-    for infos in data:
+    for infos in data[::args.affinity]:
         record = []
 
         if args.attractiveness:
@@ -62,6 +64,9 @@ def main():
                 for j in range(args.islands):
                     inputProbas += [float(infos[j]['probas'][i])]
                 tmp += [sum(inputProbas)]
+
+            if args.xfield:
+                tmp = (tmp, [max([float(info[args.xfield]) for info in infos])]*args.islands)
 
             if args.sumrank:
                 # attractiveness and sumrank
@@ -82,6 +87,9 @@ def main():
                 # END attractiveness
         else:
             values = [float(info[args.field]) for info in infos]
+
+            if args.xfield:
+                values = (values, max([float(info[args.xfield]) for info in infos]))
 
             if args.sumrank:
                 # trace field and sumrank
@@ -128,10 +136,15 @@ def main():
         pl.xticks(x, np.arange(xn)[::int(DIV)])
         pl.xlim((0,XN))
     else:
-        pl.plot(selectedData)
+        if args.xfield != 'time':
+            pl.plot([x[1] for x in selectedData], [x[0] for x in selectedData])
+        else:
+            pl.plot(selectedData)
         pl.legend(["island %d" % i for i in range(args.islands)])
 
+    args.xlabel = args.xfield if args.xfield else args.xlabel
     pl.xlabel(args.xlabel)
+    args.ylabel = args.field if args.field else args.ylabel
     pl.ylabel("%s%s" % (args.ylabelSumrank + " " if args.sumrank else "",
                         args.ylabelAttractiveness if args.attractiveness else args.ylabel))
     pl.grid(args.no_grid)
