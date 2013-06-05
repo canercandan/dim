@@ -140,7 +140,6 @@ int main (int argc, char *argv[])
 		{
 		    eo::log << eo::logging << RANK << ": kflip(" << (RANK-1) * 2 + 1 << ") ";
 		    ptMon = new eoDetPermutBitFlip<EOT>( (RANK-1) * 2 + 1 );
-		    // ptMon = new eoDetSingleBitFlip<EOT>( (RANK-1) * 2 + 1 );
 		}
 	    eo::log << eo::logging << std::endl;
 	    eo::log.flush();
@@ -175,8 +174,15 @@ int main (int argc, char *argv[])
 	    dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
 	    if (update)
 		{
-		    dim::vectorupdater::Reward<EOT>* ptReward = new dim::vectorupdater::Best<EOT>(alphaP, betaP);
-		    // dim::vectorupdater::Reward<EOT>* ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+		    dim::vectorupdater::Reward<EOT>* ptReward = NULL;
+		    if (rewardStrategy == "best")
+			{
+			    ptReward = new dim::vectorupdater::Best<EOT>(alphaP, betaP);
+			}
+		    else
+			{
+			    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+			}
 		    state_dim.storeFunctor(ptReward);
 
 		    ptUpdater = new dim::vectorupdater::Easy<EOT>(*ptReward);
@@ -287,15 +293,10 @@ int main (int argc, char *argv[])
 
     // smp
 
-    /****************************************
-     * Distribution des opérateurs aux iles *
-     ****************************************/
-
     dim::core::ThreadsRunner< EOT > tr;
 
     std::vector< dim::core::Pop<EOT> > islandPop(nislands);
-    std::vector< dim::core::IslandData<EOT> > islandData(nislands/*, data*/);
-    // std::vector< dim::core::IslandData<EOT> > islandData;
+    std::vector< dim::core::IslandData<EOT> > islandData(nislands);
 
     dim::core::MigrationMatrix probabilities( nislands );
     dim::core::InitMatrix initmatrix( initG, 100./nislands );
@@ -311,13 +312,14 @@ int main (int argc, char *argv[])
 
 	    islandData[i] = dim::core::IslandData<EOT>(nislands, i);
 
-	    // islandData[i].size(nislands);
-	    // islandData[i].rank(i);
-
 	    std::cout << islandData[i].size() << " " << islandData[i].rank() << std::endl;
 
 	    islandData[i].proba = probabilities(i);
 	    apply<EOT>(eval, islandPop[i]);
+
+	    /****************************************
+	     * Distribution des opérateurs aux iles *
+	     ****************************************/
 
 	    eoMonOp<EOT>* ptMon = NULL;
 	    if ( islandData[i].rank() == 0 )
@@ -328,7 +330,6 @@ int main (int argc, char *argv[])
 	    else
 		{
 		    eo::log << eo::logging << islandData[i].rank() << ": kflip(" << (islandData[i].rank()-1) * 2 + 1 << ") ";
-		    // ptMon = new eoDetPermutBitFlip<EOT>( (islandData[i].rank()-1) * 2 + 1 );
 		    ptMon = new eoDetSingleBitFlip<EOT>( (islandData[i].rank()-1) * 2 + 1 );
 		}
 	    eo::log << eo::logging << std::endl;
