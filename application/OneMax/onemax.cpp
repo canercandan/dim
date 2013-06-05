@@ -84,13 +84,14 @@ int main (int argc, char *argv[])
     bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
     bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
     unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
-    bool sync = parser.createParam(bool(false), "sync", "sync", 0, "Islands Model").value();
-    bool smp = parser.createParam(bool(false), "smp", "smp", 0, "Islands Model").value();
+    bool sync = parser.createParam(bool(true), "sync", "sync", 0, "Islands Model").value();
+    bool smp = parser.createParam(bool(true), "smp", "smp", 0, "Islands Model").value();
     unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)", 0, "Islands Model").value();
-    unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
+    unsigned stepTimer = parser.createParam(unsigned(1000), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
+    std::string rewardStrategy = parser.createParam(std::string("avg"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
 
     /*********************************
      * Déclaration des composants EO *
@@ -122,27 +123,28 @@ int main (int argc, char *argv[])
     make_verbose(parser);
     make_help(parser);
 
-    /****************************************
-     * Distribution des opérateurs aux iles *
-     ****************************************/
-
-    eoMonOp<EOT>* ptMon = NULL;
-    if ( RANK == 0 )
-	{
-	    eo::log << eo::logging << RANK << ": bitflip ";
-	    ptMon = new eoBitMutation<EOT>( 1, true );
-	}
-    else
-	{
-	    eo::log << eo::logging << RANK << ": kflip(" << (RANK-1) * 2 + 1 << ") ";
-	    ptMon = new eoDetPermutBitFlip<EOT>( (RANK-1) * 2 + 1 );
-	}
-    eo::log << eo::logging << std::endl;
-    eo::log.flush();
-    state.storeFunctor(ptMon);
-
     if (!smp) // no smp enabled use mpi instead
 	{
+
+	    /****************************************
+	     * Distribution des opérateurs aux iles *
+	     ****************************************/
+
+	    eoMonOp<EOT>* ptMon = NULL;
+	    if ( RANK == 0 )
+		{
+		    eo::log << eo::logging << RANK << ": bitflip ";
+		    ptMon = new eoBitMutation<EOT>( 1, true );
+		}
+	    else
+		{
+		    eo::log << eo::logging << RANK << ": kflip(" << (RANK-1) * 2 + 1 << ") ";
+		    ptMon = new eoDetPermutBitFlip<EOT>( (RANK-1) * 2 + 1 );
+		    // ptMon = new eoDetSingleBitFlip<EOT>( (RANK-1) * 2 + 1 );
+		}
+	    eo::log << eo::logging << std::endl;
+	    eo::log.flush();
+	    state.storeFunctor(ptMon);
 
 	    /**********************************
 	     * Déclaration des composants DIM *
@@ -173,7 +175,11 @@ int main (int argc, char *argv[])
 	    dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
 	    if (update)
 		{
-		    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+		    dim::vectorupdater::Reward<EOT>* ptReward = new dim::vectorupdater::Best<EOT>(alphaP, betaP);
+		    // dim::vectorupdater::Reward<EOT>* ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+		    state_dim.storeFunctor(ptReward);
+
+		    ptUpdater = new dim::vectorupdater::Easy<EOT>(*ptReward);
 		}
 	    else
 		{
@@ -281,6 +287,10 @@ int main (int argc, char *argv[])
 
     // smp
 
+    /****************************************
+     * Distribution des opérateurs aux iles *
+     ****************************************/
+
     dim::core::ThreadsRunner< EOT > tr;
 
     std::vector< dim::core::Pop<EOT> > islandPop(nislands);
@@ -306,9 +316,24 @@ int main (int argc, char *argv[])
 
 	    std::cout << islandData[i].size() << " " << islandData[i].rank() << std::endl;
 
-
 	    islandData[i].proba = probabilities(i);
 	    apply<EOT>(eval, islandPop[i]);
+
+	    eoMonOp<EOT>* ptMon = NULL;
+	    if ( islandData[i].rank() == 0 )
+		{
+		    eo::log << eo::logging << islandData[i].rank() << ": bitflip ";
+		    ptMon = new eoBitMutation<EOT>( 1, true );
+		}
+	    else
+		{
+		    eo::log << eo::logging << islandData[i].rank() << ": kflip(" << (islandData[i].rank()-1) * 2 + 1 << ") ";
+		    // ptMon = new eoDetPermutBitFlip<EOT>( (islandData[i].rank()-1) * 2 + 1 );
+		    ptMon = new eoDetSingleBitFlip<EOT>( (islandData[i].rank()-1) * 2 + 1 );
+		}
+	    eo::log << eo::logging << std::endl;
+	    eo::log.flush();
+	    state.storeFunctor(ptMon);
 
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon );
 	    state_dim.storeFunctor(ptEvolver);
@@ -316,7 +341,18 @@ int main (int argc, char *argv[])
 	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
 	    state_dim.storeFunctor(ptFeedbacker);
 
-	    dim::vectorupdater::Base<EOT>* ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+	    dim::vectorupdater::Reward<EOT>* ptReward = NULL;
+	    if (rewardStrategy == "best")
+		{
+		    ptReward = new dim::vectorupdater::Best<EOT>(alphaP, betaP);
+		}
+	    else
+		{
+		    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+		}
+	    state_dim.storeFunctor(ptReward);
+
+	    dim::vectorupdater::Base<EOT>* ptUpdater = new dim::vectorupdater::Easy<EOT>(*ptReward);
 	    state_dim.storeFunctor(ptUpdater);
 
 	    dim::memorizer::Base<EOT>* ptMemorizer = new dim::memorizer::Easy<EOT>();
@@ -332,6 +368,7 @@ int main (int argc, char *argv[])
 
 	    ptEvolver->size(nislands);
 	    ptFeedbacker->size(nislands);
+	    ptReward->size(nislands);
 	    ptUpdater->size(nislands);
 	    ptMemorizer->size(nislands);
 	    ptMigrator->size(nislands);
@@ -339,6 +376,7 @@ int main (int argc, char *argv[])
 
 	    ptEvolver->rank(i);
 	    ptFeedbacker->rank(i);
+	    ptReward->rank(i);
 	    ptUpdater->rank(i);
 	    ptMemorizer->rank(i);
 	    ptMigrator->rank(i);
