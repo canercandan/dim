@@ -118,7 +118,7 @@ namespace dim
 			       _memorize.firstCall(pop, data);
 			       _migrate.firstCall(pop, data);
 
-			       while ( ( __data.toContinue = _checkpoint(pop) ) )
+			       while ( ( __data.toContinue = __data.toContinue & _checkpoint(pop) ) )
 				   {
 				       DO_MEASURE(
 
@@ -148,6 +148,8 @@ namespace dim
 			    delete it->second;
 			}
 #endif // !MEASURE
+
+		    std::cout << "end" << std::endl; std::cout.flush();
 		}
 
 	    public:
