@@ -80,13 +80,6 @@ namespace dim
 		    	    ++nbs[ind.getLastIsland()];
 		    	}
 
-		    // for (size_t i = 0; i < pop.size(); ++i)
-		    // 	{
-		    // 	    EOT& ind = pop[i];
-		    // 	    AUTO(double) effectiveness = ind.fitness() - ind.getLastFitness();
-		    // 	    _islandData[ ind.getLastIsland() ].feedbackerReceivingQueue.push( effectiveness, this->rank() );
-		    // 	}
-
 		    for (size_t i = 0; i < this->size(); ++i)
 		    	{
 		    	    AUTO(double) effectiveness = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
@@ -97,15 +90,8 @@ namespace dim
 		     * Update feedbacks *
 		     ********************/
 
-// #ifdef TRACE
-// 		    _of << data.feedbackerReceivingQueue.size() << " "; _of.flush();
-// #endif // !TRACE
-
-		    // size_t size = data.feedbackerReceivingQueue.size();
 		    for (int k = 0; k < this->size() && !data.feedbackerReceivingQueue.empty(); ++k)
 		    	{
-		    // while ( !data.feedbackerReceivingQueue.empty() )
-		    // 	{
 			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
 			    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
 			    // double t = std_or_boost::get<1>(fbr);
