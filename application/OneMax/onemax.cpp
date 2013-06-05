@@ -70,13 +70,15 @@ int main (int argc, char *argv[])
      * Definition des paramètres *
      *****************************/
 
-    // a
+    bool sync = parser.createParam(bool(true), "sync", "sync", 0, "Islands Model").value();
+    bool smp = parser.createParam(bool(true), "smp", "smp", 0, "Islands Model").value();
+    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)"    // a
     double alphaP = parser.createParam(double(0.2), "alpha", "Alpha Probability", 'a', "Islands Model").value();
     double alphaF = parser.createParam(double(0.01), "alphaF", "Alpha Fitness", 'A', "Islands Model").value();
     // b
     double betaP = parser.createParam(double(0.01), "beta", "Beta Probability", 'b', "Islands Model").value();
     // d
-    double probaSame = parser.createParam(double(100./ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
+    double probaSame = parser.createParam(double(100./(smp ? nislands : ALL)), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
     // I
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
 
@@ -84,9 +86,6 @@ int main (int argc, char *argv[])
     bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
     bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
     unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
-    bool sync = parser.createParam(bool(true), "sync", "sync", 0, "Islands Model").value();
-    bool smp = parser.createParam(bool(true), "smp", "smp", 0, "Islands Model").value();
-    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)", 0, "Islands Model").value();
     unsigned stepTimer = parser.createParam(unsigned(1000), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
@@ -299,7 +298,7 @@ int main (int argc, char *argv[])
     std::vector< dim::core::IslandData<EOT> > islandData(nislands);
 
     dim::core::MigrationMatrix probabilities( nislands );
-    dim::core::InitMatrix initmatrix( initG, 100./nislands );
+    dim::core::InitMatrix initmatrix( initG, probaSame );
 
     initmatrix( probabilities );
     std::cout << probabilities;

@@ -395,7 +395,7 @@ int main (int argc, char *argv[])
     std::vector< dim::core::IslandData<EOT> > islandData(nislands);
 
     dim::core::MigrationMatrix probabilities( nislands );
-    dim::core::InitMatrix initmatrix( initG, 100./nislands );
+    dim::core::InitMatrix initmatrix( initG, probaSame );
 
     initmatrix( probabilities );
     std::cout << probabilities;
