@@ -20,6 +20,7 @@
 #include <fstream>
 #include <contrib/boost/mpi/environment.hpp>
 #include <eo>
+#include <ga.h>
 #include <dim/dim>
 #include <dim/algo/Easy.h>
 #include <dim/evolver/Easy.h>
@@ -30,6 +31,8 @@
 
 #if __cplusplus > 199711L
 namespace std_or_boost = std;
+#include <mutex>
+#include <condition_variable>
 #else
 #include <boost/thread/thread.hpp>
 #include <boost/chrono/chrono_io.hpp>
@@ -145,13 +148,16 @@ int main (int argc, char *argv[])
      * Definition des paramètres *
      *****************************/
 
+    bool sync = parser.createParam(bool(true), "sync", "sync", 0, "Islands Model").value();
+    bool smp = parser.createParam(bool(true), "smp", "smp", 0, "Islands Model").value();
+    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)", 0, "Islands Model").value();
     // a
     double alphaP = parser.createParam(double(0.2), "alpha", "Alpha Probability", 'a', "Islands Model").value();
     double alphaF = parser.createParam(double(0.01), "alphaF", "Alpha Fitness", 'A', "Islands Model").value();
     // b
     double betaP = parser.createParam(double(0.01), "beta", "Beta Probability", 'b', "Islands Model").value();
     // d
-    double probaSame = parser.createParam(double(100./ALL), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
+    double probaSame = parser.createParam(double(100./(smp ? nislands : ALL)), "probaSame", "Probability for an individual to stay in the same island", 'd', "Islands Model").value();
     // I
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
 
@@ -159,16 +165,16 @@ int main (int argc, char *argv[])
     bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
     bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
     unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
-    bool sync = parser.createParam(bool(false), "sync", "sync", 0, "Islands Model").value();
-    unsigned stepTimer = parser.createParam(unsigned(100), "stepTimer", "stepTimer", 0, "Islands Model").value();
+    unsigned stepTimer = parse0r.createParam(unsigned(1000), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
+    std::string rewardStrategy = parser.createParam(std::string("avg"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
 
-    std::vector<double> rewards(ALL, 1.);
-    std::vector<double> timeouts(ALL, 1.);
+    std::vector<double> rewards(smp ? nislands : ALL, 1.);
+    std::vector<double> timeouts(smp ? nislands : ALL, 1.);
 
-    for (size_t i = 0; i < ALL; ++i)
+    for (size_t i = 0; i < (smp ? nislands : ALL); ++i)
 	{
 	    std::ostringstream ss;
 	    ss << "reward" << i;
@@ -198,7 +204,7 @@ int main (int argc, char *argv[])
     unsigned maxGen = parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
     dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 
-    dim::core::IslandData<EOT> data;
+    dim::core::IslandData<EOT> data(smp ? nislands : -1);
 
     std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
     dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, data, 1, stepTimer);
@@ -211,20 +217,173 @@ int main (int argc, char *argv[])
     make_verbose(parser);
     make_help(parser);
 
-    /****************************************
-     * Distribution des opérateurs aux iles *
-     ****************************************/
+    if (!smp) // no smp enabled use mpi instead
+	{
 
-    eoMonOp<EOT>* ptMon = NULL;
-    if (sync)
-	{
-	    ptMon = new DummyOp;
+	    /****************************************
+	     * Distribution des opérateurs aux iles *
+	     ****************************************/
+
+	    eoMonOp<EOT>* ptMon = NULL;
+	    if (sync)
+		{
+		    ptMon = new DummyOp;
+		}
+	    else
+		{
+		    ptMon = new SimulatedOp( timeouts[RANK] );
+		}
+	    state.storeFunctor(ptMon);
+
+	    /**********************************
+	     * Déclaration des composants DIM *
+	     **********************************/
+
+	    dim::core::ThreadsRunner< EOT > tr;
+
+	    dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon, false );
+
+	    dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
+	    if (feedback)
+		{
+		    if (sync)
+			{
+			    ptFeedbacker = new dim::feedbacker::sync::Easy<EOT>(alphaF);
+			}
+		    else
+			{
+			    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, sensitivity, deltaFeedback);
+			}
+		}
+	    else
+		{
+		    ptFeedbacker = new dim::algo::Easy<EOT>::DummyFeedbacker();
+		}
+	    state_dim.storeFunctor(ptFeedbacker);
+
+	    dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
+	    if (update)
+		{
+		    dim::vectorupdater::Reward<EOT>* ptReward = NULL;
+		    if (rewardStrategy == "best")
+			{
+			    ptReward = new dim::vectorupdater::Best<EOT>(alphaP, betaP);
+			}
+		    else
+			{
+			    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+			}
+		    state_dim.storeFunctor(ptReward);
+
+		    ptUpdater = new dim::vectorupdater::Easy<EOT>(*ptReward);
+		}
+	    else
+		{
+		    ptUpdater = new dim::algo::Easy<EOT>::DummyVectorUpdater();
+		}
+	    state_dim.storeFunctor(ptUpdater);
+
+	    dim::memorizer::Easy<EOT> memorizer;
+
+	    dim::migrator::Base<EOT>* ptMigrator = NULL;
+	    if (migrate)
+		{
+		    if (sync)
+			{
+			    ptMigrator = new dim::migrator::sync::Easy<EOT>();
+			}
+		    else
+			{
+			    ptMigrator = new dim::migrator::async::Easy<EOT>(nmigrations);
+			}
+		}
+	    else
+		{
+		    ptMigrator = new dim::algo::Easy<EOT>::DummyMigrator();
+		}
+	    state_dim.storeFunctor(ptMigrator);
+
+	    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, monitorPrefix );
+
+	    if (!sync)
+		{
+		    tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
+		}
+
+	    /***************
+	     * Rock & Roll *
+	     ***************/
+
+	    /******************************************************************************
+	     * Création de la matrice de transition et distribution aux iles des vecteurs *
+	     ******************************************************************************/
+
+	    dim::core::MigrationMatrix probabilities( ALL );
+	    dim::core::InitMatrix initmatrix( initG, probaSame );
+
+	    if ( 0 == RANK )
+		{
+		    initmatrix( probabilities );
+		    std::cout << probabilities;
+		    data.proba = probabilities(RANK);
+
+		    for (size_t i = 1; i < ALL; ++i)
+			{
+			    world.send( i, 100, probabilities(i) );
+			}
+
+		    std::cout << "Island Model Parameters:" << std::endl
+			      << "alphaP: " << alphaP << std::endl
+			      << "alphaF: " << alphaF << std::endl
+			      << "betaP: " << betaP << std::endl
+			      << "probaSame: " << probaSame << std::endl
+			      << "initG: " << initG << std::endl
+			      << "update: " << update << std::endl
+			      << "feedback: " << feedback << std::endl
+			      << "migrate: " << migrate << std::endl
+			      << "sync: " << sync << std::endl
+			      << "stepTimer: " << stepTimer << std::endl
+			      << "deltaUpdate: " << deltaUpdate << std::endl
+			      << "deltaFeedback: " << deltaFeedback << std::endl
+			      << "sensitivity: " << sensitivity << std::endl
+			      << "chromSize: " << chromSize << std::endl
+			      << "popSize: " << popSize << std::endl
+			      << "targetFitness: " << targetFitness << std::endl
+			      << "maxGen: " << maxGen << std::endl
+			;
+		}
+	    else
+		{
+		    world.recv( 0, 100, data.proba );
+		}
+
+	    /******************************************
+	     * Get the population size of all islands *
+	     ******************************************/
+
+	    world.barrier();
+	    dim::utils::print_sum(pop);
+
+	    FitnessInit fitInit;
+
+	    apply<EOT>(fitInit, pop);
+
+	    if (sync)
+		{
+		    island( pop, data );
+		}
+	    else
+		{
+		    tr( pop, data );
+		}
+
+	    world.abort(0);
+
+	    return 0 ;
+
 	}
-    else
-	{
-	    ptMon = new SimulatedOp( timeouts[RANK] );
-	}
-    state.storeFunctor(ptMon);
+
+    // smp
 
     /**********************************
      * Déclaration des composants DIM *
@@ -232,132 +391,95 @@ int main (int argc, char *argv[])
 
     dim::core::ThreadsRunner< EOT > tr;
 
-    dim::evolver::Easy<EOT> evolver( /*eval*/*ptEval, *ptMon, false );
+    std::vector< dim::core::Pop<EOT> > islandPop(nislands);
+    std::vector< dim::core::IslandData<EOT> > islandData(nislands);
 
-    dim::feedbacker::Base<EOT>* ptFeedbacker = NULL;
-    if (feedback)
-	{
-	    if (sync)
-		{
-		    ptFeedbacker = new dim::feedbacker::sync::Easy<EOT>(alphaF);
-		}
-	    else
-		{
-		    ptFeedbacker = new dim::feedbacker::async::Easy<EOT>(alphaF, sensitivity, deltaFeedback);
-		}
-	}
-    else
-	{
-	    ptFeedbacker = new dim::algo::Easy<EOT>::DummyFeedbacker();
-	}
-    state_dim.storeFunctor(ptFeedbacker);
+    dim::core::MigrationMatrix probabilities( nislands );
+    dim::core::InitMatrix initmatrix( initG, 100./nislands );
 
-    dim::vectorupdater::Base<EOT>* ptUpdater = NULL;
-    if (update)
-	{
-	    ptUpdater = new dim::vectorupdater::Easy<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
-	}
-    else
-	{
-	    ptUpdater = new dim::algo::Easy<EOT>::DummyVectorUpdater();
-	}
-    state_dim.storeFunctor(ptUpdater);
-
-    dim::memorizer::Easy<EOT> memorizer;
-
-    dim::migrator::Base<EOT>* ptMigrator = NULL;
-    if (migrate)
-	{
-	    if (sync)
-		{
-		    ptMigrator = new dim::migrator::sync::Easy<EOT>();
-		}
-	    else
-		{
-		    ptMigrator = new dim::migrator::async::Easy<EOT>(nmigrations);
-		}
-	}
-    else
-	{
-	    ptMigrator = new dim::algo::Easy<EOT>::DummyMigrator();
-	}
-    state_dim.storeFunctor(ptMigrator);
-
-    dim::algo::Easy<EOT> island( evolver, *ptFeedbacker, *ptUpdater, memorizer, *ptMigrator, checkpoint, monitorPrefix );
-
-    if (!sync)
-	{
-	    tr.addHandler(*ptFeedbacker).addHandler(*ptMigrator).add(island);
-	}
-
-    /***************
-     * Rock & Roll *
-     ***************/
-
-    /******************************************************************************
-     * Création de la matrice de transition et distribution aux iles des vecteurs *
-     ******************************************************************************/
-
-    dim::core::MigrationMatrix probabilities( ALL );
-    dim::core::InitMatrix initmatrix( initG, probaSame );
-
-    if ( 0 == RANK )
-    	{
-    	    initmatrix( probabilities );
-    	    std::cout << probabilities;
-    	    data.proba = probabilities(RANK);
-
-    	    for (size_t i = 1; i < ALL; ++i)
-    		{
-    		    world.send( i, 100, probabilities(i) );
-    		}
-
-	    std::cout << "Island Model Parameters:" << std::endl
-		      << "alphaP: " << alphaP << std::endl
-		      << "alphaF: " << alphaF << std::endl
-		      << "betaP: " << betaP << std::endl
-		      << "probaSame: " << probaSame << std::endl
-		      << "initG: " << initG << std::endl
-		      << "update: " << update << std::endl
-		      << "feedback: " << feedback << std::endl
-		      << "migrate: " << migrate << std::endl
-		      << "sync: " << sync << std::endl
-		      << "stepTimer: " << stepTimer << std::endl
-		      << "deltaUpdate: " << deltaUpdate << std::endl
-		      << "deltaFeedback: " << deltaFeedback << std::endl
-		      << "sensitivity: " << sensitivity << std::endl
-		      << "chromSize: " << chromSize << std::endl
-		      << "popSize: " << popSize << std::endl
-		      << "targetFitness: " << targetFitness << std::endl
-		      << "maxGen: " << maxGen << std::endl
-		;
-    	}
-    else
-    	{
-    	    world.recv( 0, 100, data.proba );
-    	}
-
-    /******************************************
-     * Get the population size of all islands *
-     ******************************************/
-
-    world.barrier();
-    dim::utils::print_sum(pop);
+    initmatrix( probabilities );
+    std::cout << probabilities;
 
     FitnessInit fitInit;
 
-    apply<EOT>(fitInit, pop);
-
-    if (sync)
+    for (size_t i = 0; i < nislands; ++i)
 	{
-	    island( pop, data );
-	}
-    else
-	{
-	    tr( pop, data );
+	    std::cout << "island " << i << std::endl;
+
+	    islandPop[i].append(popSize, init);
+
+	    apply<EOT>(fitInit, islandPop[i]);
+
+	    islandData[i] = dim::core::IslandData<EOT>(nislands, i);
+
+	    std::cout << islandData[i].size() << " " << islandData[i].rank() << std::endl;
+
+	    islandData[i].proba = probabilities(i);
+	    apply<EOT>(eval, islandPop[i]);
+
+	    /****************************************
+	     * Distribution des opérateurs aux iles *
+	     ****************************************/
+
+	    eoMonOp<EOT>* ptMon = NULL;
+	    ptMon = new SimulatedOp( timeouts[islandData[i].rank()] );
+	    state.storeFunctor(ptMon);
+
+	    eoEvalFunc<EOT>* __ptEval = NULL;
+	    __ptEval = new SimulatedEval( rewards[islandData[i].rank()] );
+	    state.storeFunctor(__ptEval);
+
+	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/*__ptEval, *ptMon, false );
+	    state_dim.storeFunctor(ptEvolver);
+
+	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
+	    state_dim.storeFunctor(ptFeedbacker);
+
+	    dim::vectorupdater::Reward<EOT>* ptReward = NULL;
+	    if (rewardStrategy == "best")
+		{
+		    ptReward = new dim::vectorupdater::Best<EOT>(alphaP, betaP);
+		}
+	    else
+		{
+		    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+		}
+	    state_dim.storeFunctor(ptReward);
+
+	    dim::vectorupdater::Base<EOT>* ptUpdater = new dim::vectorupdater::Easy<EOT>(*ptReward);
+	    state_dim.storeFunctor(ptUpdater);
+
+	    dim::memorizer::Base<EOT>* ptMemorizer = new dim::memorizer::Easy<EOT>();
+	    state_dim.storeFunctor(ptMemorizer);
+
+	    dim::migrator::Base<EOT>* ptMigrator = new dim::migrator::smp::Easy<EOT>(islandPop, islandData, monitorPrefix);
+	    state_dim.storeFunctor(ptMigrator);
+
+	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, islandData[i], 1, stepTimer);
+
+	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData, monitorPrefix );
+	    state_dim.storeFunctor(ptIsland);
+
+	    ptEvolver->size(nislands);
+	    ptFeedbacker->size(nislands);
+	    ptReward->size(nislands);
+	    ptUpdater->size(nislands);
+	    ptMemorizer->size(nislands);
+	    ptMigrator->size(nislands);
+	    ptIsland->size(nislands);
+
+	    ptEvolver->rank(i);
+	    ptFeedbacker->rank(i);
+	    ptReward->rank(i);
+	    ptUpdater->rank(i);
+	    ptMemorizer->rank(i);
+	    ptMigrator->rank(i);
+	    ptIsland->rank(i);
+
+	    tr.add(*ptIsland);
 	}
 
-    world.abort(0);
+    tr(pop, data);
 
     return 0 ;
 }
