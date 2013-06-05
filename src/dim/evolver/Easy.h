@@ -56,7 +56,11 @@ namespace dim
 
 			if ( candidate.fitness() > ind.fitness() )
 			    {
+#if __cplusplus > 199711L
 				ind = std::move(candidate);
+#else
+				ind = candidate;
+#endif
 			    }
 
 			// typename EOT::Fitness lastfitness = ind.fitness();

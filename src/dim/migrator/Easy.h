@@ -146,7 +146,13 @@ namespace dim
 #ifdef TRACE
 								 _of << ind.getLastFitnesses().size() << " ";
 #endif // !TRACE
+
+#if __cplusplus > 199711L
 								 _islandData[j].migratorReceivingQueue.push(std::move(ind), this->rank());
+#else
+								 _islandData[j].migratorReceivingQueue.push(ind, this->rank());
+#endif
+
 								 , _measureFiles, "migrate_push");
 						  }
 
@@ -169,11 +175,19 @@ namespace dim
 					      {
 						  // This special pop function is waiting while the queue of individual is empty.
 						  AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
+#if __cplusplus > 199711L
 						  AUTO(EOT) ind = std::move(std_or_boost::get<0>(imm));
+#else
+						  AUTO(EOT) ind = std_or_boost::get<0>(imm);
+#endif
 						  AUTO(double) time = std_or_boost::get<1>(imm);
 
 						  ind.receivedTime = time;
+#if __cplusplus > 199711L
 						  pop.push_back( std::move(ind) );
+#else
+						  pop.push_back( ind );
+#endif
 						  ++inputSize;
 					      }
 
@@ -191,9 +205,11 @@ namespace dim
 
 #ifdef TRACE
 		std::ofstream _of;
-		std::map<std::string, std::ofstream*> _measureFiles;
 #endif // !TRACE
 
+#ifdef MEASURE
+		std::map<std::string, std::ofstream*> _measureFiles;
+#endif // !MEASURE
 	    };
 	} // !smp
 
