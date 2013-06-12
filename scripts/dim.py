@@ -1,6 +1,30 @@
-from threading import Thread, Barrier
+#!/usr/bin/env python3
+
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+# Authors:
+# Caner Candan <caner@candan.fr>, http://caner.candan.fr
+#
+
+from parser import Parser
+from threading import Thread, Barrier, BrokenBarrierError
 from queue import Queue
-import random
+import random, sys
+import logging
+
+logger = logging.getLogger("dim")
 
 class MutableValue:
     def __init__(self, v=0): self.v = v
@@ -27,6 +51,56 @@ class MutableValue:
 
     def set(self, v): self.v = v
 
+class Fitness:
+    def __init__(self):
+        self.__fitness = None
+        self.__last_fitness = None
+
+    def __gt__(self, other): return self.__fitness > other.__fitness
+    def __ge__(self, other): return self.__fitness >= other.__fitness
+    def __lt__(self, other): return self.__fitness < other.__fitness
+    def __le__(self, other): return self.__fitness <= other.__fitness
+    def __eq__(self, other): return self.__fitness == other.__fitness
+    def __ne__(self, other): return self.__fitness != other.__fitness
+
+    def copy_from(self, other):
+        self.__fitness = other.__fitness
+        self.__last_fitness = other.__last_fitness
+
+    def set_fitness(self, new_value):
+        self.__last_fitness = self.__fitness
+        self.__fitness = new_value
+
+    def fitness(self): return self.__fitness
+    def last_fitness(self): return self.__last_fitness if self.__last_fitness else self.__fitness
+
+class LastIsland:
+    def __init__(self):
+        self.__last_island = None
+
+    def copy_from(self, other):
+        self.__last_island = other.__last_island
+
+    def set_last_island(self, new_value):
+        self.__last_island = new_value
+
+    def last_island(self): return self.__last_island
+
+class Individual(Fitness, LastIsland, list):
+    def size(self): return len(self)
+
+    def __str__(self):
+        print(self.fitness(), self.size(), end="")
+        for x in self:
+            print(" %d" % x, end="")
+        return ""
+
+    def copy_from(self, other):
+        Fitness.copy_from(self, other)
+        LastIsland.copy_from(self, other)
+        self.clear()
+        self += other
+
 class Population(list):
     def __init__(self, size, init):
         for i in range(size):
@@ -34,35 +108,35 @@ class Population(list):
             init(ind)
             self += [ind]
 
-            self.best_individual = None
-            self.worth_individual = None
-
     def size(self): return len(self)
+    def empty(self): return len(self) <= 0
 
-    def __gt__(self, other): return self.best_individual > other.best_individual
-    def __ge__(self, other): return self.best_individual >= other.best_individual
-    def __lt__(self, other): return self.best_individual < other.best_individual
-    def __le__(self, other): return self.best_individual <= other.best_individual
-    def __eq__(self, other): return self.best_individual == other.best_individual
-    def __ne__(self, other): return self.best_individual != other.best_individual
+    def __gt__(self, other): return self.best_element()  > other.best_element()
+    def __ge__(self, other): return self.best_element() >= other.best_element()
+    def __lt__(self, other): return self.best_element()  < other.best_element()
+    def __le__(self, other): return self.best_element() <= other.best_element()
+    def __eq__(self, other): return self.best_element() == other.best_element()
+    def __ne__(self, other): return self.best_element() != other.best_element()
 
-    def sort(self):
-        best = self.best_individual if self.best_individual else self[0]
-        worth = self.worth_individual if self.worth_individual else self[0]
-
+    def best_element(self):
+        if self.empty():
+            logger.warning("Population: Empty population, when calling best_element().")
+            return None
+        best = self[0]
         for ind in self:
-            if ind.fitness() > best.fitness(): best = ind
-            if ind.fitness() < worth.fitness(): worth = ind
+            if ind > best: best = ind
+        return best
 
-        self.best_individual = best
-        self.worth_individual = worth
+    def worse_element(self):
+        worse = self[0]
+        for ind in self:
+            if ind < worse: worse = ind
+        return worse
 
     def __str__(self):
-        self.sort()
-        print("%s %s %s" % (self.size(), self.worth_individual.fitness(),
-                                         self.best_individual.fitness()))
-        for x in self:
-            print(x)
+        print("%s %s %s" % (self.size(), self.worse_element().fitness(),
+                                         self.best_element().fitness()))
+        for x in self: print(x)
         return ""
 
 def apply(pop, func):
@@ -105,7 +179,7 @@ class Statistic(MutableValue):
     def lastcall(self, pop): pass
 
 class BestFitness(Statistic):
-    def __call__(self, pop): self.set(pop.best_individual.fitness())
+    def __call__(self, pop): self.set(pop.best_element().fitness())
 
 class Average(Statistic):
     def __call__(self, pop):
@@ -118,6 +192,18 @@ class Continuator:
 
     def __call__(self, pop): pass
     def lastcall(self, pop): pass
+
+class Combined(Continuator, list):
+    def __init__(self, cont):
+        self += [cont]
+
+    def add(self, cont):
+        self += [cont]
+
+    def __call__(self, pop):
+        for cont in self:
+            if not cont(pop): return False
+        return True
 
 class Checkpoint(Continuator):
     def __init__(self, cont=None):
@@ -168,11 +254,26 @@ class MaxGen(Continuator):
     def __call__(self, pop):
         if self.counter < self.maxgen:
             self.counter += 1
-            if self.print_counter: print(self.counter,end=" ")
+            if self.print_counter: print(self.counter, end=" ")
             return True
 
+        logger.warning("STOP in MaxGen: maximum number of generation has reached %d" % self.counter)
         self.counter = 0
         return False
+
+class Fit(Continuator):
+    def __init__(self, optimum):
+        self.optimum = optimum
+
+    def __call__(self, pop):
+        if pop.empty():
+            logger.warning("Fit: Population empty")
+            return True
+        best = pop.best_element().fitness()
+        if (best >= self.optimum):
+            logger.warning("STOP in Fit: Best fitness has reached %f" % best)
+            return False
+        return True
 
 class GenOp:
     def __call__(self, ind): return self.apply(ind)
@@ -189,8 +290,55 @@ class SequentialOp(OpContainer):
     def apply(self, ind):
         for op, rate in self.ops:
             if random.random() < rate:
-                print("%s(%d)" % (op.op.__class__.__name__, op.op.nbits if op.op.__class__.__name__ == "DetBitFlip" else -1))
+                logger.debug("%s(%d)" % (op.op.__class__.__name__, op.op.nbits if op.op.__class__.__name__ == "DetBitFlip" else -1))
                 for x in op(ind): yield x
+
+class MonOp:
+    def __call__(self, ind): pass
+    def __str__(self): pass
+
+class DetBitFlip(MonOp):
+    def __init__(self, nbits=1):
+        self.nbits = nbits
+
+    def __str__(self): return '%s(%d)' % (self.__class__.__name__, self.nbits)
+
+    def __call__(self, ind):
+        if not ind.size(): return
+        if ind.size() < self.nbits:
+            raise ValueError('nbits is smaller than the size of the solution')
+
+        selected = []
+
+        for i in range(self.nbits):
+            tmp = None
+
+            while True:
+                tmp = random.randint(0, ind.size()-1)
+                if tmp not in selected:
+                    break
+
+            selected += [tmp]
+
+        for i in selected:
+            ind[i] = not ind[i]
+
+class BitMutation(MonOp):
+    def __init__(self, rate=0.01, normalize=False):
+        self.rate = rate
+        self.normalize = normalize
+
+    def __str__(self): return 'BitMutation(%s,%s)' % (self.rate, self.normalize)
+
+    def __call__(self, ind):
+        p = self.rate / ind.size() if self.normalize else self.rate
+        for i in range(ind.size()):
+            if random.random() < p:
+                ind[i] = not ind[i]
+
+class OneBitFlip(DetBitFlip):
+    def __init__(self):
+        DetBitFlip.__init__(self, 1)
 
 class IslandData:
     feedbacks = []
@@ -199,7 +347,7 @@ class IslandData:
     feedbackerReceivingQueue = Queue()
     migratorSendingQueue = Queue()
     migratorReceivingQueue = Queue()
-    toContinue = False
+    toContinue = True
 
     def __init__(self, rank=0, size=0):
         self.rank = rank
@@ -215,6 +363,25 @@ class IslandOperator:
     def firstCall(self, pop, data): pass
     def __call__(self, pop, data): pass
     def lastCall(self, pop, data): pass
+
+class Evolver(IslandOperator):
+    def __init__(self, __eval, op, invalidate=True):
+        self.eval = __eval
+        self.op = op
+        self.invalidate = invalidate
+
+    def __call__(self, pop, data):
+        for ind in pop:
+            candidate = Individual()
+            candidate.copy_from(ind)
+
+            self.op(candidate)
+            #if self.invalidate:
+            #    candidate.invalidate()
+            self.eval(candidate)
+
+            if candidate.fitness() > ind.fitness():
+                ind.copy_from(candidate)
 
 class Feedbacker(IslandOperator):
     def __init__(self, pop_set=None, data_set=None, alpha=0.01):
@@ -243,6 +410,9 @@ class Feedbacker(IslandOperator):
             Fi, __from = data.feedbackerReceivingQueue.get()
             data.feedbacks[__from] = (1-self.alpha)*data.feedbacks[__from] + self.alpha*Fi
             data.feedbackerReceivingQueue.task_done()
+
+    def lastCall(self, __pop, __data):
+        self.data_set[0].feedbackerBarrier.abort()
 
 class Migrator(IslandOperator):
     def __init__(self, pop_set=None, data_set=None):
@@ -276,6 +446,9 @@ class Migrator(IslandOperator):
             ind, __from = data.migratorReceivingQueue.get()
             pop.append( ind )
             data.migratorReceivingQueue.task_done()
+
+    def lastCall(self, __pop, __data):
+        self.data_set[0].migratorBarrier.abort()
 
 class Reward(IslandOperator): pass
 
@@ -363,27 +536,36 @@ class Memorize(IslandOperator):
         for ind in pop:
             ind.set_last_island(data.rank)
 
-class Algo(IslandOperator, Thread):
-    def __init__(self, evolve, feedback, update, memorize, migrate, checkpoint, pop, data):
-        Thread.__init__(self, target=self, args=[pop,data])
+class Algo(IslandOperator):
+    def __init__(self, evolve, feedback, update, memorize, migrate, checkpoint, pop_set=None, data_set=None):
         self.steps = [evolve, feedback, update, memorize, migrate]
         self.checkpoint = checkpoint
+        self.pop_set = pop_set
+        self.data_set = data_set
 
     def __call__(self, pop, data):
         for step in self.steps:
             step.firstCall(pop, data)
 
-        while self.checkpoint(pop):
-            #pop.sort()
-            #print(data.rank, data.proba, pop.size(), pop.best_individual.fitness())
+        while True:
+            self.data_set[0].toContinue &= self.checkpoint(pop)
+            if not self.data_set[0].toContinue: break
 
-            for step in self.steps:
-                step(pop, data)
+            logger.critical("%d %s %d %s" % (data.rank, data.proba, pop.size(),
+                                             pop.best_element().fitness() if pop.best_element() else None))
+
+            try:
+                for step in self.steps:
+                    step(pop, data)
+            except BrokenBarrierError as e:
+                logger.warning("%d %s" % (data.rank, "broken barrier"))
+                break
 
         for step in self.steps:
             step.lastCall(pop, data)
 
-        return data.rank
+        logger.critical("%d %s %d %f" % (data.rank, data.proba, pop.size(),
+                                         pop.best_element().fitness() if pop.best_element() else None))
 
 class InitMatrix:
     def __init__(self, randomize = False, common_value = 0.9):
@@ -410,173 +592,80 @@ class InitMatrix:
                     else:
                         matrix[i][j] = 0
 
-class Fitness:
-    def __init__(self):
-        self.__fitness = None
-        self.__last_fitness = None
+def main():
+    parser = Parser(description='The python version of the Dynamic Islands Model.', verbose='error')
+    parser.add_argument('--nislands', '-N', help='number of islands', type=int, default=4)
+    parser.add_argument('--popSize', '-P', help='size of population', type=int, default=100)
+    parser.add_argument('--chromSize', '-n', help='size of problem', type=int, default=1000)
+    parser.add_argument('--targetFitness', '-T', help='optimum to reach (0: disable)', type=int)
+    parser.add_argument('--maxGen', '-G', help='maximum number of generation (0: disable)', type=int, default=0)
+    parser.add_argument('--alpha', '-a', help='the alpha parameter of the learning process', type=float, default=.2)
+    parser.add_argument('--beta', '-b', help='the beta parameter of the learning process', type=float, default=.01)
+    args = parser()
 
-    def __gt__(self, other): return self.__fitness > other.__fitness
-    def __ge__(self, other): return self.__fitness >= other.__fitness
-    def __lt__(self, other): return self.__fitness < other.__fitness
-    def __le__(self, other): return self.__fitness <= other.__fitness
-    def __eq__(self, other): return self.__fitness == other.__fitness
-    def __ne__(self, other): return self.__fitness != other.__fitness
+    N = args.nislands
+    P = args.popSize
+    n = args.chromSize
+    T = args.targetFitness
+    G = args.maxGen
 
-    def copy_from(self, other):
-        self.__fitness = other.__fitness
-        self.__last_fitness = other.__last_fitness
+    init = ZerofyInit(n)
+    init_matrix = InitMatrix(False,1/N)
+    __eval = OneMaxFullEval()
+    reward = Best(args.alpha,args.beta)
+    # reward = Proportional(.2,0)
+    updater = Updater(reward)
+    memorizer = Memorize()
 
-    def set_fitness(self, new_value):
-        self.__last_fitness = self.__fitness
-        self.__fitness = new_value
+    matrix = []
+    for i in range(N):
+        matrix += [[]]
+        for j in range(N):
+            matrix[-1] += [0]
+    init_matrix(matrix)
 
-    def fitness(self): return self.__fitness
-    def last_fitness(self): return self.__last_fitness if self.__last_fitness else self.__fitness
+    pop_set = []
+    data_set = []
 
-class LastIsland:
-    def __init__(self):
-        self.__last_island = None
+    for i in range(N):
+        pop_set += [Population(P,init)]
+        data_set += [IslandData(i,N)]
 
-    def copy_from(self, other):
-        self.__last_island = other.__last_island
+    islands = []
+    for i in range(N):
+        pop = pop_set[i]
+        data = data_set[i]
 
-    def set_last_island(self, new_value):
-        self.__last_island = new_value
+        data.proba = matrix[i].copy()
+        apply(pop, __eval)
 
-    def last_island(self): return self.__last_island
+        mon = None
+        if data.rank == 0:
+            mon = BitMutation(1, True)
+        else:
+            mon = DetBitFlip( (data.rank-1)*2+1 )
 
-class Individual(Fitness, LastIsland, list):
-    def size(self): return len(self)
+        evolver = Evolver(__eval, mon)
+        feedbacker = Feedbacker(pop_set, data_set)
+        migrator = Migrator(pop_set, data_set)
+        fit = Fit(T if T else n)
+        cont = Combined(fit)
+        if G:
+            maxgen = MaxGen(G)
+            cont.add(maxgen)
+        checkpoint = Checkpoint(cont)
+        island = Algo(evolver, feedbacker, updater, memorizer, migrator, checkpoint, pop_set, data_set)
+        t = Thread(target=island, args=[pop,data])
+        islands += [t]
 
-    def __str__(self):
-        print(self.fitness(), self.size(), end="")
-        for x in self:
-            print(" %d" % x, end="")
-        return ""
+    for island in islands:
+        island.start()
 
-    def copy_from(self, other):
-        Fitness.copy_from(self, other)
-        LastIsland.copy_from(self, other)
-        self.clear()
-        self += other
+    for island in islands:
+        island.join()
 
-class MonOp:
-    def __call__(self, ind): pass
-    def __str__(self): pass
-
-class DetBitFlip(MonOp):
-    def __init__(self, nbits=1):
-        self.nbits = nbits
-
-    def __str__(self): return '%s(%d)' % (self.__class__.__name__, self.nbits)
-
-    def __call__(self, ind):
-        if not ind.size(): return
-
-        print("before", ind.fitness())
-
-        selected = []
-
-        for i in range(self.nbits):
-            tmp = None
-
-            while True:
-                tmp = random.randint(0, ind.size()-1)
-                if tmp not in selected:
-                    break
-
-            selected += [tmp]
-
-        for i in selected:
-            #yield i
-            ind[i] = not ind[i]
-
-        print("after", ind.fitness())
-
-class BitMutation(MonOp):
-    def __init__(self, rate=0.01, normalize=False):
-        self.rate = rate
-        self.normalize = normalize
-
-    def __str__(self): return 'BitMutation(%s,%s)' % (self.rate, self.normalize)
-
-    def __call__(self, ind):
-        p = self.rate / ind.size() if self.normalize else self.rate
-        for i in range(ind.size()):
-            if random.random() < p:
-                #yield i
-                ind[i] = not ind[i]
-
-class OneBitFlip(DetBitFlip):
-    def __init__(self):
-        DetBitFlip.__init__(self, 1)
-
-class Evolver(IslandOperator):
-    def __init__(self, __eval, op, invalidate=True):
-        self.eval = __eval
-        self.op = op
-        self.invalidate = invalidate
-
-    def __call__(self, pop, data):
-        for ind in pop:
-            candidate = Individual()
-            candidate.copy_from(ind)
-
-            self.op(candidate)
-            #if self.invalidate:
-            #    candidate.invalidate()
-            self.eval(candidate)
-
-            #print(ind.fitness(), candidate.fitness())
-            #print(ind.size(), candidate.size())
-
-            if candidate.fitness() > ind.fitness():
-                ind.copy_from(candidate)
-
-N = 4
-P = 10
-n = 1
-M = 4
-
-init = ZerofyInit(n)
-init_matrix = InitMatrix(False,1/N)
-__eval = OneMaxFullEval()
-reward = Best(.2,0)
-updater = Updater(reward)
-memorizer = Memorize()
-
-matrix = []
-for i in range(N):
-    matrix += [[]]
-    for j in range(N):
-        matrix[-1] += [0]
-init_matrix(matrix)
-print(matrix)
-
-pop_set = []
-data_set = []
-
-for i in range(N):
-    pop_set += [Population(P,init)]
-    data_set += [IslandData(i,N)]
-
-for i in range(N):
-    pop = pop_set[i]
-    data = data_set[i]
-
-    data.proba = matrix[i].copy()
-    apply(pop, __eval)
-
-    mon = None
-    if data.rank == 0:
-        mon = BitMutation(1, True)
-    else:
-        mon = DetBitFlip( (data.rank-1)*2+1 )
-
-    evolver = Evolver(__eval, mon)
-    feedbacker = Feedbacker(pop_set, data_set)
-    migrator = Migrator(pop_set, data_set)
-    cont = MaxGen(M)
-    checkpoint = Checkpoint(cont)
-    island = Algo(evolver, feedbacker, updater, memorizer, migrator, checkpoint, pop, data)
-    island.start()
+# when executed, just run main():
+if __name__ == '__main__':
+    logger.debug('### script started ###')
+    main()
+    logger.debug('### script ended ###')
