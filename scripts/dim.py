@@ -19,8 +19,8 @@
 #
 
 from parser import Parser
-from threading import Thread, Barrier, BrokenBarrierError
-from queue import Queue
+from threading import Thread, Barrier, BrokenBarrierError, Lock
+# from queue import Queue, Empty
 import random, sys
 import logging
 
@@ -340,16 +340,39 @@ class OneBitFlip(DetBitFlip):
     def __init__(self):
         DetBitFlip.__init__(self, 1)
 
-class IslandData:
-    feedbacks = []
-    proba = []
-    feedbackerSendingQueue = Queue()
-    feedbackerReceivingQueue = Queue()
-    migratorSendingQueue = Queue()
-    migratorReceivingQueue = Queue()
-    toContinue = True
+class Queue(list):
+    def __init__(self, values=None):
+        self += values if values else []
+        self.lock = Lock()
 
+    def push(self, value):
+        with self.lock:
+            self.append(value)
+
+    def pop(self):
+        if not self.size():
+            raise ValueError('the queue is empty.')
+        with self.lock:
+            return list.pop(self,0)
+
+    def empty(self):
+        with self.lock:
+            return len(self) <= 0
+
+    def size(self):
+        with self.lock:
+            return len(self)
+
+class IslandData:
     def __init__(self, rank=0, size=0):
+        self.feedbacks = []
+        self.proba = []
+        #feedbackerSendingQueue = Queue()
+        self.feedbackerReceivingQueue = Queue()
+        #migratorSendingQueue = Queue()
+        self.migratorReceivingQueue = Queue()
+        self.toContinue = True
+
         self.rank = rank
         self.size = size
         self.feedbackerBarrier = Barrier(size)
@@ -389,10 +412,7 @@ class Feedbacker(IslandOperator):
         self.data_set = data_set
         self.alpha = alpha
 
-    def __call__(self, __pop, __data):
-        pop = self.pop_set[__data.rank]
-        data = self.data_set[__data.rank]
-
+    def __call__(self, pop, data):
         sums = [0]*data.size
         nbs = [0]*data.size
 
@@ -402,14 +422,13 @@ class Feedbacker(IslandOperator):
 
         for i in range(data.size):
             effectiveness = sums[i] / nbs[i] if nbs[i] > 0 else 0
-            self.data_set[i].feedbackerReceivingQueue.put( (effectiveness, data.rank) )
+            self.data_set[i].feedbackerReceivingQueue.push( (effectiveness, data.rank) )
 
         self.data_set[0].feedbackerBarrier.wait()
 
         while not data.feedbackerReceivingQueue.empty():
-            Fi, __from = data.feedbackerReceivingQueue.get()
+            Fi, __from = data.feedbackerReceivingQueue.pop()
             data.feedbacks[__from] = (1-self.alpha)*data.feedbacks[__from] + self.alpha*Fi
-            data.feedbackerReceivingQueue.task_done()
 
     def lastCall(self, __pop, __data):
         self.data_set[0].feedbackerBarrier.abort()
@@ -419,33 +438,29 @@ class Migrator(IslandOperator):
         self.pop_set = pop_set
         self.data_set = data_set
 
-    def __call__(self, __pop, __data):
-        pop = self.pop_set[__data.rank]
-        data = self.data_set[__data.rank]
-
+    def __call__(self, pop, data):
         output_sizes = [0]*data.size
 
         for ind in pop:
             # selection
             s = 0.
-            r = random.randint(0, 1000 + 1)
+            r = random.randint(0, 1000+1)
 
-            j = 0
-            while j < data.size and r > s:
-                s += data.proba[j]
-                j += 1
-            j -= 1
+            i = 0
+            while i < data.size and r >= s:
+                s += data.proba[i]
+                i += 1
+            i -= 1
 
-            self.data_set[j].migratorReceivingQueue.put( (ind, data.rank) )
+            self.data_set[i].migratorReceivingQueue.push( (ind, data.rank) )
 
         pop.clear()
 
         self.data_set[0].migratorBarrier.wait()
 
         while not data.migratorReceivingQueue.empty():
-            ind, __from = data.migratorReceivingQueue.get()
+            ind, __from = data.migratorReceivingQueue.pop()
             pop.append( ind )
-            data.migratorReceivingQueue.task_done()
 
     def lastCall(self, __pop, __data):
         self.data_set[0].migratorBarrier.abort()
@@ -551,21 +566,22 @@ class Algo(IslandOperator):
             self.data_set[0].toContinue &= self.checkpoint(pop)
             if not self.data_set[0].toContinue: break
 
-            logger.critical("%d %s %d %s" % (data.rank, data.proba, pop.size(),
-                                             pop.best_element().fitness() if pop.best_element() else None))
+            logger.info("%d %s %d %s" % (data.rank, data.proba, pop.size(),
+                                         pop.best_element().fitness() if pop.best_element() else None))
 
             try:
                 for step in self.steps:
+                    # logger.debug("%d %s" % (data.rank, step))
                     step(pop, data)
             except BrokenBarrierError as e:
-                logger.warning("%d %s" % (data.rank, "broken barrier"))
+                logger.error("%d %s" % (data.rank, "broken barrier"))
                 break
 
         for step in self.steps:
             step.lastCall(pop, data)
 
-        logger.critical("%d %s %d %f" % (data.rank, data.proba, pop.size(),
-                                         pop.best_element().fitness() if pop.best_element() else None))
+        logger.info("%d %s %d %s" % (data.rank, data.proba, pop.size(),
+                                     pop.best_element().fitness() if pop.best_element() else None))
 
 class InitMatrix:
     def __init__(self, randomize = False, common_value = 0.9):
@@ -612,8 +628,8 @@ def main():
     init = ZerofyInit(n)
     init_matrix = InitMatrix(False,1/N)
     __eval = OneMaxFullEval()
-    reward = Best(args.alpha,args.beta)
-    # reward = Proportional(.2,0)
+    # reward = Best(args.alpha, args.beta)
+    reward = Proportional(.2,0)
     updater = Updater(reward)
     memorizer = Memorize()
 
