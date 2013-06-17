@@ -72,7 +72,8 @@ int main (int argc, char *argv[])
 
     bool sync = parser.createParam(bool(true), "sync", "sync", 0, "Islands Model").value();
     bool smp = parser.createParam(bool(true), "smp", "smp", 0, "Islands Model").value();
-    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)"    // a
+    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)", 0, "Islands Model").value();
+    // a
     double alphaP = parser.createParam(double(0.2), "alpha", "Alpha Probability", 'a', "Islands Model").value();
     double alphaF = parser.createParam(double(0.01), "alphaF", "Alpha Fitness", 'A', "Islands Model").value();
     // b
