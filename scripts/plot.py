@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--no-marker', action='store_false', help='dont trace markers')
     parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
     parser.add_argument('--affinity', '-A', help='plot the defined file', type=int, default=1)
+    parser.add_argument('--timeunit', '-t', choices=[x for x in results_mixer.timeunits.keys()], help='select a time unit', default='seconds')
     args = parser()
 
     logger.debug(args)
@@ -89,7 +90,7 @@ def main():
             values = [float(info[args.field]) for info in infos]
 
             if args.xfield:
-                values = (values, max([float(info[args.xfield]) for info in infos]))
+                values = (values, [max([float(info[args.xfield]) for info in infos])]*args.islands)
 
             if args.sumrank:
                 # trace field and sumrank
@@ -107,6 +108,7 @@ def main():
                 # trace field
 
                 record = values
+                print(record)
 
                 # END trace field
 
@@ -136,7 +138,7 @@ def main():
         pl.xticks(x, np.arange(xn)[::int(DIV)])
         pl.xlim((0,XN))
     else:
-        if args.xfield != 'time':
+        if args.xfield:
             pl.plot([x[1] for x in selectedData], [x[0] for x in selectedData])
         else:
             pl.plot(selectedData)
