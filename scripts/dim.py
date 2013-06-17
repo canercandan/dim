@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2
@@ -20,7 +18,6 @@
 
 from parser import Parser
 from threading import Thread, Barrier, BrokenBarrierError, Lock
-# from queue import Queue, Empty
 import random, sys
 import logging
 
@@ -162,14 +159,6 @@ class FullEval:
 class PartialEval:
     def __call__(self, ind, index): pass
 
-class OneMaxFullEval(FullEval):
-    def __call__(self, ind):
-        ind.set_fitness(sum(ind))
-
-class OneMaxIncrEval(PartialEval):
-    def __call__(self, ind, index):
-        ind.set_fitness( ind.fitness() + (-1 if ind[index] else 1) )
-
 class Statistic(MutableValue):
     def addTo(self, cp):
         cp.stats += [self]
@@ -296,49 +285,6 @@ class SequentialOp(OpContainer):
 class MonOp:
     def __call__(self, ind): pass
     def __str__(self): pass
-
-class DetBitFlip(MonOp):
-    def __init__(self, nbits=1):
-        self.nbits = nbits
-
-    def __str__(self): return '%s(%d)' % (self.__class__.__name__, self.nbits)
-
-    def __call__(self, ind):
-        if not ind.size(): return
-        if ind.size() < self.nbits:
-            raise ValueError('nbits is smaller than the size of the solution')
-
-        selected = []
-
-        for i in range(self.nbits):
-            tmp = None
-
-            while True:
-                tmp = random.randint(0, ind.size()-1)
-                if tmp not in selected:
-                    break
-
-            selected += [tmp]
-
-        for i in selected:
-            ind[i] = not ind[i]
-
-class BitMutation(MonOp):
-    def __init__(self, rate=0.01, normalize=False):
-        self.rate = rate
-        self.normalize = normalize
-
-    def __str__(self): return 'BitMutation(%s,%s)' % (self.rate, self.normalize)
-
-    def __call__(self, ind):
-        p = self.rate / ind.size() if self.normalize else self.rate
-        for i in range(ind.size()):
-            if random.random() < p:
-                ind[i] = not ind[i]
-
-class OneBitFlip(DetBitFlip):
-    def __init__(self):
-        DetBitFlip.__init__(self, 1)
 
 class Queue(list):
     def __init__(self, values=None):
@@ -607,81 +553,3 @@ class InitMatrix:
                         matrix[i][j] = round(matrix[i][j] / sum * (1 - self.common_value), 3)
                     else:
                         matrix[i][j] = 0
-
-def main():
-    parser = Parser(description='The python version of the Dynamic Islands Model.', verbose='error')
-    parser.add_argument('--nislands', '-N', help='number of islands', type=int, default=4)
-    parser.add_argument('--popSize', '-P', help='size of population', type=int, default=100)
-    parser.add_argument('--chromSize', '-n', help='size of problem', type=int, default=1000)
-    parser.add_argument('--targetFitness', '-T', help='optimum to reach (0: disable)', type=int)
-    parser.add_argument('--maxGen', '-G', help='maximum number of generation (0: disable)', type=int, default=0)
-    parser.add_argument('--alpha', '-a', help='the alpha parameter of the learning process', type=float, default=.2)
-    parser.add_argument('--beta', '-b', help='the beta parameter of the learning process', type=float, default=.01)
-    args = parser()
-
-    N = args.nislands
-    P = args.popSize
-    n = args.chromSize
-    T = args.targetFitness
-    G = args.maxGen
-
-    init = ZerofyInit(n)
-    init_matrix = InitMatrix(False,1/N)
-    __eval = OneMaxFullEval()
-    # reward = Best(args.alpha, args.beta)
-    reward = Proportional(.2,0)
-    updater = Updater(reward)
-    memorizer = Memorize()
-
-    matrix = []
-    for i in range(N):
-        matrix += [[]]
-        for j in range(N):
-            matrix[-1] += [0]
-    init_matrix(matrix)
-
-    pop_set = []
-    data_set = []
-
-    for i in range(N):
-        pop_set += [Population(P,init)]
-        data_set += [IslandData(i,N)]
-
-    islands = []
-    for i in range(N):
-        pop = pop_set[i]
-        data = data_set[i]
-
-        data.proba = matrix[i].copy()
-        apply(pop, __eval)
-
-        mon = None
-        if data.rank == 0:
-            mon = BitMutation(1, True)
-        else:
-            mon = DetBitFlip( (data.rank-1)*2+1 )
-
-        evolver = Evolver(__eval, mon)
-        feedbacker = Feedbacker(pop_set, data_set)
-        migrator = Migrator(pop_set, data_set)
-        fit = Fit(T if T else n)
-        cont = Combined(fit)
-        if G:
-            maxgen = MaxGen(G)
-            cont.add(maxgen)
-        checkpoint = Checkpoint(cont)
-        island = Algo(evolver, feedbacker, updater, memorizer, migrator, checkpoint, pop_set, data_set)
-        t = Thread(target=island, args=[pop,data])
-        islands += [t]
-
-    for island in islands:
-        island.start()
-
-    for island in islands:
-        island.join()
-
-# when executed, just run main():
-if __name__ == '__main__':
-    logger.debug('### script started ###')
-    main()
-    logger.debug('### script ended ###')
