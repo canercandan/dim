@@ -123,13 +123,13 @@ namespace dim
 				       DO_MEASURE(
 
 						  DO_MEASURE( DO_MEASURE(_evolve(pop, data), measureFiles, "evolve");
-							      DO_MEASURE(_feedback(pop, data), measureFiles, "feedback");
+							      DO_MEASURE(_feedback(pop, __data), measureFiles, "feedback");
 							      DO_MEASURE(_update(pop, data), measureFiles, "update");
 							      DO_MEASURE(_memorize(pop, data), measureFiles, "memorize");
-							      DO_MEASURE(_migrate(pop, data), measureFiles, "migrate");
+							      DO_MEASURE(_migrate(pop, __data), measureFiles, "migrate");
 							      , measureFiles, "gen" );
 
-						  __data.bar.wait();
+						  // std::cout << data.migratorReceivingQueue.size() << std::endl; std::cout.flush();
 
 						  , measureFiles, "gen_sync" );
 				   }

@@ -86,11 +86,13 @@ namespace dim
 		    	    _islandData[i].feedbackerReceivingQueue.push( effectiveness, this->rank() );
 		    	}
 
+		    __data.bar.wait();
+
 		    /********************
 		     * Update feedbacks *
 		     ********************/
 
-		    for (int k = 0; k < this->size() && !data.feedbackerReceivingQueue.empty(); ++k)
+		    while ( !data.feedbackerReceivingQueue.empty() )
 		    	{
 			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
 			    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);

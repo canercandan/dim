@@ -56,6 +56,13 @@
 # define DO_MEASURE(op, measureFiles, name) { op; }
 #endif // !MEASURE
 
+#undef MOVE
+#if __cplusplus > 199711L
+# define MOVE(var) std::move(var)
+#else
+# define MOVE(var) var
+#endif
+
 namespace dim
 {
     namespace migrator
@@ -147,11 +154,7 @@ namespace dim
 								 _of << ind.getLastFitnesses().size() << " ";
 #endif // !TRACE
 
-#if __cplusplus > 199711L
-								 _islandData[j].migratorReceivingQueue.push(std::move(ind), this->rank());
-#else
-								 _islandData[j].migratorReceivingQueue.push(ind, this->rank());
-#endif
+								 _islandData[j].migratorReceivingQueue.push(MOVE(ind), this->rank());
 
 								 , _measureFiles, "migrate_push");
 						  }
@@ -163,6 +166,8 @@ namespace dim
 					  }
 					  , _measureFiles, "migrate_send" );
 
+			       __data.bar.wait();
+
 			       /*********************
 				* Update population *
 				*********************/
@@ -170,24 +175,16 @@ namespace dim
 			       DO_MEASURE(
 					  size_t inputSize = 0;
 
-					  size_t size = data.migratorReceivingQueue.size();
-					  for (int k = 0; k < size; ++k)
+					  // size_t size = data.migratorReceivingQueue.size();
+					  // for (int k = 0; k < size; ++k);
+					  while ( !data.migratorReceivingQueue.empty() )
 					      {
-						  // This special pop function is waiting while the queue of individual is empty.
-						  AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop(true);
-#if __cplusplus > 199711L
-						  AUTO(EOT) ind = std::move(std_or_boost::get<0>(imm));
-#else
-						  AUTO(EOT) ind = std_or_boost::get<0>(imm);
-#endif
+						  AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<EOT, double, size_t>))) imm = data.migratorReceivingQueue.pop();
+						  AUTO(EOT) ind = MOVE(std_or_boost::get<0>(imm));
 						  AUTO(double) time = std_or_boost::get<1>(imm);
 
 						  ind.receivedTime = time;
-#if __cplusplus > 199711L
-						  pop.push_back( std::move(ind) );
-#else
-						  pop.push_back( ind );
-#endif
+						  pop.push_back( MOVE(ind) );
 						  ++inputSize;
 					      }
 

@@ -22,6 +22,13 @@
 
 #include "Base.h"
 
+#undef MOVE
+#if __cplusplus > 199711L
+# define MOVE(var) std::move(var)
+#else
+# define MOVE(var) var
+#endif
+
 namespace dim
 {
     namespace evolver
@@ -34,14 +41,9 @@ namespace dim
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
 	    {
-#if __cplusplus > 199711L
-		for (auto &ind : pop)
-		    {
-#else
 		for (size_t i = 0; i < pop.size(); ++i)
 		    {
 			EOT& ind = pop[i];
-#endif
 
 			EOT candidate = ind;
 
@@ -56,18 +58,8 @@ namespace dim
 
 			if ( candidate.fitness() > ind.fitness() )
 			    {
-#if __cplusplus > 199711L
-				ind = std::move(candidate);
-#else
-				ind = candidate;
-#endif
+				ind = MOVE(candidate);
 			    }
-
-			// typename EOT::Fitness lastfitness = ind.fitness();
-			// _op(ind);
-			// if (_invalidate) { ind.invalidate(); }
-			// _eval(ind);
-			// if (ind.fitness() <= lastfitness) { ind.fitness( lastfitness ); }
 		    }
 	    }
 
