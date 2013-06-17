@@ -74,7 +74,7 @@ class OneBitFlip(DetBitFlip):
 logger = dim.logging.getLogger("dim")
 
 def main():
-    parser = dim.Parser(description='The python version of the Dynamic Islands Model.', verbose='error')
+    parser = dim.Parser(description='The python version of the Dynamic Islands Model for OneMax problem.', verbose='error')
     parser.add_argument('--nislands', '-N', help='number of islands', type=int, default=4)
     parser.add_argument('--popSize', '-P', help='size of population', type=int, default=100)
     parser.add_argument('--chromSize', '-n', help='size of problem', type=int, default=1000)
@@ -82,6 +82,9 @@ def main():
     parser.add_argument('--maxGen', '-G', help='maximum number of generation (0: disable)', type=int, default=0)
     parser.add_argument('--alpha', '-a', help='the alpha parameter of the learning process', type=float, default=.2)
     parser.add_argument('--beta', '-b', help='the beta parameter of the learning process', type=float, default=.01)
+    parser.add_argument('--strategy', '-S', choices=['best', 'avg'], help='set a strategy of rewarding', default='best')
+    parser.add_argument('--best', '-B', action='store_const', const='best', dest='strategy', help='best strategy (see -S)')
+    parser.add_argument('--avg', '-A', action='store_const', const='avg', dest='strategy', help='average strategy (see -S)')
     args = parser()
 
     N = args.nislands
@@ -93,8 +96,13 @@ def main():
     init = dim.ZerofyInit(n)
     init_matrix = dim.InitMatrix(False,1/N)
     __eval = OneMaxFullEval()
-    # reward = dim.Best(args.alpha, args.beta)
-    reward = dim.Proportional(.2,0)
+
+    reward = None
+    if args.strategy == 'avg':
+        reward = dim.Proportional(args.alpha,args.beta)
+    else:
+        reward = dim.Best(args.alpha, args.beta)
+
     updater = dim.Updater(reward)
     memorizer = dim.Memorize()
 
