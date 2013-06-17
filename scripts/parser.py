@@ -60,11 +60,10 @@ class Parser(argparse.ArgumentParser):
                 format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                 filename=args.output, filemode='a'
                 )
-            return
-
-        logging.basicConfig(
-            level=self.levels.get(args.verbose, logging.NOTSET),
-            format='%(name)-12s: %(levelname)-8s %(message)s'
+        else:
+            logging.basicConfig(
+                level=self.levels.get(args.verbose, logging.NOTSET),
+                format='%(name)-12s: %(levelname)-8s %(message)s'
             )
 
         return args
