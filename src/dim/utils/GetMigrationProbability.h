@@ -62,6 +62,25 @@ namespace dim
 	    const std::vector<unsigned>& _vecProba;
 	};
 
+	template <typename EOT>
+	class GetFeedbacks : public Updater, public eoValueParam<double>
+	{
+	public:
+	    typedef typename EOT::Fitness Fitness;
+
+	    GetFeedbacks( const std::vector<Fitness>& vec, const size_t isl, std::string label = "Value" )
+		: eoValueParam<double>(0, label), _vec(vec), _isl(isl) {}
+
+	    virtual void operator()()
+	    {
+		this->value() = _vec[_isl];
+	    }
+
+	private:
+	    const std::vector<Fitness>& _vec;
+	    const size_t _isl;
+	};
+
     } // !utils
 } // !dim
 
