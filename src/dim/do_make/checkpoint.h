@@ -153,6 +153,15 @@ namespace dim
 		if (printBest) { stdMonitor->add(migProbaRet); }
 		// END TODO
 
+		for (size_t i = 0; i < data.feedbacks.size(); ++i)
+		    {
+			ss.str(""); ss << "F" << RANK << "to" << i;
+			utils::GetFeedbacks<EOT>& feedbacks = _state.storeFunctor( new utils::GetFeedbacks<EOT>( data.feedbacks, i, ss.str() ) );
+			checkpoint.add(feedbacks);
+			fileMonitor.add(feedbacks);
+			if (printBest) { stdMonitor->add(feedbacks); }
+		    }
+
 		for (size_t i = 0; i < ALL; ++i)
 		    {
 			ss.str(""); ss << "nb_migrants_isl" << RANK << "to" << i;
