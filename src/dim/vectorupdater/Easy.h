@@ -52,6 +52,33 @@ namespace dim
 	namespace std_or_boost = boost;
 #endif
 
+	template <typename T>
+	T bounded_sum(T x, T y) { return std::max(x, T(0)) + std::max(y, T(0)); }
+
+	template <typename T>
+	std::vector<T> normalize(std::vector<T> vec, T high = 1000.)
+	{
+	    T sum = std::accumulate(vec.begin(), vec.end(), 0.);
+	    T cumul = 0;
+	    for (size_t i = 0; i < vec.size()-1; ++i)
+		{
+		    vec[i] = sum ? vec[i] / sum * high : 0;
+		    cumul += vec[i];
+		}
+	    vec.back() = high-cumul;
+	    return vec;
+	}
+
+	std::vector<double> random_vector(unsigned size)
+	{
+	    std::vector<double> epsilon(size);
+	    for (size_t i = 0; i < size; ++i)
+		{
+		    epsilon[i] = rng.rand() % 1000;
+		}
+	    return epsilon;
+	}
+
 	template <typename EOT>
 	class Reward : public core::IslandOperator<EOT>
 	{
@@ -74,36 +101,8 @@ namespace dim
 	    {
 		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >)))& S = data.feedbacks;
 
-		int best = -1;
-		typename EOT::Fitness max = -1;
-		for (size_t i = 0; i < this->size(); ++i)
-		    {
-			if (S[i] > max)
-			    {
-				best = i;
-				max = S[i];
-			    }
-		    }
-
-		// computation of epsilon vector (norm is 1)
-		std::vector< double > epsilon( this->size() );
-
-		{
-		    unsigned sum = 0;
-		    for (size_t i = 0; i < epsilon.size(); ++i)
-			{
-			    epsilon[i] = rng.rand() % 1000;
-			    sum += epsilon[i];
-			}
-
-		    unsigned sum_sum = 0;
-		    for (size_t i = 0; i < epsilon.size()-1; ++i)
-			{
-			    epsilon[i] = sum ? epsilon[i] / sum * 1000 : 0;
-			    sum_sum += epsilon[i];
-			}
-		    epsilon.back() = 1000-sum_sum;
-		}
+		int best = std::distance(S.begin(), std::max_element(S.begin(), S.end()));
+		std::vector< double > epsilon = normalize(random_vector(this->size()));
 
 		unsigned sum = 0;
 		for ( size_t i = 0; i < this->size()-1; ++i )
@@ -112,16 +111,13 @@ namespace dim
 			    {
 				data.proba[i] = (1-_beta)*data.proba[i] + _beta*epsilon[i];
 			    }
+			else if (best == i)
+			    {
+				data.proba[i] = (1-_beta)*((1-_alpha)*data.proba[i] + _alpha*1000) + _beta*epsilon[i];
+			    }
 			else
 			    {
-				if (i == best)
-				    {
-					data.proba[i] = (1-_beta)*((1-_alpha)*data.proba[i] + _alpha*1000) + _beta*epsilon[i];
-				    }
-				else
-				    {
-					data.proba[i] = (1-_beta)*((1-_alpha)*data.proba[i]) + _beta*epsilon[i];
-				    }
+				data.proba[i] = (1-_beta)*((1-_alpha)*data.proba[i]) + _beta*epsilon[i];
 			    }
 
 			sum += data.proba[i];
@@ -144,12 +140,6 @@ namespace dim
 
 	    virtual ~Proportional() {}
 
-	    static inline typename EOT::Fitness bounded_sum(typename EOT::Fitness x,
-							    typename EOT::Fitness y)
-	    {
-		return std::max(x, typename EOT::Fitness(0)) + std::max(y, typename EOT::Fitness(0));
-	    }
-
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
 		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >)))& S = data.feedbacks;
@@ -162,43 +152,9 @@ namespace dim
 			R[i] = T[i] >= tau ? S[i] : 0;
 		    }
 
-		typename EOT::Fitness sum_fits = std::accumulate(R.begin(), R.end(), 0., bounded_sum );
-		if (sum_fits)
-		    {
-			unsigned sum_sum = 0;
-			for (size_t i = 0; i < R.size()-1; ++i)
-			    {
-				R[i] = R[i] > 0 ? R[i] / sum_fits * 1000 : 0;
-				sum_sum += R[i];
-			    }
-			R.back() = 1000-sum_sum;
-		    }
-		else
-		    {
-			tau = std_or_boost::chrono::system_clock::now();
-			eo::log << eo::warnings << "S is null" << std::endl; eo::log.flush();
-			return;
-		    }
+		R = normalize(R);
 
-		// computation of epsilon vector (norm is 1)
-		std::vector< double > epsilon( this->size() );
-
-		{
-		    unsigned sum = 0;
-		    for (size_t i = 0; i < epsilon.size(); ++i)
-			{
-			    epsilon[i] = rng.rand() % 1000;
-			    sum += epsilon[i];
-			}
-
-		    unsigned sum_sum = 0;
-		    for (size_t i = 0; i < epsilon.size()-1; ++i)
-			{
-			    epsilon[i] = sum ? epsilon[i] / sum * 1000 : 0;
-			    sum_sum += epsilon[i];
-			}
-		    epsilon.back() = 1000-sum_sum;
-		}
+		std::vector< double > epsilon = normalize(random_vector(this->size()));
 
 		AUTO(double) elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>( std_or_boost::chrono::system_clock::now() - tau ).count() / 1000.; // \DELTA{t}
 
