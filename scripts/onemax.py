@@ -54,6 +54,8 @@ class DetBitFlip(dim.MonOp):
         for i in selected:
             ind[i] = not ind[i]
 
+        return True
+
 class BitMutation(dim.MonOp):
     def __init__(self, rate=0.01, normalize=False):
         self.rate = rate
@@ -63,9 +65,15 @@ class BitMutation(dim.MonOp):
 
     def __call__(self, ind):
         p = self.rate / ind.size() if self.normalize else self.rate
+        changed_something = False
+
         for i in range(ind.size()):
-            if dim.random.random() < p:
+            r = dim.random.random()
+            if r < p:
                 ind[i] = not ind[i]
+                changed_something = True
+
+        return changed_something
 
 class OneBitFlip(DetBitFlip):
     def __init__(self):
@@ -81,10 +89,12 @@ def main():
     parser.add_argument('--targetFitness', '-T', help='optimum to reach (0: disable)', type=int)
     parser.add_argument('--maxGen', '-G', help='maximum number of generation (0: disable)', type=int, default=0)
     parser.add_argument('--alpha', '-a', help='the alpha parameter of the learning process', type=float, default=.2)
+    parser.add_argument('--alphaF', '-A', help='the alpha parameter of the learning process', type=float, default=.01)
     parser.add_argument('--beta', '-b', help='the beta parameter of the learning process', type=float, default=.01)
-    parser.add_argument('--strategy', '-S', choices=['best', 'avg'], help='set a strategy of rewarding', default='best')
-    parser.add_argument('--best', '-B', action='store_const', const='best', dest='strategy', help='best strategy (see -S)')
-    parser.add_argument('--avg', '-A', action='store_const', const='avg', dest='strategy', help='average strategy (see -S)')
+    parser.add_argument('--strategy', '-S', help='set a strategy of rewarding', default=dim.Best)
+    parser.add_argument('--best', '-B', action='store_const', const=dim.Best, dest='strategy', help='best strategy (see -S)')
+    parser.add_argument('--avg', '-M', action='store_const', const=dim.Average, dest='strategy', help='average strategy (see -S)')
+    parser.add_argument('--stepTimer', help='step of time used for printing results to files', type=int, default=0)
     args = parser()
 
     N = args.nislands
@@ -96,13 +106,7 @@ def main():
     init = dim.ZerofyInit(n)
     init_matrix = dim.InitMatrix(False,1/N)
     __eval = OneMaxFullEval()
-
-    reward = None
-    if args.strategy == 'avg':
-        reward = dim.Proportional(args.alpha,args.beta)
-    else:
-        reward = dim.Best(args.alpha, args.beta)
-
+    reward = args.strategy(args.alpha, args.beta)
     updater = dim.Updater(reward)
     memorizer = dim.Memorize()
 
@@ -129,20 +133,62 @@ def main():
         dim.apply(pop, __eval)
 
         mon = None
-        if data.rank == 0:
-            mon = BitMutation(1, True)
-        else:
-            mon = DetBitFlip( (data.rank-1)*2+1 )
+        # if data.rank == 0:
+        #     mon = BitMutation(1, True)
+        # else:
+        #     mon = DetBitFlip( (data.rank-1)*2+1 )
+
+        # asso = [(BitMutation, 1, True),
+        #         (DetBitFlip, 1),
+        #         (DetBitFlip, 3),
+        #         (DetBitFlip, 5),]
+
+        # asso = [
+        #     (DetBitFlip, 1),
+        #     (DetBitFlip, 3),
+        #     (DetBitFlip, 5),
+        #     (BitMutation, 1, True),
+        # ]
+
+        # asso = [
+        #     (DetBitFlip, 5),
+        #     (DetBitFlip, 3),
+        #     (DetBitFlip, 1),
+        #     (BitMutation, 1, True),
+        # ]
+
+        asso = [
+            (DetBitFlip, 1),
+            (BitMutation, 1, True),
+            (DetBitFlip, 3),
+            (DetBitFlip, 5),
+        ]
+
+        assert len(asso) == args.nislands
+
+        mon = asso[data.rank][0](*asso[data.rank][1:])
+
+        print(i, mon)
 
         evolver = dim.Evolver(__eval, mon)
-        feedbacker = dim.Feedbacker(pop_set, data_set)
+        feedbacker = dim.Feedbacker(pop_set, data_set, args.alphaF)
         migrator = dim.Migrator(pop_set, data_set)
+
         fit = dim.Fit(T if T else n)
         cont = dim.Combined(fit)
+        checkpoint = dim.Checkpoint(cont)
+
         if G:
             maxgen = dim.MaxGen(G)
             cont.add(maxgen)
-        checkpoint = dim.Checkpoint(cont)
+
+        monitor = dim.PrintMonitor( out=open('result_monitor_%d' % data.rank, 'w'), stepTimer=args.stepTimer )
+        monitor.addTo(checkpoint)
+
+        for stat in [dim.IslandRank(), dim.Generation(), dim.PopSize(), dim.AverageFitness(), dim.BestFitness(), dim.Probabilities(), dim.Feedbacks()]:
+            stat.addTo(checkpoint)
+            monitor.add(stat)
+
         island = dim.Algo(evolver, feedbacker, updater, memorizer,
                           migrator, checkpoint, pop_set, data_set)
         t = dim.Thread(target=island, args=[pop,data])
