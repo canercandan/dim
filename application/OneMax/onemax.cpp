@@ -87,11 +87,11 @@ int main (int argc, char *argv[])
     bool feedback = parser.createParam(bool(true), "feedback", "feedback", 'F', "Islands Model").value();
     bool migrate = parser.createParam(bool(true), "migrate", "migrate", 'M', "Islands Model").value();
     unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
-    unsigned stepTimer = parser.createParam(unsigned(1000), "stepTimer", "stepTimer", 0, "Islands Model").value();
+    unsigned stepTimer = parser.createParam(unsigned(0), "stepTimer", "stepTimer (milliseconds)", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
-    std::string rewardStrategy = parser.createParam(std::string("avg"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
+    std::string rewardStrategy = parser.createParam(std::string("best"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
 
     /*********************************
      * Déclaration des composants EO *
