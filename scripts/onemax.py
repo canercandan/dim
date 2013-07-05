@@ -45,7 +45,7 @@ class DetBitFlip(dim.MonOp):
             tmp = None
 
             while True:
-                tmp = dim.random.randint(0, ind.size()-1)
+                tmp = dim.random.randint(0, ind.size())
                 if tmp not in selected:
                     break
 
@@ -86,6 +86,7 @@ def main():
     parser.add_argument('--nislands', '-N', help='number of islands', type=int, default=4)
     parser.add_argument('--popSize', '-P', help='size of population', type=int, default=100)
     parser.add_argument('--chromSize', '-n', help='size of problem', type=int, default=1000)
+    parser.add_argument('--definedChromSize', help='size of problem set to True', type=int, default=0)
     parser.add_argument('--targetFitness', '-T', help='optimum to reach (0: disable)', type=int)
     parser.add_argument('--maxGen', '-G', help='maximum number of generation (0: disable)', type=int, default=0)
     parser.add_argument('--alpha', '-a', help='the alpha parameter of the learning process', type=float, default=.2)
@@ -95,7 +96,12 @@ def main():
     parser.add_argument('--best', '-B', action='store_const', const=dim.Best, dest='strategy', help='best strategy (see -S)')
     parser.add_argument('--avg', '-M', action='store_const', const=dim.Average, dest='strategy', help='average strategy (see -S)')
     parser.add_argument('--stepTimer', help='step of time used for printing results to files', type=int, default=0)
+    parser.add_argument('--seed', help='set the seed value for the generator of pseudo-random numbers', type=int, default=0)
     args = parser()
+
+    if args.seed:
+        dim.random.seed(args.seed)
+        print("seed:", args.seed)
 
     N = args.nislands
     P = args.popSize
@@ -103,18 +109,15 @@ def main():
     T = args.targetFitness
     G = args.maxGen
 
-    init = dim.ZerofyInit(n)
+    # init = dim.ZerofyInit(n)
+    init = dim.DefinedInit(n,args.definedChromSize)
     init_matrix = dim.InitMatrix(False,1/N)
     __eval = OneMaxFullEval()
     reward = args.strategy(args.alpha, args.beta)
     updater = dim.Updater(reward)
     memorizer = dim.Memorize()
 
-    matrix = []
-    for i in range(N):
-        matrix += [[]]
-        for j in range(N):
-            matrix[-1] += [0]
+    matrix = dim.zeros( (N,N) )
     init_matrix(matrix)
 
     pop_set = []
@@ -132,7 +135,7 @@ def main():
         data.proba = matrix[i].copy()
         dim.apply(pop, __eval)
 
-        mon = None
+        # mon = None
         # if data.rank == 0:
         #     mon = BitMutation(1, True)
         # else:
@@ -143,26 +146,10 @@ def main():
         #         (DetBitFlip, 3),
         #         (DetBitFlip, 5),]
 
-        # asso = [
-        #     (DetBitFlip, 1),
-        #     (DetBitFlip, 3),
-        #     (DetBitFlip, 5),
-        #     (BitMutation, 1, True),
-        # ]
-
-        # asso = [
-        #     (DetBitFlip, 5),
-        #     (DetBitFlip, 3),
-        #     (DetBitFlip, 1),
-        #     (BitMutation, 1, True),
-        # ]
-
-        asso = [
-            (DetBitFlip, 1),
-            (BitMutation, 1, True),
-            (DetBitFlip, 3),
-            (DetBitFlip, 5),
-        ]
+        asso = [(DetBitFlip, 1),
+                (DetBitFlip, 3),
+                (DetBitFlip, 5),
+                (DetBitFlip, 7),]
 
         assert len(asso) == args.nislands
 
@@ -185,7 +172,19 @@ def main():
         monitor = dim.PrintMonitor( out=open('result_monitor_%d' % data.rank, 'w'), stepTimer=args.stepTimer )
         monitor.addTo(checkpoint)
 
-        for stat in [dim.IslandRank(), dim.Generation(), dim.PopSize(), dim.AverageFitness(), dim.BestFitness(), dim.Probabilities(), dim.Feedbacks()]:
+        for stat in [dim.IslandRank(),
+                     dim.ElapsedTime(),
+                     dim.ElapsedTimeBetweenGenerations(),
+                     dim.Generation(),
+                     dim.PopSize(),
+                     dim.AverageFitness(),
+                     dim.BestFitness(),
+                     dim.Probabilities(),
+                     dim.CommingProbabilities(pop_set, data_set),
+                     # dim.SumOfGoingProbabilities(),
+                     # dim.SumOfCommingProbabilities(pop_set, data_set),
+                     # dim.Feedbacks(),
+        ]:
             stat.addTo(checkpoint)
             monitor.add(stat)
 
