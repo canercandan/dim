@@ -25,13 +25,150 @@ This module supplies several classes among problem representations, population, 
 from parser import Parser
 from threading import Thread, Barrier, BrokenBarrierError, Lock
 import numpy as np
-import random, sys
-import logging
+from numpy import *
+import logging, sys, functools, inspect
+from datetime import datetime as dt
 
 logger = logging.getLogger("dim")
 
+class DecoratorBase:
+    """Here an easy-to-use decorator class where you can easily set your
+    own decorator by only creating a derivated class from this base
+    class.
+
+    Example:
+    >>> class Shortcuts(DecoratorBase):
+    ...         def __call__(self, *args, **kwargs):
+    ...                 data, = args
+    ...                 kwargs.update({'a': data.the_first_variable,
+    ...                                'b': data.the_second_variable,
+    ...                                'c': data.the_third_variable})
+    ...                 self.fn(*args, **kwargs)
+
+    >>> class Data:
+    ...         def __init__(self):
+    ...                 self.the_first_variable = 1
+    ...                 self.the_second_variable = 2
+    ...                 self.the_third_variable = 3
+
+    >>> @Shortcuts
+    ... def foo(data,a,b,c): print(a,b,c)
+
+    >>> data = Data()
+    >>> foo(data)
+    1 2 3
+    """
+
+    def __init__(self, fn): self.fn = fn
+    def __get__(self, obj, type=None): return functools.partial(self, obj)
+
+    def __call__(self, *args, **kwargs):
+        print("Entering", self.fn.__name__)
+        result = self.fn(*args, **kwargs)
+        print("Exited", self.fn.__name__)
+        return result
+
+def isinstance2(obj, *types):
+    """Another version of isinstance that takes in account NoneType value.
+
+    Example:
+    >>> try: isinstance(None,None)
+    ... except TypeError as e: print(e)
+    isinstance() arg 2 must be a type or tuple of types
+    >>> isinstance2(None,None)
+    True
+    >>> isinstance2(None,int)
+    False
+    >>> isinstance2(None,(None))
+    True
+    >>> isinstance2(None,(int,bool,None))
+    True
+    >>> isinstance2(None,(int,bool))
+    False
+    >>> isinstance2(None,(None,int,bool))
+    True
+    >>> isinstance2(42,(None,int,bool))
+    True
+    >>> isinstance2(42.,(None,int,bool))
+    False
+    >>> isinstance2(42.,(None,int,bool,float))
+    True
+    """
+
+    # whether types argument is passed as tuple
+    if types.__class__ == tuple and \
+       len(types) == 1 and \
+       types[0].__class__ == tuple:
+        types, = types
+
+    return (obj if obj is None else obj.__class__) in types
+
+def accepts(*types):
+    """Decorator used to enforce the use of a set of types of arguments.
+
+    Example:
+    >>> @accepts(int)
+    ... def foo(x): pass
+
+    >>> foo(1)
+
+    >>> try: foo(1.)
+    ... except AssertionError as e: print(e)
+    arg x = 1.0 (<class 'float'>) does not match <class 'int'>
+
+    >>> @accepts((int,float))
+    ... def foo2(x): pass
+
+    >>> foo2(1.)
+    """
+
+    class _Accepts(DecoratorBase):
+        def __init__(self, fn):
+            DecoratorBase.__init__(self, fn)
+            self.fn_args = inspect.getargspec(fn).args
+            assert len(types) == len(self.fn_args), "length of types are different from args (%d <> %d) (%s <> %s)" % (len(types), len(self.fn_args), types, self.fn_args)
+
+        def __call__(self, *args, **kwargs):
+            for f, a, t in zip(self.fn_args, args, types):
+                if t == 'skip': continue
+                assert isinstance2(a,t), "arg %s = %r (%s) does not match %s" % (f,a,a.__class__,t)
+            return self.fn(*args, **kwargs)
+
+    return _Accepts
+
+def returns(*rtype):
+    """Decorator used to enforce the use of a set of types of arguments.
+
+    Example:
+    >>> @returns(int)
+    ... def foo(x): return x
+
+    >>> foo(42)
+    42
+
+    >>> try: foo(42.)
+    ... except AssertionError as e: print(e)
+    return value 42.0 (<class 'float'>) does not match (<class 'int'>,)
+
+    >>> @returns(int,None)
+    ... @accepts((float,int,None))
+    ... def foo(x): return x
+
+    >>> foo(42)
+    42
+    >>> foo(None)
+    """
+
+    class _Returns(DecoratorBase):
+        def __call__(self, *args, **kwargs):
+            result = self.fn(*args, **kwargs)
+            assert isinstance2(result,*rtype), "return value %r (%s) does not match %s" % (result,result.__class__,rtype)
+            return result
+
+    return _Returns
+
 class MutableValue:
-    """A mutable generic value class used for Statistic classes
+    """A mutable generic value class used for Statistic classes.
 
     >>> m = MutableValue(2)
     >>> m += 1; m
@@ -57,7 +194,6 @@ class MutableValue:
     >>> m += 50
     >>> m /= 10; m
     5.0
-
     """
 
     def __init__(self, v=0): self.v = v
@@ -131,14 +267,16 @@ class Fitness:
         self.__last_fitness = other.__last_fitness
         self.__status = other.__status
 
+    @accepts('skip', (float,int,int64))
     def set_fitness(self, new_value):
         self.__last_fitness = self.__fitness
         self.__fitness = new_value
         if self.__status < 2: self.__status += 1
 
+    @returns(float,int,None,int64)
     def fitness(self): return self.__fitness
-    # def last_fitness(self): return self.__last_fitness if self.__status == 2 else self.__fitness
 
+    @returns(float,int,None,int64)
     def last_fitness(self):
         if self.__status == 1:
             return self.__fitness
@@ -163,9 +301,11 @@ class LastIsland:
     def copy_from(self, other):
         self.__last_island = other.__last_island
 
+    @accepts('skip', (int,int64))
     def set_last_island(self, new_value):
         self.__last_island = new_value
 
+    @returns(int,int64,None)
     def last_island(self): return self.__last_island
 
 class Individual(Fitness, LastIsland, list):
@@ -179,6 +319,7 @@ class Individual(Fitness, LastIsland, list):
     1 0
     """
 
+    @returns(int)
     def size(self): return len(self)
 
     def __str__(self):
@@ -196,43 +337,60 @@ class Individual(Fitness, LastIsland, list):
 class Population(list):
     """Population of Individual class.
 
-    >>> pop = Population(5, lambda ind: ind.append(False))
+    >>> pop = Population(5, lambda ind: ind.append(0))
     >>> pop.size()
     5
     >>> pop
-    [[False], [False], [False], [False], [False]]
+    [[0], [0], [0], [0], [0]]
     >>> apply(pop, lambda ind: ind.set_fitness(sum(ind)))
     >>> pop.best_element()
-    [False]
+    [0]
     >>> pop.worse_element()
-    [False]
+    [0]
     >>> pop.empty()
     False
 
     >>> pop = Population(5, lambda ind: ind.append(False))
-    >>> import random; random.seed(0)
+    >>> random.seed(0)
     >>> def eval(ind): ind.set_fitness( sum(ind ) )
     >>> def flip(ind):
-    ...         pos = random.randint(0,ind.size()-1)
+    ...         pos = random.randint(0,ind.size())
     ...         ind[pos] = not ind[pos]
     >>> apply(pop, eval)
-    >>> pop[0].fitness(), pop[0].last_fitness()
-    (0, 0)
+    >>> pop[0].fitness()
+    0
+    >>> pop[0].last_fitness()
+    0
     >>> apply(pop, flip); apply(pop, eval)
-    >>> pop[0].fitness(), pop[0].last_fitness()
-    (1, 0)
+    >>> pop[0].fitness()
+    1
+    >>> pop[0].last_fitness()
+    0
     >>> apply(pop, flip); apply(pop, eval)
-    >>> pop[0].fitness(), pop[0].last_fitness()
-    (0, 1)
+    >>> pop[0].fitness()
+    0
+    >>> pop[0].last_fitness()
+    1
+    >>> print(pop)
+    5 0 0
+    0 1 0
+    0 1 0
+    0 1 0
+    0 1 0
+    0 1 0
+    <BLANKLINE>
     """
 
-    def __init__(self, size, init):
+    def __init__(self, size=0, init=None):
         for i in range(size):
             ind = Individual()
-            init(ind)
+            if init: init(ind)
             self += [ind]
 
+    @returns(int)
     def size(self): return len(self)
+
+    @returns(bool)
     def empty(self): return len(self) <= 0
 
     def __gt__(self, other): return self.best_element()  > other.best_element()
@@ -242,6 +400,7 @@ class Population(list):
     def __eq__(self, other): return self.best_element() == other.best_element()
     def __ne__(self, other): return self.best_element() != other.best_element()
 
+    @returns((Individual,None))
     def best_element(self):
         if self.empty():
             logger.warning("Population: Empty population, when calling best_element().")
@@ -251,6 +410,7 @@ class Population(list):
             if ind > best: best = ind
         return best
 
+    @returns((Individual,None))
     def worse_element(self):
         worse = self[0]
         for ind in self:
@@ -284,33 +444,97 @@ class ZerofyInit(Init):
     >>> init = ZerofyInit(10)
     >>> init(ind)
     >>> ind
-    [False, False, False, False, False, False, False, False, False, False]
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     """
 
     def __init__(self, size): Init.__init__(self, size)
-    def __call__(self, ind): ind += [False] * self.size
+    def __call__(self, ind): ind += [0] * self.size
+
+class DefinedInit(Init):
+    """Set a defined number of bits to true and the rest to false.
+
+    >>> ind = Individual()
+    >>> init = DefinedInit(10,5)
+    >>> init(ind)
+    >>> ind
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+    """
+
+    def __init__(self, size, defined_size):
+        Init.__init__(self, size)
+        self.defined_size = defined_size
+
+    def __call__(self, ind):
+        ind += [0] * (self.size-self.defined_size) + [1] * self.defined_size
 
 class RandomInit(Init):
     """Set all the bits of solution to a random value.
 
-    >>> import random; random.seed(0)
+    >>> random.seed(0)
     >>> ind = Individual()
     >>> init = RandomInit(10)
     >>> init(ind)
     >>> ind
-    [False, False, True, False, False, False, False, False, False, True]
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1]
     """
 
     def __init__(self, size): Init.__init__(self, size)
-    def __call__(self, ind):
-        for i in range(self.size):
-            ind += [random.choice([True, False])]
+    def __call__(self, ind): ind += random.choice(2,size=self.size)
 
 class FullEval:
     def __call__(self, ind): pass
 
 class PartialEval:
     def __call__(self, ind, index): pass
+
+class IslandData:
+    """Island data representation class.
+
+    >>> data = IslandData(0, 4)
+    >>> len(data.feedbacks)
+    4
+    >>> len(data.proba)
+    4
+    >>> data.feedbacks
+    array([ 0.,  0.,  0.,  0.])
+    >>> data.proba
+    array([ 0.,  0.,  0.,  0.])
+    """
+
+    def __init__(self, rank=0, size=0):
+        self.feedbacks = repeat(0., size)
+        self.proba = repeat(0., size)
+        #feedbackerSendingQueue = Queue()
+        self.feedbackerReceivingQueue = Queue()
+        #migratorSendingQueue = Queue()
+        self.migratorReceivingQueue = Queue()
+        self.toContinue = True
+
+        self.rank = rank
+        self.size = size
+        self.feedbackerBarrier = Barrier(size)
+        self.migratorBarrier = Barrier(size)
+
+class DataShortcuts(DecoratorBase):
+    """Decorator in order to create variables used such as shortcuts.
+    """
+
+    def __call__(self, *args, **kwargs):
+        cls,pop,data = args
+        kwargs.update({
+            'F': data.feedbacks,
+            'P': data.proba,
+            'fq': data.feedbackerReceivingQueue,
+            'mq': data.migratorReceivingQueue,
+            'k': data.rank,
+            'n': data.size,
+        })
+        return self.fn(*args, **kwargs)
+
+class IslandOperator:
+    def firstCall(self, pop, data): pass
+    def __call__(self, pop, data): pass
+    def lastCall(self, pop, data): pass
 
 class Statistic(MutableValue):
     def addTo(self, cp):
@@ -323,6 +547,17 @@ class Statistic(MutableValue):
 class IslandRank(Statistic):
     def __call__(self, pop, data): self.set(data.rank)
 
+class ElapsedTime(Statistic):
+    def __init__(self): self.start = dt.now()
+    def __call__(self, pop, data): self.set(round((dt.now() - self.start).total_seconds(), 2))
+
+class ElapsedTimeBetweenGenerations(Statistic):
+    def __init__(self): self.start = dt.now()
+    def __call__(self, pop, data):
+        now = dt.now()
+        self.set(round((now - self.start).total_seconds(), 2))
+        self.start = now
+
 class Generation(Statistic):
     def __call__(self, pop, data): self += 1
 
@@ -331,25 +566,63 @@ class PopSize(Statistic):
 
 class AverageFitness(Statistic):
     def __call__(self, pop, data):
-        if pop.size(): self.set(round(np.mean([x.fitness() for x in pop]), 2))
+        if pop.size(): self.set(round(mean([x.fitness() for x in pop]), 2))
 
 class BestFitness(Statistic):
     def __call__(self, pop, data):
         if pop.size(): self.set(pop.best_element().fitness())
 
+class BestOfBestFitness(Statistic):
+    def __init__(self, pop_set, data_set):
+        self.pop_set = pop_set
+        self.data_set = data_set
+
+    def __call__(self, pop, data):
+        self.set( max([p.best_element().fitness() if p.size() else 0 for p in self.pop_set]) )
+
 class Probabilities(Statistic):
-    def __call__(self, pop, data): self.set("%s %d" % ([round(float(x)/10, 2) for x in data.proba], sum(data.proba)/10))
+    def __call__(self, pop, data): self.set( (array(data.proba)).round(1) )
+
+class CommingProbabilities(Statistic):
+    def __init__(self, pop_set, data_set):
+        self.pop_set = pop_set
+        self.data_set = data_set
+
+    def __call__(self, pop, data):
+        self.set( (sum([d.proba for d in self.data_set], axis=0)/data.size).round(1) )
+
+class SumOfGoingProbabilities(Statistic):
+    def __call__(self, pop, data): self.set( sum(data.proba) )
+
+class SumOfCommingProbabilities(Statistic):
+    def __init__(self, pop_set, data_set):
+        self.pop_set = pop_set
+        self.data_set = data_set
+
+    def __call__(self, pop, data):
+        self.set( round(sum([d.proba[data.rank] for d in self.data_set])/(data.size*100)*100, 2) )
 
 class Feedbacks(Statistic):
-    def __call__(self, pop, data): self.set([round(float(x)/10, 3) for x in data.feedbacks])
+    @DataShortcuts
+    def __call__(self, pop, data, F, P, fq, mq, k, n): self.set(F.round(2))
 
 class NormalizedFeedbacks(Statistic):
-    def __call__(self, pop, data): self.set([round(x, 3) for x in Reward.normalize(data.feedbacks.copy(), 100)])
+    def __call__(self, pop, data): F = data.feedbacks.copy(); self.set(F/F.sum()*100)
 
 class BestFeedbacks(Statistic):
+    """
+    Display only the best feedback among others.
+
+    >>> best = BestFeedbacks()
+    >>> data = IslandData()
+    >>> random.seed(0)
+    >>> data.feedbacks = random.random(4)
+    >>> best(None, data); best
+    [0 1 0 0]
+    """
+
     def __call__(self, pop, data):
-        __max = max(data.feedbacks)
-        self.set([1 if x == __max else 0 for x in data.feedbacks])
+        self.set((array(data.feedbacks == data.feedbacks.max(), dtype=int)))
 
 class Continuator:
     def addTo(self, cp):
@@ -366,6 +639,7 @@ class Combined(Continuator, list):
     def add(self, cont):
         self += [cont]
 
+    @returns(bool)
     def __call__(self, pop, data):
         for cont in self:
             if not cont(pop, data): return False
@@ -381,6 +655,7 @@ class Checkpoint(Continuator):
 
         if cont: cont.addTo(self)
 
+    @returns(bool)
     def __call__(self, pop, data):
         sorted_pop = None
         if len(self.sorted):
@@ -414,6 +689,7 @@ class MaxGen(Continuator, Statistic):
         Statistic.__init__(self)
         self.maxgen = maxgen
 
+    @returns(bool)
     def __call__(self, pop, data):
         if self < self.maxgen:
             self += 1
@@ -427,6 +703,7 @@ class Fit(Continuator):
     def __init__(self, optimum):
         self.optimum = optimum
 
+    @returns(bool)
     def __call__(self, pop, data):
         if pop.empty():
             logger.warning("Fit: Population empty")
@@ -453,8 +730,6 @@ class Updater:
     def addTo(self, cp):
         cp.updaters += [self]
         return self
-
-from datetime import datetime as dt
 
 class PrintMonitor(Monitor):
     def __init__(self, out=sys.stdout, delim="\t", stepTimer=0):
@@ -548,75 +823,39 @@ class Queue(list):
         with self.lock:
             return list.pop(self,0)
 
+    @returns(bool)
     def empty(self):
         with self.lock:
             return len(self) <= 0
 
+    @returns(int)
     def size(self):
         with self.lock:
             return len(self)
 
-class IslandData:
-    """Island data representation class.
-
-    >>> data = IslandData(0, 4)
-    >>> len(data.feedbacks)
-    4
-    >>> len(data.proba)
-    4
-    >>> data.feedbacks
-    [0, 0, 0, 0]
-    >>> data.proba
-    [0, 0, 0, 0]
-    """
-
-    def __init__(self, rank=0, size=0):
-        self.feedbacks = []
-        self.proba = []
-        #feedbackerSendingQueue = Queue()
-        self.feedbackerReceivingQueue = Queue()
-        #migratorSendingQueue = Queue()
-        self.migratorReceivingQueue = Queue()
-        self.toContinue = True
-
-        self.rank = rank
-        self.size = size
-        self.feedbackerBarrier = Barrier(size)
-        self.migratorBarrier = Barrier(size)
-
-        if self.size:
-            self.feedbacks = [0]*self.size
-            self.proba = [0]*self.size
-
-class IslandOperator:
-    def firstCall(self, pop, data): pass
-    def __call__(self, pop, data): pass
-    def lastCall(self, pop, data): pass
-
 class Evolver(IslandOperator):
     """Evolving step of the DIM algo.
 
-    >>> import random; random.seed(0)
-    >>> def flip(ind): ind[random.randint(0,ind.size()-1)] = True
+    >>> random.seed(0)
+    >>> def flip(ind): ind[random.randint(0,ind.size())] = 1
     >>> def eval(ind): ind.set_fitness(sum(ind))
     >>> def dummy(ind):
-    ...         ind.append(False)
+    ...         ind.append(0)
     ...         ind.set_last_island(0)
     >>> pop = Population(5, dummy)
     >>> apply(pop, eval)
     >>> data = IslandData()
     >>> pop
-    [[False], [False], [False], [False], [False]]
+    [[0], [0], [0], [0], [0]]
     >>> evolve = Evolver(eval, flip)
     >>> evolve(pop, data)
     >>> pop
-    [[True], [True], [True], [True], [True]]
+    [[1], [1], [1], [1], [1]]
     """
 
-    def __init__(self, __eval, op, invalidate=True):
+    def __init__(self, __eval, op):
         self.eval = __eval
         self.op = op
-        self.invalidate = invalidate
 
     def __call__(self, pop, data):
         for ind in pop:
@@ -624,18 +863,35 @@ class Evolver(IslandOperator):
             candidate.copy_from(ind)
 
             self.op(candidate)
-            #if self.invalidate:
-            #    candidate.invalidate()
             self.eval(candidate)
 
             if candidate.fitness() > ind.fitness():
                 ind.copy_from(candidate)
 
+class Mean(MutableValue):
+    """Computes mean step by step.
+
+    >>> m = Mean()
+    >>> d = [1,2,3,4]
+    >>> for x in d: m(x)
+    >>> from numpy import mean
+    >>> m == mean(d)
+    True
+    """
+
+    def __init__(self):
+        MutableValue.__init__(self)
+        self.n = 0
+
+    def __call__(self, x):
+        self.n += 1
+        self.set( ((x-self.v)/self.n)+self.v )
+
 class Feedbacker(IslandOperator):
     """Feedback sender step.
 
     >>> from threading import Thread
-    >>> import random; random.seed(0)
+    >>> random.seed(0)
     >>> def eval(ind): ind.set_fitness(sum(ind))
     >>> pop_set = []; data_set = []; ts = []
     >>> for i in range(2):
@@ -656,7 +912,7 @@ class Feedbacker(IslandOperator):
     >>> for i in range(2):
     ...         ts[i].join()
     >>> (data_set[0].feedbacks, data_set[1].feedbacks)
-    ([0.01, 0.0], [0.0, 0.02])
+    (array([ 0.01,  0.  ]), array([ 0.  ,  0.02]))
     """
 
     def __init__(self, pop_set=None, data_set=None, alpha=0.01):
@@ -664,48 +920,35 @@ class Feedbacker(IslandOperator):
         self.data_set = data_set
         self.alpha = alpha
 
-    @staticmethod
-    def get_effectivenesses(pop, data):
+    @DataShortcuts
+    @returns(list)
+    def make_effectivenesses(self, pop, data, F, P, fq, mq, k, n):
         """Computes effectiveness of each island relatively to the current island.
         """
 
-        # sums = [0]*data.size
-        # nbs = [0]*data.size
+        means = []
+        for i in range(n): means += [Mean()]
+        for ind in pop: means[ind.last_island()]( ind.fitness() - ind.last_fitness() )
+        return means
 
-        sums = []
-        nbs = []
-        for i in range(data.size):
-            sums.append(0)
-            nbs.append(0)
+    @DataShortcuts
+    def send(self, pop, data, F, P, fq, mq, k, n):
+        effectivenesses = self.make_effectivenesses(pop, data)
+        # print(effectivenesses)
+        for i in range(n):
+            self.data_set[i].feedbackerReceivingQueue.push( (effectivenesses[i], k) )
 
-        for ind in pop:
-            sums[ind.last_island()] += ind.fitness() - ind.last_fitness()
-            # print(data.rank, ind.last_island(), ind.fitness() - ind.last_fitness())
-            nbs[ind.last_island()] += 1
-
-        effectivenesses = [v/m if m else 0 for v,m in zip(sums, nbs)]
-
-        # print(sums, nbs, effectivenesses)
-
-        # effectivenesses = []
-        # for i in range(data.size):
-        #     effectivenesses.append(sums[i] / nbs[i] if nbs[i] > 0 else 0)
-
-        # print(data.rank, effectivenesses)
-
-        return effectivenesses
+    @DataShortcuts
+    def recv(self, pop, data, F, P, fq, mq, k, n):
+        a = self.alpha
+        while not fq.empty():
+            Fi, __from = fq.pop()
+            F[__from] = (1-a) * F[__from] + a * Fi
 
     def __call__(self, pop, data):
-        effectivenesses = Feedbacker.get_effectivenesses(pop, data)
-
-        for i in range(data.size):
-            self.data_set[i].feedbackerReceivingQueue.push( (effectivenesses[i], data.rank) )
-
+        self.send(pop, data)
         self.data_set[0].feedbackerBarrier.wait()
-
-        while not data.feedbackerReceivingQueue.empty():
-            Fi, __from = data.feedbackerReceivingQueue.pop()
-            data.feedbacks[__from] = (1-self.alpha)*data.feedbacks[__from] + self.alpha*Fi
+        self.recv(pop, data)
 
     def lastCall(self, __pop, __data):
         self.data_set[0].feedbackerBarrier.abort()
@@ -715,89 +958,78 @@ class Migrator(IslandOperator):
         self.pop_set = pop_set
         self.data_set = data_set
 
-    def __call__(self, pop, data):
-        output_sizes = [0]*data.size
+    @DataShortcuts
+    def send(self, pop, data, F, P, fq, mq, k, n):
+        output_sizes = [0]*n
 
         for ind in pop:
             # selection
             s = 0.
-            r = random.randint(0, 1000+1)
+            r = random.randint(0, 1000)+1
 
             i = 0
-            while i < data.size and r >= s:
-                s += data.proba[i]
+            while i < n and r >= s:
+                s += P[i]
                 i += 1
             i -= 1
 
-            self.data_set[i].migratorReceivingQueue.push( (ind, data.rank) )
+            self.data_set[i].migratorReceivingQueue.push( (ind, k) )
 
         pop.clear()
 
-        self.data_set[0].migratorBarrier.wait()
-
-        while not data.migratorReceivingQueue.empty():
-            ind, __from = data.migratorReceivingQueue.pop()
+    @DataShortcuts
+    def recv(self, pop, data, F, P, fq, mq, k, n):
+        while not mq.empty():
+            ind, __from = mq.pop()
             pop.append( ind )
+
+    def __call__(self, pop, data):
+        self.send(pop, data)
+        self.data_set[0].migratorBarrier.wait()
+        self.recv(pop, data)
 
     def lastCall(self, __pop, __data):
         self.data_set[0].migratorBarrier.abort()
 
-class Reward(IslandOperator):
-    @staticmethod
-    def normalize(arr, high=1000):
-        """Normalizes array with high value.
-
-        >>> Reward.normalize([1,2,0,3],1)
-        [0.16666666666666666, 0.3333333333333333, 0.0, 0.5]
-        >>> Reward.normalize([1,2,0,3],1000)
-        [166.66666666666666, 333.3333333333333, 0.0, 500.0]
-        """
-
-        __sum = sum(arr)
-        cumul = 0
-        for i in range(len(arr)-1):
-            arr[i] = (arr[i]/__sum*high) if __sum else 0
-            cumul += arr[i]
-        arr[-1] = high-cumul
-        return arr
+class Reward(IslandOperator): pass
 
 class Best(Reward):
     def __init__(self, alpha=0.2, beta=0.01):
         self.alpha = alpha
         self.beta = beta
 
-    def __call__(self, pop, data):
-        __max, best = max((x,i) for i,x in enumerate(data.feedbacks))
-        N = Reward.normalize( np.random.randint(0,1000,size=data.size) )
+    @DataShortcuts
+    def __call__(self, pop, data, F, P, fq, mq, k, n):
+        best = array(F).argmax()
+        N = random.random(n); N = N/N.sum()*100
         a = self.alpha
         b = self.beta
-        P = data.proba
 
         __sum = 0
-        for i in range(data.size-1):
+        for i in range(n-1):
             if best == -1:
-                P[i] = (1-b) *           P[i]             + b * N[i]
+                P[i] = (1-b) *           P[i]            + b * N[i]
             elif best == i:
-                P[i] = (1-b) * ( (1-a) * P[i] + a * 1000) + b * N[i]
+                P[i] = (1-b) * ( (1-a) * P[i] + a * 100) + b * N[i]
             else:
-                P[i] = (1-b) * ( (1-a) * P[i])            + b * N[i]
+                P[i] = (1-b) * ( (1-a) * P[i])           + b * N[i]
             __sum += P[i]
-        P[-1] = 1000-__sum
+        P[-1] = 100-__sum
 
 class Average(Reward):
     def __init__(self, alpha=0.2, beta=0.01):
         self.alpha = alpha
         self.beta = beta
 
-    def __call__(self, pop, data):
-        R = Reward.normalize( data.feedbacks.copy() )
-        N = Reward.normalize( np.random.randint(0,1000,size=data.size) )
+    @DataShortcuts
+    def __call__(self, pop, data, F, P, fq, mq, k, n):
+        R = array( F.copy() ); R = R/R.sum()*100
+        N = random.random(data.size); N = N/N.sum()*100
         a = self.alpha
         b = self.beta
-        P = data.proba
 
         __sum = 0
-        for i in range(data.size-1):
+        for i in range(n-1):
             P[i] = (1-b) * ( (1-a) * P[i] + a * R[i] ) + b * N[i]
             __sum += P[i]
         P[-1] = 1000-__sum
@@ -810,13 +1042,15 @@ class Updater(IslandOperator):
         self.reward(pop, data)
 
 class Memorize(IslandOperator):
-    def firstCall(self, pop, data):
+    @DataShortcuts
+    def firstCall(self, pop, data, F, P, fq, mq, k, n):
         for ind in pop:
-            ind.set_last_island(data.rank)
+            ind.set_last_island(k)
 
-    def __call__(self, pop, data):
+    @DataShortcuts
+    def __call__(self, pop, data, F, P, fq, mq, k, n):
         for ind in pop:
-            ind.set_last_island(data.rank)
+            ind.set_last_island(k)
 
 class Algo(IslandOperator):
     def __init__(self, evolve, feedback, update, memorize, migrate, checkpoint, pop_set=None, data_set=None):
@@ -833,12 +1067,8 @@ class Algo(IslandOperator):
             self.data_set[0].toContinue &= self.checkpoint(pop, data)
             if not self.data_set[0].toContinue: break
 
-            # logger.info("%d %s %d %s" % (data.rank, data.proba, pop.size(),
-            #                              pop.best_element().fitness() if pop.best_element() else None))
-
             try:
                 for step in self.steps:
-                    # logger.debug("%d %s" % (data.rank, step))
                     step(pop, data)
             except BrokenBarrierError as e:
                 logger.error("%d %s" % (data.rank, "broken barrier"))
@@ -847,33 +1077,36 @@ class Algo(IslandOperator):
         for step in self.steps:
             step.lastCall(pop, data)
 
-        # logger.info("%d %s %d %s" % (data.rank, data.proba, pop.size(),
-        #                              pop.best_element().fitness() if pop.best_element() else None))
-
 class InitMatrix:
-    def __init__(self, randomize = False, common_value = 0.9):
+    """Class used to initialized a matrix values.
+
+    Example:
+    >>> init = InitMatrix(4, 1/4*100)
+    >>> mat = init(); print(mat)
+    [[ 25.  25.  25.  25.]
+     [ 25.  25.  25.  25.]
+     [ 25.  25.  25.  25.]
+     [ 25.  25.  25.  25.]]
+    """
+
+    def __init__(self, size, common_value=90, randomize=False, diagonal=False):
+        self.size = size
         self.randomize = randomize
         self.common_value = common_value
+        self.diagonal = diagonal
 
-    def __call__(self, matrix):
-        for i in range(len(matrix)):
-            sum = 0
-            for j in range(len(matrix)):
-                if i == j:
-                    matrix[i][j] = self.common_value
-                else:
-                    if self.randomize:
-                        matrix[i][j] = round(random.random(), 3)
-                    else:
-                        matrix[i][j] = (1 - self.common_value) / (len(matrix) - 1)
-                    sum += matrix[i][j]
+    @returns(ndarray)
+    def __call__(self):
+        n = self.size
+        if self.diagonal:
+            M = repeat((100-self.common_value)/(n-1),n**2).reshape(n,n)
+            for i in range(n): M[i,i] = self.common_value
+            return M
 
-            for j in range(len(matrix)):
-                if i != j:
-                    if sum:
-                        matrix[i][j] = round(matrix[i][j] / sum * (1 - self.common_value), 3)
-                    else:
-                        matrix[i][j] = 0
+        if not self.randomize:
+            return repeat(float(self.common_value), n**2).reshape(n,n)
+
+        return array([m/m.sum() for m in random.random(n**2).reshape(n,n)])
 
 if __name__ == "__main__":
     import doctest
