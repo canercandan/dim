@@ -16,31 +16,16 @@
 # Caner Candan <caner@candan.fr>, http://caner.candan.fr
 #
 
-"""
-This is the Dynamic Islands Model module.
+import logging
 
-This module supplies several classes among problem representations, population, problem initializer, evaluation, statistic generator, checkpoint, variation operators, island data representations as well as DIM main classes like evolver, feedbacker, migrator, updater and the main algorithm.
-"""
+logger = logging.getLogger("dim.updaters")
 
-from parser import Parser
-import numpy as np
-from numpy import *
-import logging, sys
-from decorators import *
-from core import *
-from stats import *
-from continuators import *
-from monitors import *
-from ops import *
-from eval import *
-from vectorupdater import *
-from init import *
-from memorizer import *
-from evolver import *
-from feedbacker import *
-from migrator import *
+class Base:
+    def lastcall(self): pass
 
-logger = logging.getLogger("dim")
+    def addTo(self, cp):
+        cp.updaters += [self]
+        return self
 
 if __name__ == "__main__":
     import doctest

@@ -109,8 +109,8 @@ def main():
     T = args.targetFitness
     G = args.maxGen
 
-    # init = dim.ZerofyInit(n)
-    init = dim.DefinedInit(n,args.definedChromSize)
+    # init = dim.Zerofy(n)
+    init = dim.Defined(n,args.definedChromSize)
     init_matrix = dim.InitMatrix(N,1/N*100)
     __eval = OneMaxFullEval()
     reward = args.strategy(args.alpha, args.beta)
@@ -161,7 +161,7 @@ def main():
             maxgen = dim.MaxGen(G)
             cont.add(maxgen)
 
-        monitor = dim.PrintMonitor( out=open('result_monitor_%d' % data.rank, 'w'), stepTimer=args.stepTimer )
+        monitor = dim.Print( out=open('result_monitor_%d' % data.rank, 'w'), stepTimer=args.stepTimer )
         monitor.addTo(checkpoint)
 
         for stat in [dim.IslandRank(),

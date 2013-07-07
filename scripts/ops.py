@@ -16,31 +16,33 @@
 # Caner Candan <caner@candan.fr>, http://caner.candan.fr
 #
 
-"""
-This is the Dynamic Islands Model module.
-
-This module supplies several classes among problem representations, population, problem initializer, evaluation, statistic generator, checkpoint, variation operators, island data representations as well as DIM main classes like evolver, feedbacker, migrator, updater and the main algorithm.
-"""
-
-from parser import Parser
 import numpy as np
 from numpy import *
-import logging, sys
-from decorators import *
-from core import *
-from stats import *
-from continuators import *
-from monitors import *
-from ops import *
-from eval import *
-from vectorupdater import *
-from init import *
-from memorizer import *
-from evolver import *
-from feedbacker import *
-from migrator import *
+import logging
 
-logger = logging.getLogger("dim")
+logger = logging.getLogger("dim.ops")
+
+class GenOp:
+    def __call__(self, ind): return self.apply(ind)
+    def apply(self, ind): pass
+
+class OpContainer(GenOp):
+    def __init__(self):
+        self.ops = []
+
+    def add(self, op, rate):
+        self.ops += [(op, rate)]
+
+class SequentialOp(OpContainer):
+    def apply(self, ind):
+        for op, rate in self.ops:
+            if random.random() < rate:
+                logger.debug("%s(%d)" % (op.op.__class__.__name__, op.op.nbits if op.op.__class__.__name__ == "DetBitFlip" else -1))
+                for x in op(ind): yield x
+
+class MonOp:
+    def __call__(self, ind): pass
+    def __str__(self): pass
 
 if __name__ == "__main__":
     import doctest
