@@ -22,6 +22,22 @@ This is the Dynamic Islands Model module.
 This module supplies several classes among problem representations, population, problem initializer, evaluation, statistic generator, checkpoint, variation operators, island data representations as well as DIM main classes like evolver, feedbacker, migrator, updater and the main algorithm.
 """
 
+import numpy as np
+import logging, sys
+import decorators
+import core
+import stats
+import continuators
+import monitors
+import ops
+import eval
+import vectorupdater
+import init
+import memorizer
+import evolver
+import feedbacker
+import migrator
+
 from parser import Parser
 import numpy as np
 from numpy import *
@@ -39,6 +55,7 @@ from memorizer import *
 from evolver import *
 from feedbacker import *
 from migrator import *
+
 
 logger = logging.getLogger("dim")
 
