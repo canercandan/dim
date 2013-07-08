@@ -131,14 +131,14 @@ namespace dim
 	};
 
 	template <typename EOT>
-	class Proportional : public Reward<EOT>
+	class Average : public Reward<EOT>
 	{
 	public:
-	    Proportional( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/, double sensitivity = 1., bool delta = true )
+	    Average( double alpha = 0.2 /*1-0.8*/, double beta = 0.01 /*1-0.99*/, double sensitivity = 1., bool delta = true )
 		: _alpha(alpha), _beta(beta), _sensitivity(sensitivity), _delta(delta)
 	    {}
 
-	    virtual ~Proportional() {}
+	    virtual ~Average() {}
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {

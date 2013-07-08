@@ -197,7 +197,7 @@ int main (int argc, char *argv[])
 		}
 	    else
 		{
-		    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, false);
+		    ptReward = new dim::vectorupdater::Average<EOT>(alphaP, betaP, false);
 		}
 	    state_dim.storeFunctor(ptReward);
 

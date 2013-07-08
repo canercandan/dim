@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
 			}
 		    else
 			{
-			    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+			    ptReward = new dim::vectorupdater::Average<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
 			}
 		    state_dim.storeFunctor(ptReward);
 
@@ -349,7 +349,7 @@ int main (int argc, char *argv[])
 		}
 	    else
 		{
-		    ptReward = new dim::vectorupdater::Proportional<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
+		    ptReward = new dim::vectorupdater::Average<EOT>(alphaP, betaP, sensitivity, sync ? false : deltaUpdate);
 		}
 	    state_dim.storeFunctor(ptReward);
 
