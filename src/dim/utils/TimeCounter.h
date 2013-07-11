@@ -33,6 +33,9 @@
 #include <boost/chrono/chrono_io.hpp>
 #endif
 
+#include <ctime>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "Stat.h"
 
 namespace dim
@@ -77,6 +80,17 @@ namespace dim
 
 	private:
 	    std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > _start;
+	};
+
+	class DateTimeCounter : public Updater, public eoValueParam<std::string>
+	{
+	public:
+	    DateTimeCounter() : eoValueParam<std::string>("", "DateTime") {}
+
+	    virtual void operator()()
+	    {
+		value() = boost::posix_time::to_simple_string(boost::posix_time::microsec_clock::local_time());
+	    }
 	};
 
     } // !utils

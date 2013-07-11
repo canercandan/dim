@@ -350,7 +350,7 @@ def main():
     parser.add_argument('--outputFields', '-F', default='nbindi,avg,delta,best,input,output,probas,inputproba,migrants', help='fields order of the output result file')
     parser.add_argument('--agregatedFields', '-a', default='best,nbindi,avg/nbindi,eval', help='agregated fields order of the output result file')
     parser.add_argument('--agregatedFunctions', '-A', default='max,sum,avg,none', help='agregated functions order of the output result file')
-    parser.add_argument('--timemin', '-T', type=int, help='fix the timemin value instead estimating it automagically')
+    parser.add_argument('--timemin', type=int, help='fix the timemin value instead estimating it automagically')
     parser.add_argument('--timemax', '-T', type=int, help='fix the timemax value instead estimating it automagically')
     parser.add_argument('--timeunit', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='seconds')
     parser.add_argument('--timeinterval', '-I', type=int, help='interval of times between two records based on the selected time unit (see -t)', default=1)

@@ -44,6 +44,8 @@ def main():
     parser.add_argument('--no-grid', action='store_false', help='dont trace grid')
     parser.add_argument('--affinity', '-A', help='plot the defined file', type=int, default=1)
     parser.add_argument('--timeunit', '-t', choices=[x for x in results_mixer.timeunits.keys()], help='select a time unit', default='seconds')
+    parser.add_argument('--timeinterval', '-I', type=int, help='interval of times between two records based on the selected time unit (see -t)', default=1)
+
     args = parser()
 
     logger.debug(args)
@@ -90,7 +92,9 @@ def main():
             values = [float(info[args.field]) for info in infos]
 
             if args.xfield:
+                # print([float(info[args.xfield]) for info in infos])
                 values = (values, [max([float(info[args.xfield]) for info in infos])]*args.islands)
+                # values = (values, [float(info[args.xfield]) for info in infos])
 
             if args.sumrank:
                 # trace field and sumrank

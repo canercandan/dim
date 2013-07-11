@@ -82,11 +82,11 @@ int main (int argc, char *argv[])
     // I
     bool initG = parser.createParam(bool(true), "initG", "initG", 'I', "Islands Model").value();
     unsigned nmigrations = parser.createParam(unsigned(1), "nmigrations", "Number of migrations to do at each generation (0=all individuals are migrated)", 0, "Islands Model").value();
-    unsigned stepTimer = parser.createParam(unsigned(1000), "stepTimer", "stepTimer", 0, "Islands Model").value();
+    unsigned stepTimer = parser.createParam(unsigned(0), "stepTimer", "stepTimer", 0, "Islands Model").value();
     bool deltaUpdate = parser.createParam(bool(true), "deltaUpdate", "deltaUpdate", 0, "Islands Model").value();
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
-    std::string rewardStrategy = parser.createParam(std::string("avg"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
+    std::string rewardStrategy = parser.createParam(std::string("best"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
 
     std::vector<std::string> operators(nislands, "");
     for (size_t i = 0; i < nislands; ++i)
@@ -111,14 +111,10 @@ int main (int argc, char *argv[])
     unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
     dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
-    double targetFitness = parser.getORcreateParam(double(10), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion").value();
-    unsigned maxGen = parser.getORcreateParam(unsigned(0), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
-    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
-
-    dim::core::IslandData<EOT> data(nislands);
+    double targetFitness = parser.getORcreateParam(double(0), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion").value();
+    unsigned maxGen = parser.getORcreateParam(unsigned(10000), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
 
     std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
-    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint(parser, state, continuator, data, 1, stepTimer);
 
     /**************
      * EO routine *
@@ -197,7 +193,7 @@ int main (int argc, char *argv[])
 		}
 	    else
 		{
-		    ptReward = new dim::vectorupdater::Average<EOT>(alphaP, betaP, false);
+		    ptReward = new dim::vectorupdater::Average<EOT>(alphaP, betaP);
 		}
 	    state_dim.storeFunctor(ptReward);
 
@@ -210,6 +206,7 @@ int main (int argc, char *argv[])
 	    dim::migrator::Base<EOT>* ptMigrator = new dim::migrator::smp::Easy<EOT>(islandPop, islandData, monitorPrefix);
 	    state_dim.storeFunctor(ptMigrator);
 
+	    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, islandData[i], 1, stepTimer);
 
 	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData, monitorPrefix );
@@ -234,6 +231,7 @@ int main (int argc, char *argv[])
 	    tr.add(*ptIsland);
 	}
 
+    dim::core::IslandData<EOT> data(nislands);
     tr(pop, data);
 
     return 0 ;

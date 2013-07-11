@@ -86,7 +86,7 @@ namespace dim
 	    FileMonitor(
 			std::string _filename,
 			unsigned _frequency = 1,
-			std::string _delim = " ",
+			std::string _delim = ",",
 			unsigned _counter = 0,
 			bool _keep_existing = false,
 			bool _header = false,

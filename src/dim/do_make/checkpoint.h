@@ -52,7 +52,7 @@ namespace dim
 
 		std::ostringstream ss_prefix;
 		ss_prefix << monitorPrefix << "_monitor_" << RANK;
-		utils::FileMonitor& fileMonitor = _state.storeFunctor( new utils::FileMonitor( ss_prefix.str(), _frequency, " ", 0, false, true, false, stepTimer ) );
+		utils::FileMonitor& fileMonitor = _state.storeFunctor( new utils::FileMonitor( ss_prefix.str(), _frequency, ",", 0, false, true, false, stepTimer ) );
 		checkpoint.add(fileMonitor);
 
 		utils::StdoutMonitor* stdMonitor = NULL;
@@ -73,6 +73,11 @@ namespace dim
 		checkpoint.add(tCounter);
 		fileMonitor.add(tCounter);
 		if (printBest) { stdMonitor->add(tCounter); }
+
+		utils::DateTimeCounter& dtCounter = _state.storeFunctor( new utils::DateTimeCounter );
+		checkpoint.add(dtCounter);
+		fileMonitor.add(dtCounter);
+		if (printBest) { stdMonitor->add(dtCounter); }
 
 		utils::GenCounter& genCounter = _state.storeFunctor( new utils::GenCounter( 0, "migration" ) );
 		checkpoint.add(genCounter);
