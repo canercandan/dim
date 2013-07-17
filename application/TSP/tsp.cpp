@@ -21,6 +21,7 @@
 #include <eo>
 #include <eoSwapMutation.h>
 #include <eoShiftMutation.h>
+#include <eoInversionMutation.h>
 #include <eoTwoOptMutation.h>
 #include <dim/dim>
 #include <dim/algo/Easy.h>
@@ -88,14 +89,6 @@ int main (int argc, char *argv[])
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
     std::string rewardStrategy = parser.createParam(std::string("best"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
 
-    std::vector<std::string> operators(nislands, "");
-    for (size_t i = 0; i < nislands; ++i)
-	{
-	    std::ostringstream ss;
-	    ss << "operator" << i;
-	    operators[i] = parser.createParam(std::string("1swap"), ss.str(), "Set an operator between 1swap, 2swap, shift and 2opt", 0, "Islands Model").value();
-	}
-
     /*********************************
      * Déclaration des composants EO *
      *********************************/
@@ -115,6 +108,43 @@ int main (int argc, char *argv[])
     unsigned maxGen = parser.getORcreateParam(unsigned(10000), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
 
     std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
+
+    std::map< std::string, eoMonOp<EOT>* > mapOperators;
+
+    mapOperators["swap"] = new eoSwapMutation<EOT>;
+    mapOperators["shift"] = new eoShiftMutation<EOT>;
+    mapOperators["inversion"] = new eoInversionMutation<EOT>;
+
+    mapOperators["first_improve_swap"] = new eoFirstImprovementSwapMutation<EOT>(eval);
+    mapOperators["first_improve_shift"] = new eoFirstImprovementShiftMutation<EOT>(eval);
+    mapOperators["first_improve_inversion"] = new eoFirstImprovementInversionMutation<EOT>(eval);
+
+    mapOperators["relative_best_improve_swap"] = new eoRelativeBestImprovementSwapMutation<EOT>(eval);
+    mapOperators["relative_best_improve_shift"] = new eoRelativeBestImprovementShiftMutation<EOT>(eval);
+    mapOperators["relative_best_improve_inversion"] = new eoRelativeBestImprovementInversionMutation<EOT>(eval);
+
+    mapOperators["best_improve_swap"] = new eoBestImprovementSwapMutation<EOT>(eval);
+    mapOperators["best_improve_shift"] = new eoBestImprovementShiftMutation<EOT>(eval);
+    mapOperators["best_improve_inversion"] = new eoBestImprovementInversionMutation<EOT>(eval);
+
+    mapOperators["2swap"] = new eoSwapMutation<EOT>(2);
+    mapOperators["2opt"] = new eoTwoOptMutation<EOT>;
+
+    std::vector<std::string> operators(nislands, "");
+    for (size_t i = 0; i < nislands; ++i)
+	{
+	    std::ostringstream ss;
+	    ss << "operator" << i;
+
+	    std::ostringstream ss2;
+	    ss2 << "Set an operator between ";
+	    for ( std::map< std::string, eoMonOp<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
+		{
+		    ss2 << it->first << ", ";
+		}
+
+	    operators[i] = parser.createParam(std::string("swap"), ss.str(), ss2.str(), 0, "Islands Model").value();
+	}
 
     /**************
      * EO routine *
@@ -160,25 +190,7 @@ int main (int argc, char *argv[])
 	     * Distribution des opérateurs aux iles *
 	     ****************************************/
 
-	    eoMonOp<EOT>* ptMon = NULL;
-	    if ( operators[ islandData[i].rank() ] == "1swap" )
-	    	{
-	    	    // ptMon = new dim::variation::CitySwap<double>;
-	    	    ptMon = new eoSwapMutation<EOT>(1);
-	    	}
-	    else if ( operators[ islandData[i].rank() ] == "2swap" )
-	    	{
-	    	    ptMon = new eoSwapMutation<EOT>(2);
-	    	}
-	    else if ( operators[ islandData[i].rank() ] == "shift" )
-	    	{
-	    	    ptMon = new eoShiftMutation<EOT>;
-	    	}
-	    else if ( operators[ islandData[i].rank() ] == "2opt" )
-	    	{
-	    	    ptMon = new eoTwoOptMutation<EOT>;
-	    	}
-	    state.storeFunctor(ptMon);
+	    eoMonOp<EOT>* ptMon = mapOperators[ operators[ islandData[i].rank() ] ];
 
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon );
 	    state_dim.storeFunctor(ptEvolver);
@@ -233,6 +245,11 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data(nislands);
     tr(pop, data);
+
+    for ( std::map< std::string, eoMonOp<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
+    	{
+    	    delete it->second;
+    	}
 
     return 0 ;
 }
