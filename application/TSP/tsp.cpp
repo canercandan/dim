@@ -50,8 +50,8 @@ int main (int argc, char *argv[])
      * Initialisation de MPI *
      *************************/
 
-    boost::mpi::environment env(argc, argv, MPI_THREAD_MULTIPLE, true);
-    boost::mpi::communicator world;
+    // boost::mpi::environment env(argc, argv, MPI_THREAD_MULTIPLE, true);
+    // boost::mpi::communicator world;
 
     /****************************
      * Il faut au moins 4 nœuds *
@@ -110,25 +110,35 @@ int main (int argc, char *argv[])
     std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
 
     std::map< std::string, eoMonOp<EOT>* > mapOperators;
+    std::vector< std::string > operatorsOrder;
 
-    mapOperators["swap"] = new eoSwapMutation<EOT>;
-    mapOperators["shift"] = new eoShiftMutation<EOT>;
-    mapOperators["inversion"] = new eoInversionMutation<EOT>;
+    mapOperators["swap"] = new eoSwapMutation<EOT>;		operatorsOrder.push_back("swap");
+    mapOperators["shift"] = new eoShiftMutation<EOT>;		operatorsOrder.push_back("shift");
+    mapOperators["inversion"] = new eoInversionMutation<EOT>;	operatorsOrder.push_back("inversion");
 
     mapOperators["first_improve_swap"] = new eoFirstImprovementSwapMutation<EOT>(eval);
+    operatorsOrder.push_back("first_improve_swap");
     mapOperators["first_improve_shift"] = new eoFirstImprovementShiftMutation<EOT>(eval);
+    operatorsOrder.push_back("first_improve_shift");
     mapOperators["first_improve_inversion"] = new eoFirstImprovementInversionMutation<EOT>(eval);
+    operatorsOrder.push_back("first_improve_inversion");
 
     mapOperators["relative_best_improve_swap"] = new eoRelativeBestImprovementSwapMutation<EOT>(eval);
+    operatorsOrder.push_back("relative_best_improve_swap");
     mapOperators["relative_best_improve_shift"] = new eoRelativeBestImprovementShiftMutation<EOT>(eval);
+    operatorsOrder.push_back("relative_best_improve_shift");
     mapOperators["relative_best_improve_inversion"] = new eoRelativeBestImprovementInversionMutation<EOT>(eval);
+    operatorsOrder.push_back("relative_best_improve_inversion");
 
     mapOperators["best_improve_swap"] = new eoBestImprovementSwapMutation<EOT>(eval);
+    operatorsOrder.push_back("best_improve_swap");
     mapOperators["best_improve_shift"] = new eoBestImprovementShiftMutation<EOT>(eval);
+    operatorsOrder.push_back("best_improve_shift");
     mapOperators["best_improve_inversion"] = new eoBestImprovementInversionMutation<EOT>(eval);
+    operatorsOrder.push_back("best_improve_inversion");
 
-    mapOperators["2swap"] = new eoSwapMutation<EOT>(2);
-    mapOperators["2opt"] = new eoTwoOptMutation<EOT>;
+    mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");
+    mapOperators["2opt"] = new eoTwoOptMutation<EOT>;	operatorsOrder.push_back("2opt");
 
     std::vector<std::string> operators(nislands, "");
     for (size_t i = 0; i < nislands; ++i)
@@ -137,13 +147,13 @@ int main (int argc, char *argv[])
 	    ss << "operator" << i;
 
 	    std::ostringstream ss2;
-	    ss2 << "Set an operator between ";
-	    for ( std::map< std::string, eoMonOp<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
+	    ss2 << "Set an operator between " << operatorsOrder[0] << " ";
+	    for ( size_t k = 1; k < operatorsOrder.size(); ++k )
 		{
-		    ss2 << it->first << ", ";
+		    ss2 << ", " << operatorsOrder[k];
 		}
 
-	    operators[i] = parser.createParam(std::string("swap"), ss.str(), ss2.str(), 0, "Islands Model").value();
+	    operators[i] = parser.createParam(std::string(operatorsOrder[ i % operatorsOrder.size() ]), ss.str(), ss2.str(), 0, "Islands Model").value();
 	}
 
     /**************
