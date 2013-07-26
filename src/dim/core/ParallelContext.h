@@ -31,27 +31,27 @@ namespace dim
 	{
 	public:
 	    ParallelContext(size_t tag = 0, int size = -1, int rank = -1)
-		: _tag(tag),
-		  _size(size < 0 ? _world.size() : size),
-		  _rank(rank < 0 ? _world.rank() : rank)
+		: _tag(tag), _size(size), _rank(rank)
+		  // _size(size < 0 ? _world.size() : size),
+		  // _rank(rank < 0 ? _world.rank() : rank)
 	    {}
 
 	    virtual ~ParallelContext() {}
 
-	    inline size_t size() const { return _size; }
-	    inline size_t rank() const { return _rank; }
+	    inline int size() const { return _size; }
+	    inline int rank() const { return _rank; }
 
 	    inline void size(size_t v) { _size = v; }
 	    inline void rank(size_t v) { _rank = v; }
 
-	    inline boost::mpi::communicator& world() { return this->_world; }
+	    // inline boost::mpi::communicator& world() { return this->_world; }
 	    inline size_t tag() const { return _tag; }
 
 	private:
-	    boost::mpi::communicator _world;
+	    // boost::mpi::communicator _world;
 	    const size_t _tag;
-	    size_t _size;
-	    size_t _rank;
+	    int _size;
+	    int _rank;
 	};
 
     } // !core

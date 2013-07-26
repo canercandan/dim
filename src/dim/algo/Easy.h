@@ -71,14 +71,14 @@ namespace dim
 	    public:
 		Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(__dummyEvolve), _feedback(__dummyFeedback), _update(__dummyUpdate), _memorize(__dummyMemorize), _migrate(__dummyMigrate) {}
 
-		Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
+		Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
 
 		virtual ~Easy() {}
 
 		void operator()(core::Pop<EOT>& __pop, core::IslandData<EOT>& __data)
 		{
-		    core::Pop<EOT>& pop = _islandPop[this->rank()];
-		    core::IslandData<EOT>& data = _islandData[this->rank()];
+		    core::Pop<EOT>& pop = *(_islandPop[this->rank()]);
+		    core::IslandData<EOT>& data = *(_islandData[this->rank()]);
 
 		    std::map<std::string, std::ofstream*> measureFiles;
 
@@ -167,8 +167,8 @@ namespace dim
 		memorizer::Base<EOT>& _memorize;
 		migrator::Base<EOT>& _migrate;
 
-		std::vector< core::Pop<EOT> >& _islandPop;
-		std::vector< core::IslandData<EOT> >& _islandData;
+		std::vector< core::Pop<EOT>* >& _islandPop;
+		std::vector< core::IslandData<EOT>* >& _islandData;
 
 		std::string _monitorPrefix;
 	    };

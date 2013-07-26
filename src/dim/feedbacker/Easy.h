@@ -51,7 +51,7 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData, double alpha = 0.01) : _islandPop(islandPop), _islandData(islandData), _alpha(alpha) {}
+		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, double alpha = 0.01) : _islandPop(islandPop), _islandData(islandData), _alpha(alpha) {}
 
 		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
 		{
@@ -64,8 +64,8 @@ namespace dim
 
 		void operator()(core::Pop<EOT>& __pop, core::IslandData<EOT>& __data)
 		{
-		    core::Pop<EOT>& pop = _islandPop[this->rank()];
-		    core::IslandData<EOT>& data = _islandData[this->rank()];
+		    core::Pop<EOT>& pop = *(_islandPop[this->rank()]);
+		    core::IslandData<EOT>& data = *(_islandData[this->rank()]);
 
 		    /************************************************
 		     * Send feedbacks back to all islands (ANALYSE) *
@@ -83,7 +83,7 @@ namespace dim
 		    for (size_t i = 0; i < this->size(); ++i)
 		    	{
 		    	    AUTO(double) effectiveness = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
-		    	    _islandData[i].feedbackerReceivingQueue.push( effectiveness, this->rank() );
+		    	    _islandData[i]->feedbackerReceivingQueue.push( effectiveness, this->rank() );
 		    	}
 
 		    __data.bar.wait();
@@ -112,8 +112,8 @@ namespace dim
 		}
 
 	    private:
-		std::vector< core::Pop<EOT> >& _islandPop;
-		std::vector< core::IslandData<EOT> >& _islandData;
+		std::vector< core::Pop<EOT>* >& _islandPop;
+		std::vector< core::IslandData<EOT>* >& _islandData;
 
 		double _alpha;
 #ifdef TRACE

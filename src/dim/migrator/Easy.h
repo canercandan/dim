@@ -79,7 +79,7 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT> >& islandPop, std::vector< core::IslandData<EOT> >& islandData, std::string& monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
+		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, std::string& monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
@@ -119,8 +119,8 @@ namespace dim
 		{
 		    DO_MEASURE(
 
-			       core::Pop<EOT>& pop = _islandPop[this->rank()];
-			       core::IslandData<EOT>& data = _islandData[this->rank()];
+			       core::Pop<EOT>& pop = *(_islandPop[this->rank()]);
+			       core::IslandData<EOT>& data = *(_islandData[this->rank()]);
 
 			       /********************
 				* Send individuals *
@@ -154,7 +154,7 @@ namespace dim
 								 _of << ind.getLastFitnesses().size() << " ";
 #endif // !TRACE
 
-								 _islandData[j].migratorReceivingQueue.push(MOVE(ind), this->rank());
+								 _islandData[j]->migratorReceivingQueue.push(MOVE(ind), this->rank());
 
 								 , _measureFiles, "migrate_push");
 						  }
@@ -195,8 +195,8 @@ namespace dim
 		}
 
 	    private:
-		std::vector< core::Pop<EOT> >& _islandPop;
-		std::vector< core::IslandData<EOT> >& _islandData;
+		std::vector< core::Pop<EOT>* >& _islandPop;
+		std::vector< core::IslandData<EOT>* >& _islandData;
 
 		std::string _monitorPrefix;
 

@@ -138,7 +138,7 @@ namespace dim
 	template <typename T>
 	struct DataQueueVector : public std::vector< DataQueue< T > >
 	{
-	    DataQueueVector(size_t size) : std::vector< DataQueue< T > >(size) {}
+	    DataQueueVector(size_t size = 0) : std::vector< DataQueue< T > >(size) {}
 
 	    void push(T newData, size_t id)
 	    {
@@ -192,7 +192,7 @@ namespace dim
 		  feedbackLastUpdatedTimes(size(), std_or_boost::chrono::system_clock::now()),
 		  vectorLastUpdatedTime(std_or_boost::chrono::system_clock::now()),
 		  proba(size(), 0),
-		  feedbackerSendingQueue(size()),
+ 		  feedbackerSendingQueue(size()),
 		  migratorSendingQueue(size()),
 		  toContinue(true),
 		  bar(size())

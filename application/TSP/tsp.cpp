@@ -57,8 +57,8 @@ int main (int argc, char *argv[])
      * Il faut au moins 4 nœuds *
      ****************************/
 
-    const size_t ALL = world.size();
-    const size_t RANK = world.rank();
+    // const size_t ALL = world.size();
+    // const size_t RANK = world.rank();
 
     /************************
      * Initialisation de EO *
@@ -162,8 +162,8 @@ int main (int argc, char *argv[])
 
     dim::core::ThreadsRunner< EOT > tr;
 
-    std::vector< dim::core::Pop<EOT> > islandPop(nislands);
-    std::vector< dim::core::IslandData<EOT> > islandData(nislands);
+    std::vector< dim::core::Pop<EOT>* > islandPop(nislands);
+    std::vector< dim::core::IslandData<EOT>* > islandData(nislands);
 
     dim::core::MigrationMatrix probabilities( nislands );
     dim::core::InitMatrix initmatrix( initG, 100./nislands );
@@ -177,20 +177,19 @@ int main (int argc, char *argv[])
 	{
 	    std::cout << "island " << i << std::endl;
 
-	    islandPop[i].append(popSize, init);
+	    islandPop[i] = new dim::core::Pop<EOT>(popSize, init);
+	    islandData[i] = new dim::core::IslandData<EOT>(nislands, i);
 
-	    islandData[i] = dim::core::IslandData<EOT>(nislands, i);
+	    std::cout << islandData[i]->size() << " " << islandData[i]->rank() << " " << operators[ islandData[i]->rank() ] << std::endl;
 
-	    std::cout << islandData[i].size() << " " << islandData[i].rank() << " " << operators[ islandData[i].rank() ] << std::endl;
-
-	    islandData[i].proba = probabilities(i);
-	    apply<EOT>(eval, islandPop[i]);
+	    islandData[i]->proba = probabilities(i);
+	    apply<EOT>(eval, *(islandPop[i]));
 
 	    /****************************************
 	     * Distribution des opérateurs aux iles *
 	     ****************************************/
 
-	    eoMonOp<EOT>* ptMon = mapOperators[ operators[ islandData[i].rank() ] ];
+	    eoMonOp<EOT>* ptMon = mapOperators[ operators[ islandData[i]->rank() ] ];
 
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon );
 	    state_dim.storeFunctor(ptEvolver);
@@ -219,7 +218,7 @@ int main (int argc, char *argv[])
 	    state_dim.storeFunctor(ptMigrator);
 
 	    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
-	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, islandData[i], 1, stepTimer);
+	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, *(islandData[i]), 1, stepTimer);
 
 	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData, monitorPrefix );
 	    state_dim.storeFunctor(ptIsland);
@@ -245,6 +244,12 @@ int main (int argc, char *argv[])
 
     dim::core::IslandData<EOT> data(nislands);
     tr(pop, data);
+
+    for (size_t i = 0; i < nislands; ++i)
+	{
+	    delete islandPop[i];
+	    delete islandData[i];
+	}
 
     for ( std::map< std::string, eoMonOp<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
     	{
