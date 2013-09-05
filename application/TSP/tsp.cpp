@@ -42,7 +42,7 @@ namespace std_or_boost = std;
 namespace std_or_boost = boost;
 #endif
 
-using EOT = dim::representation::Route<double>;
+typedef dim::representation::Route<double> EOT;
 
 int main (int argc, char *argv[])
 {
