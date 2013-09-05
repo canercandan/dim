@@ -36,7 +36,7 @@
  *
  */
 
-#include <dim/initialization/Graph.h>
+#include <dim/initialization/TSPLibGraph.h>
 #include <dim/representation/Route.h>
 
 #ifndef _EVALUATION_ROUTE_H_
@@ -55,8 +55,16 @@ namespace dim
 	    {
 		float len = 0 ;
 
-		for (unsigned i = 0 ; i < initialization::Graph::size () ; i ++)
-		    len -= initialization::Graph::distance (__route [i], __route [(i + 1) % initialization::Graph::size ()]) ;
+		for (unsigned i = 0 ; i < initialization::TSPLibGraph::size () ; i ++)
+		    {
+			auto v = initialization::TSPLibGraph::distance (__route [i], __route [(i + 1) % initialization::TSPLibGraph::size ()]) ;
+			// std::cout << i << " " << __route [i] << " " <<  __route [(i + 1) % initialization::TSPLibGraph::size ()] << " " << v << std::endl;
+			len -= v;
+		    }
+
+		// std::cout << "len: " << len << std::endl;
+
+		// exit(0);
 
 		__route.fitness (len) ;
 	    }

@@ -55,7 +55,7 @@ namespace dim
 	       (expressed by their coordinates)
 	       from the given file name */
 
-	    float distance (unsigned __from, unsigned __to) ;
+	    double distance (unsigned __from, unsigned __to) ;
 
 	    unsigned size () ; // How many cities ?
 	}

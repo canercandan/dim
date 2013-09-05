@@ -52,7 +52,7 @@ namespace dim
 
 	    static std :: vector <std :: pair <double, double> > vectCoord ; // Coordinates
 
-	    static std :: vector <std :: vector <unsigned> > dist ; // Distances Mat.
+	    static std :: vector <std :: vector <double> > dist ; // Distances Mat.
 
 	    unsigned size () {
 
@@ -72,7 +72,7 @@ namespace dim
 		    for (unsigned j = i + 1 ; j < dist.size () ; j ++) {
 			double distX = vectCoord [i].first - vectCoord [j].first ;
 			double distY = vectCoord [i].second - vectCoord [j].second ;
-			dist [i] [j] = dist [j] [i] = (unsigned) (sqrt ((float) (distX * distX + distY * distY)) + 0.5) ;
+			dist [i] [j] = dist [j] [i] = sqrt(distX * distX + distY * distY) ;
 		    }
 	    }
 
@@ -103,7 +103,7 @@ namespace dim
 		}
 	    }
 
-	    float distance (unsigned __from, unsigned __to) {
+	    double distance (unsigned __from, unsigned __to) {
 
 		return dist [__from] [__to] ;
 	    }

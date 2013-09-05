@@ -43,7 +43,7 @@
 #include <eoInit.h>
 #include <dim/representation/Route.h>
 
-#include "Graph.h"
+#include "TSPLibGraph.h"
 
 namespace dim
 {
@@ -58,15 +58,12 @@ namespace dim
 	    {
 		// Init.
 		__route.clear () ;
-		for (unsigned i = 0 ; i < Graph :: size () ; i ++)
+		for (unsigned i = 0 ; i < TSPLibGraph :: size () ; i ++)
 		    __route.push_back (i) ;
 
 		// Swap. cities
-
-		for (unsigned i = 0 ; i < Graph :: size () ; i ++) {
-		    //unsigned j = rng.random (Graph :: size ()) ;
-
-		    unsigned j = (unsigned) (Graph :: size () * (rand () / (RAND_MAX + 1.0))) ;
+		for (unsigned i = 0 ; i < TSPLibGraph :: size () ; i ++) {
+		    unsigned j = (unsigned) (TSPLibGraph :: size () * (rand () / (RAND_MAX + 1.0))) ;
 		    unsigned city = __route [i] ;
 		    __route [i] = __route [j] ;
 		    __route [j] = city ;

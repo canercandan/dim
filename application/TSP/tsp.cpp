@@ -93,9 +93,9 @@ int main (int argc, char *argv[])
      * Déclaration des composants EO *
      *********************************/
 
-    std::string tspInstance =  parser.getORcreateParam(std::string("benchs/ali535.tsp"), "tspInstance", "filename of the instance for TSP problem", 0, "Problem").value();
+    std::string tspInstance =  parser.getORcreateParam(std::string("benchs/ali535.xml"), "tspInstance", "filename of the instance for TSP problem", 0, "Problem").value();
 
-    dim::initialization::Graph::load( tspInstance.c_str() ); // Instance
+    dim::initialization::TSPLibGraph::load( tspInstance ); // Instance
     dim::initialization::Route<double> init ; // Sol. Random Init.
 
     dim::evaluation::Route<double> mainEval;
@@ -147,7 +147,7 @@ int main (int argc, char *argv[])
 	    ss << "operator" << i;
 
 	    std::ostringstream ss2;
-	    ss2 << "Set an operator between " << operatorsOrder[0] << " ";
+	    ss2 << "Set an operator between " << operatorsOrder[0];
 	    for ( size_t k = 1; k < operatorsOrder.size(); ++k )
 		{
 		    ss2 << ", " << operatorsOrder[k];
@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
     initmatrix( probabilities );
     std::cout << probabilities;
 
-    std::cout << "size: " << dim::initialization::Graph::size() << std::endl;
+    std::cout << "size: " << dim::initialization::TSPLibGraph::size() << std::endl;
 
     for (size_t i = 0; i < nislands; ++i)
 	{
