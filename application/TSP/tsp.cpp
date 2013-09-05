@@ -95,14 +95,10 @@ int main (int argc, char *argv[])
 
     std::string tspInstance =  parser.getORcreateParam(std::string("benchs/ali535.xml"), "tspInstance", "filename of the instance for TSP problem", 0, "Problem").value();
 
-    dim::initialization::TSPLibGraph::load( tspInstance ); // Instance
-    dim::initialization::Route<double> init ; // Sol. Random Init.
-
     dim::evaluation::Route<double> mainEval;
     eoEvalFuncCounter<EOT> eval(mainEval);
 
     unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
-    dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
     double targetFitness = parser.getORcreateParam(double(0), "targetFitness", "Stop when fitness reaches",'T', "Stopping criterion").value();
     unsigned maxGen = parser.getORcreateParam(unsigned(10000), "maxGen", "Maximum number of generations () = none)",'G',"Stopping criterion").value();
@@ -163,6 +159,10 @@ int main (int argc, char *argv[])
     make_parallel(parser);
     make_verbose(parser);
     make_help(parser);
+
+    dim::initialization::TSPLibGraph::load( tspInstance ); // Instance
+    dim::initialization::Route<double> init ; // Sol. Random Init.
+    dim::core::Pop<EOT>& pop = dim::do_make::detail::pop(parser, state, init);
 
     // smp
 
