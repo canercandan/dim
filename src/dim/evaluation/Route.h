@@ -47,26 +47,18 @@ namespace dim
     namespace evaluation
     {
 
-	template <typename FitT = float>
+	template <typename FitT = double>
 	class Route : public eoEvalFunc< representation::Route<FitT> >
 	{
 	public:
 	    void operator()(representation::Route<FitT> & __route)
 	    {
-		float len = 0 ;
-
+		double len = 0 ;
 		for (unsigned i = 0 ; i < initialization::TSPLibGraph::size () ; i ++)
 		    {
-			auto v = initialization::TSPLibGraph::distance (__route [i], __route [(i + 1) % initialization::TSPLibGraph::size ()]) ;
-			// std::cout << i << " " << __route [i] << " " <<  __route [(i + 1) % initialization::TSPLibGraph::size ()] << " " << v << std::endl;
-			len -= v;
+			len -= initialization::TSPLibGraph::distance(__route [i], __route[(i + 1) % initialization::TSPLibGraph::size()]);
 		    }
-
-		// std::cout << "len: " << len << std::endl;
-
-		// exit(0);
-
-		__route.fitness (len) ;
+		__route.fitness(len);
 	    }
 	};
 
