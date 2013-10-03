@@ -25,6 +25,7 @@
 #include <queue>
 
 #include "Base.h"
+#include <dim/utils/Measure.h>
 
 #include <boost/utility/identity_type.hpp>
 

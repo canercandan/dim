@@ -33,6 +33,7 @@
 #include <fstream>
 
 #include "Base.h"
+#include <dim/utils/Measure.h>
 
 #include <boost/utility/identity_type.hpp>
 
@@ -42,19 +43,6 @@
 #else // __cplusplus <= 199711L
 #define AUTO(TYPE) TYPE
 #endif
-
-#ifdef MEASURE
-# define DO_MEASURE(op, measureFiles, name)				\
-    {									\
-	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start = std_or_boost::chrono::system_clock::now(); \
-	op;								\
-	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
-	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
-	*(measureFiles[name]) << elapsed << std::endl; measureFiles[name]->flush(); \
-    }
-#else
-# define DO_MEASURE(op, measureFiles, name) { op; }
-#endif // !MEASURE
 
 #undef MOVE
 #if __cplusplus > 199711L
@@ -102,6 +90,9 @@ namespace dim
 
 		    ss.str(""); ss << _monitorPrefix << ".migrate_update.time." << this->rank();
 		    _measureFiles["migrate_update"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".migrate_wait.time." << this->rank();
+		    _measureFiles["migrate_wait"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 		}
 
@@ -166,7 +157,9 @@ namespace dim
 					  }
 					  , _measureFiles, "migrate_send" );
 
-			       __data.bar.wait();
+			       DO_MEASURE(
+					  __data.bar.wait();
+					  , _measureFiles, "migrate_wait" );
 
 			       /*********************
 				* Update population *

@@ -39,19 +39,7 @@
 #include <dim/migrator/migrator>
 
 #include "Base.h"
-
-#ifdef MEASURE
-# define DO_MEASURE(op, measureFiles, name)				\
-    {									\
-	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start = std_or_boost::chrono::system_clock::now(); \
-	op;								\
-	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > end = std_or_boost::chrono::system_clock::now();	\
-	unsigned elapsed = std_or_boost::chrono::duration_cast<std_or_boost::chrono::microseconds>(end-start).count(); \
-	*(measureFiles[name]) << elapsed << std::endl; measureFiles[name]->flush(); \
-    }
-#else
-# define DO_MEASURE(op, measureFiles, name) { op; }
-#endif // !MEASURE
+#include <dim/utils/Measure.h>
 
 namespace dim
 {
