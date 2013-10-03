@@ -67,7 +67,7 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, std::string& monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
+		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, std::string monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
