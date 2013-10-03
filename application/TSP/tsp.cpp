@@ -266,5 +266,5 @@ int main (int argc, char *argv[])
     	    delete it->second;
     	}
 
-    return 0 ;
+    return 0;
 }
