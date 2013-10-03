@@ -52,64 +52,96 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, double alpha = 0.01) : _islandPop(islandPop), _islandData(islandData), _alpha(alpha) {}
+		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, double alpha = 0.01, std::string monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _alpha(alpha), _monitorPrefix(monitorPrefix) {}
 
 		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
 		{
-#ifdef TRACE
 		    std::ostringstream ss;
+
+#ifdef TRACE
 		    ss << "trace.feedbacker." << this->rank();
 		    _of.open(ss.str().c_str());
 #endif // !TRACE
+
+#ifdef MEASURE
+		    ss.str(""); ss << _monitorPrefix << ".feedback_total.time." << this->rank();
+		    _measureFiles["feedback_total"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".feedback_send.time." << this->rank();
+		    _measureFiles["feedback_send"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".feedback_push.time." << this->rank();
+		    _measureFiles["feedback_push"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".feedback_update.time." << this->rank();
+		    _measureFiles["feedback_update"] = new std::ofstream(ss.str().c_str());
+
+		    ss.str(""); ss << _monitorPrefix << ".feedback_wait.time." << this->rank();
+		    _measureFiles["feedback_wait"] = new std::ofstream(ss.str().c_str());
+#endif // !MEASURE
 		}
 
 		void operator()(core::Pop<EOT>& __pop, core::IslandData<EOT>& __data)
 		{
-		    core::Pop<EOT>& pop = *(_islandPop[this->rank()]);
-		    core::IslandData<EOT>& data = *(_islandData[this->rank()]);
+		    DO_MEASURE(
 
-		    /************************************************
-		     * Send feedbacks back to all islands (ANALYSE) *
-		     ************************************************/
+			       core::Pop<EOT>& pop = *(_islandPop[this->rank()]);
+			       core::IslandData<EOT>& data = *(_islandData[this->rank()]);
 
-		    std::vector<typename EOT::Fitness> sums(this->size(), 0);
-		    std::vector<int> nbs(this->size(), 0);
-		    for (size_t i = 0; i < pop.size(); ++i)
-		    	{
-		    	    EOT& ind = pop[i];
-		    	    sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
-		    	    ++nbs[ind.getLastIsland()];
-		    	}
+			       /************************************************
+				* Send feedbacks back to all islands (ANALYSE) *
+				************************************************/
 
-		    for (size_t i = 0; i < this->size(); ++i)
-		    	{
-		    	    AUTO(double) effectiveness = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
-		    	    _islandData[i]->feedbackerReceivingQueue.push( effectiveness, this->rank() );
-		    	}
+			       DO_MEASURE(
 
-		    __data.bar.wait();
+					  std::vector<typename EOT::Fitness> sums(this->size(), 0);
+					  std::vector<int> nbs(this->size(), 0);
+					  for (size_t i = 0; i < pop.size(); ++i)
+					      {
+						  EOT& ind = pop[i];
+						  sums[ind.getLastIsland()] += ind.fitness() - ind.getLastFitness();
+						  ++nbs[ind.getLastIsland()];
+					      }
 
-		    /********************
-		     * Update feedbacks *
-		     ********************/
+					  DO_MEASURE(
+						     for (size_t i = 0; i < this->size(); ++i)
+							 {
+							     AUTO(double) effectiveness = nbs[i] > 0 ? sums[i] / nbs[i] : 0;
+							     _islandData[i]->feedbackerReceivingQueue.push( effectiveness, this->rank() );
+							 }
+						     , _measureFiles, "feedback_push");
 
-		    while ( !data.feedbackerReceivingQueue.empty() )
-		    	{
-			    AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
-			    AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
-			    // double t = std_or_boost::get<1>(fbr);
-			    AUTO(size_t) from = std_or_boost::get<2>(fbr);
-			    AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
-			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
-			    AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
+					  , _measureFiles, "feedback_send" );
+
+			       DO_MEASURE(
+					  __data.bar.wait();
+					  , _measureFiles, "feedback_wait" );
+
+			       /********************
+				* Update feedbacks *
+				********************/
+
+			       DO_MEASURE(
+					  while ( !data.feedbackerReceivingQueue.empty() )
+					      {
+						  AUTO(typename BOOST_IDENTITY_TYPE((std_or_boost::tuple<typename EOT::Fitness, double, size_t>))) fbr = data.feedbackerReceivingQueue.pop();
+						  AUTO(typename EOT::Fitness) Fi = std_or_boost::get<0>(fbr);
+						  // double t = std_or_boost::get<1>(fbr);
+						  AUTO(size_t) from = std_or_boost::get<2>(fbr);
+						  AUTO(typename EOT::Fitness)& Si = data.feedbacks[from];
+						  AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >)& Ti = data.feedbackLastUpdatedTimes[from];
+						  AUTO(std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock >) end = std_or_boost::chrono::system_clock::now(); // t
 
 #ifdef TRACE
-			    _of << from << " "; _of.flush();
+						  _of << from << " "; _of.flush();
 #endif // !TRACE
 
-			    Si = (1-_alpha)*Si + _alpha*Fi;
-			    Ti = end;
-			}
+						  Si = (1-_alpha)*Si + _alpha*Fi;
+						  Ti = end;
+					      }
+					  , _measureFiles, "feedback_update" );
+
+			       , _measureFiles, "feedback_total" );
 		}
 
 	    private:
@@ -117,10 +149,16 @@ namespace dim
 		std::vector< core::IslandData<EOT>* >& _islandData;
 
 		double _alpha;
+
+		std::string _monitorPrefix;
+
 #ifdef TRACE
 		std::ofstream _of;
 #endif // !TRACE
 
+#ifdef MEASURE
+		std::map<std::string, std::ofstream*> _measureFiles;
+#endif // !MEASURE
 	    };
 	} // !smp
 
