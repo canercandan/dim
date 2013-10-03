@@ -54,10 +54,13 @@ namespace dim
 	    void operator()(representation::Route<FitT> & __route)
 	    {
 		double len = 0 ;
-		for (unsigned i = 0 ; i < initialization::TSPLibGraph::size () ; i ++)
+		for (unsigned i = 0 ; i < initialization::TSPLibGraph::size()-1 ; i ++)
 		    {
-			len -= initialization::TSPLibGraph::distance(__route [i], __route[(i + 1) % initialization::TSPLibGraph::size()]);
+			len -= initialization::TSPLibGraph::distance(__route[i], __route[(i + 1)]);
 		    }
+
+		len -= initialization::TSPLibGraph::distance(__route[ initialization::TSPLibGraph::size()-1 ], __route[0]);
+
 		__route.fitness(len);
 	    }
 	};
