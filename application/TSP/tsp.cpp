@@ -217,7 +217,7 @@ int main (int argc, char *argv[])
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon );
 	    state_dim.storeFunctor(ptEvolver);
 
-	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
+	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF, monitorPrefix);
 	    state_dim.storeFunctor(ptFeedbacker);
 
 	    dim::vectorupdater::Reward<EOT>* ptReward = NULL;
