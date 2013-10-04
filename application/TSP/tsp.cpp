@@ -17,6 +17,7 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
+#include <boost/algorithm/string.hpp>
 #include <boost/mpi.hpp>
 #include <eo>
 #include <eoSwapMutation.h>
@@ -72,9 +73,11 @@ int main (int argc, char *argv[])
      * Definition des paramètres *
      *****************************/
 
-    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)", 0, "Islands Model").value();
+    // N
+    unsigned nislands = parser.createParam(unsigned(4), "nislands", "Number of islands (see --smp)", 'N', "Islands Model").value();
     // a
     double alphaP = parser.createParam(double(0.2), "alpha", "Alpha Probability", 'a', "Islands Model").value();
+    // A
     double alphaF = parser.createParam(double(0.01), "alphaF", "Alpha Fitness", 'A', "Islands Model").value();
     // b
     double betaP = parser.createParam(double(0.01), "beta", "Beta Probability", 'b', "Islands Model").value();
@@ -136,20 +139,30 @@ int main (int argc, char *argv[])
     mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");
     mapOperators["2opt"] = new eoTwoOptMutation<EOT>;	operatorsOrder.push_back("2opt");
 
-    std::vector<std::string> operators(nislands, "");
+    std::ostringstream ssOrder, ssOrder2;
+    ssOrder << "Set an operator between " << operatorsOrder[0];
+    ssOrder2 << "List of operators separeted by a comma. Select operators between " << operatorsOrder[0];
+    for ( size_t k = 1; k < operatorsOrder.size(); ++k )
+	{
+	    ssOrder << "," << operatorsOrder[k];
+	    ssOrder2 << "," << operatorsOrder[k];
+	}
+
+    std::vector<std::string> operatorsVec(nislands, "");
+
     for (size_t i = 0; i < nislands; ++i)
 	{
 	    std::ostringstream ss;
 	    ss << "operator" << i;
+	    operatorsVec[i] = parser.createParam(std::string(operatorsOrder[ i % operatorsOrder.size() ]), ss.str(), ssOrder.str(), 0, "Islands Model").value();
+	}
 
-	    std::ostringstream ss2;
-	    ss2 << "Set an operator between " << operatorsOrder[0];
-	    for ( size_t k = 1; k < operatorsOrder.size(); ++k )
-		{
-		    ss2 << ", " << operatorsOrder[k];
-		}
+    // O
+    std::string operators = parser.createParam(std::string(""), "operators", ssOrder2.str(), 'O', "Islands Model").value();
 
-	    operators[i] = parser.createParam(std::string(operatorsOrder[ i % operatorsOrder.size() ]), ss.str(), ss2.str(), 0, "Islands Model").value();
+    if (!operators.empty())
+	{
+	    boost::split(operatorsVec, operators, boost::is_any_of(","));
 	}
 
     /**************
@@ -176,7 +189,7 @@ int main (int argc, char *argv[])
     std::vector< dim::core::IslandData<EOT>* > islandData(nislands);
 
     dim::core::MigrationMatrix probabilities( nislands );
-    dim::core::InitMatrix initmatrix( initG, 100./nislands );
+    dim::core::InitMatrix initmatrix( initG, probaSame );
 
     initmatrix( probabilities );
     std::cout << probabilities;
@@ -190,7 +203,7 @@ int main (int argc, char *argv[])
 	    islandPop[i] = new dim::core::Pop<EOT>(popSize, init);
 	    islandData[i] = new dim::core::IslandData<EOT>(nislands, i);
 
-	    std::cout << islandData[i]->size() << " " << islandData[i]->rank() << " " << operators[ islandData[i]->rank() ] << std::endl;
+	    std::cout << islandData[i]->size() << " " << islandData[i]->rank() << " " << operatorsVec[ islandData[i]->rank() ] << std::endl;
 
 	    islandData[i]->proba = probabilities(i);
 	    apply<EOT>(eval, *(islandPop[i]));
@@ -199,7 +212,7 @@ int main (int argc, char *argv[])
 	     * Distribution des opérateurs aux iles *
 	     ****************************************/
 
-	    eoMonOp<EOT>* ptMon = mapOperators[ operators[ islandData[i]->rank() ] ];
+	    eoMonOp<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ];
 
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon );
 	    state_dim.storeFunctor(ptEvolver);
