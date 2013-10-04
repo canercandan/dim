@@ -81,8 +81,8 @@ class DataParser:
                 data[i][f] = {'mean': m, 'data': d}
 
             if self.args.percent:
-                s = sum([island[f]['mean'] for f in self.args.percent_files])
-                for f in self.args.percent_files:
+                s = sum([island[f]['mean'] for f in self.args.percentFiles])
+                for f in self.args.percentFiles:
                     data[i][f]['percent'] = (data[i][f]['mean']/s) * 100
 
         return data
@@ -164,7 +164,7 @@ def print_data(args, data):
 
     notpercent = []
     for f in args.files:
-        if f not in args.percent_files:
+        if f not in args.percentFiles:
             notpercent += [f]
 
     for f in args.files:
@@ -180,6 +180,14 @@ def print_data(args, data):
                     print( '%(mean)17.2f' % data[i][f], end=' ' )
                 else:
                     print( '%(mean)12.2f' % data[i][f], end=' ' )
+        print()
+
+    for f in args.agregateFiles:
+        print("%10s:" % f, end=' ')
+        if '-' in f:
+            op1,op2 = f.split('-')
+            for i in range(args.islands):
+                print( '%12.2f' % (data[i][op1]['mean'] - data[i][op2]['mean']), end=' ' )
         print()
 
 def trace_data(args, data):
@@ -209,6 +217,7 @@ def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate')
+    parser.add_argument('--agregateFiles', '-F', help='list of pair of files to compute, separated by comma', default='')
     parser.add_argument('--prefix', help='set the prefix time files', default='result.')
     parser.add_argument('--suffix', help='set the suffix time files', default='.time.')
     parser.add_argument('--time', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='milliseconds')
@@ -218,7 +227,7 @@ def main():
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='time', help='time in nanoseconds')
     parser.add_argument('--percent', '-p', action='store_true', help='use percents')
     parser.add_argument('--percentMean', action='store_true', help='use percents + means')
-    parser.add_argument('--percent_files', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
+    parser.add_argument('--percentFiles', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
     parser.add_argument('--trace', '-P', help='plot measures', action='store_true')
     parser.add_argument('--animate', '-A', help='animate measures', action='store_true')
     parser.add_argument('--scale', type=int, default=100, help='scale of animation view (0 means dynamic)')
@@ -239,7 +248,9 @@ def main():
     args = parser()
 
     args.files = args.files.split(',')
-    args.percent_files = args.percent_files.split(',')
+    if args.agregateFiles:
+        args.agregateFiles = args.agregateFiles.split(',')
+    args.percentFiles = args.percentFiles.split(',')
 
     if args.animate:
         du = DataUpdater(args)
