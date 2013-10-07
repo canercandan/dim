@@ -49,10 +49,10 @@ namespace dim
 
 			_op( candidate );
 
-			if (_invalidate)
-			    {
-				candidate.invalidate();
-			    }
+			// if (_invalidate)
+			//     {
+			// 	candidate.invalidate();
+			//     }
 
 			_eval( candidate );
 

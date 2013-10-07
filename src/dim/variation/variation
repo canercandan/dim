@@ -28,6 +28,18 @@
 #include "GenOp.h"
 #include "CitySwap.h"
 
+#include "FirstImprovementSwapMutation.h"
+#include "RelativeBestImprovementSwapMutation.h"
+#include "BestImprovementSwapMutation.h"
+
+#include "FirstImprovementShiftMutation.h"
+#include "RelativeBestImprovementShiftMutation.h"
+#include "BestImprovementShiftMutation.h"
+
+#include "FirstImprovementInversionMutation.h"
+#include "RelativeBestImprovementInversionMutation.h"
+#include "BestImprovementInversionMutation.h"
+
 #endif // !_VARIATION_
 
 // Local Variables:
