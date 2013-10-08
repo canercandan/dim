@@ -214,7 +214,7 @@ int main (int argc, char *argv[])
 
 	    eoMonOp<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ];
 
-	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon );
+	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon, false, monitorPrefix );
 	    state_dim.storeFunctor(ptEvolver);
 
 	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF, monitorPrefix);

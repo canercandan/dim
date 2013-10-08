@@ -21,6 +21,9 @@
 #define _EVOLVER_EASY_H_
 
 #include "Base.h"
+#include <dim/utils/Measure.h>
+
+#include <boost/utility/identity_type.hpp>
 
 #undef MOVE
 #if __cplusplus > 199711L
@@ -33,40 +36,76 @@ namespace dim
 {
     namespace evolver
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
+
 	template <typename EOT>
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true) : _eval(eval), _op(op), _invalidate(invalidate) {}
+	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true, std::string monitorPrefix = "result") : _eval(eval), _op(op), _invalidate(invalidate), _monitorPrefix(monitorPrefix) {}
+
+	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+	    {
+		std::ostringstream ss;
+
+#ifdef MEASURE
+		ss.str(""); ss << _monitorPrefix << ".evolve_total.time." << this->rank();
+		_measureFiles["evolve_total"] = new std::ofstream(ss.str().c_str());
+
+		ss.str(""); ss << _monitorPrefix << ".evolve_op.time." << this->rank();
+		_measureFiles["evolve_op"] = new std::ofstream(ss.str().c_str());
+
+		ss.str(""); ss << _monitorPrefix << ".evolve_eval.time." << this->rank();
+		_measureFiles["evolve_eval"] = new std::ofstream(ss.str().c_str());
+#endif // !MEASURE
+	    }
 
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& /*data*/)
 	    {
-		for (size_t i = 0; i < pop.size(); ++i)
-		    {
-			EOT& ind = pop[i];
+		DO_MEASURE(
 
-			EOT candidate = ind;
+			   for (size_t i = 0; i < pop.size(); ++i)
+			       {
+				   EOT& ind = pop[i];
 
-			_op( candidate );
+				   EOT candidate = ind;
 
-			// if (_invalidate)
-			//     {
-			// 	candidate.invalidate();
-			//     }
+				   DO_MEASURE(
+					      _op( candidate );
+					      , _measureFiles, "evolve_op" );
 
-			_eval( candidate );
+				   if (_invalidate)
+				       {
+					   candidate.invalidate();
+				       }
 
-			if ( candidate.fitness() > ind.fitness() )
-			    {
-				ind = MOVE(candidate);
-			    }
-		    }
+				   DO_MEASURE(
+					      _eval( candidate );
+					      , _measureFiles, "evolve_eval" );
+
+				   if ( candidate.fitness() > ind.fitness() )
+				       {
+					   ind = MOVE(candidate);
+				       }
+			       }
+
+			   , _measureFiles, "evolve_total" );
 	    }
 
 	private:
 	    eoEvalFunc<EOT>& _eval;
 	    eoMonOp<EOT>& _op;
 	    bool _invalidate;
+
+	    std::string _monitorPrefix;
+
+#ifdef MEASURE
+	    std::map<std::string, std::ofstream*> _measureFiles;
+#endif // !MEASURE
 	};
     } // !evolver
 } // !dim
