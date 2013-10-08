@@ -184,10 +184,11 @@ def print_data(args, data):
 
     for f in args.agregateFiles:
         print("%10s:" % f, end=' ')
-        if '-' in f:
-            op1,op2 = f.split('-')
-            for i in range(args.islands):
-                print( '%12.2f' % (data[i][op1]['mean'] - data[i][op2]['mean']), end=' ' )
+        for op, op_func in [('+', lambda a,b: a+b), ('-', lambda a,b: a-b)]:
+            if op in f:
+                op1,op2 = f.split(op)
+                for i in range(args.islands):
+                    print( '%12.2f' % op_func(data[i][op1]['mean'], data[i][op2]['mean']), end=' ' )
         print()
 
 def trace_data(args, data):
@@ -216,8 +217,8 @@ def trace_data(args, data):
 def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
-    parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate')
-    parser.add_argument('--agregateFiles', '-F', help='list of pair of files to compute, separated by comma', default='')
+    parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate,feedback_wait,migrate_wait')
+    parser.add_argument('--agregateFiles', '-F', help='list of pair of files to compute, separated by comma', default='feedback-feedback_wait,migrate-migrate_wait')
     parser.add_argument('--prefix', help='set the prefix time files', default='result.')
     parser.add_argument('--suffix', help='set the suffix time files', default='.time.')
     parser.add_argument('--time', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='milliseconds')
