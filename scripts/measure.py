@@ -81,7 +81,7 @@ class DataParser:
                 data[i][f] = {'mean': m, 'data': d}
 
             if self.args.percent:
-                s = sum([island[f]['mean'] for f in self.args.percentFiles])
+                s = sum([data[i][f]['mean'] for f in self.args.percentFiles])
                 for f in self.args.percentFiles:
                     data[i][f]['percent'] = (data[i][f]['mean']/s) * 100
 
