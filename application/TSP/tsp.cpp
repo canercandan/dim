@@ -108,12 +108,15 @@ int main (int argc, char *argv[])
 
     std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
 
-    std::map< std::string, eoMonOp<EOT>* > mapOperators;
+    std::map< std::string, dim::variation::Base<EOT>* > mapOperators;
     std::vector< std::string > operatorsOrder;
 
-    mapOperators["swap"] = new eoSwapMutation<EOT>;		operatorsOrder.push_back("swap");
-    mapOperators["shift"] = new eoShiftMutation<EOT>;		operatorsOrder.push_back("shift");
-    mapOperators["inversion"] = new eoInversionMutation<EOT>;	operatorsOrder.push_back("inversion");
+    mapOperators["swap"] = new dim::variation::SwapMutation<EOT>;
+    operatorsOrder.push_back("swap");
+    mapOperators["shift"] = new dim::variation::ShiftMutation<EOT>;
+    operatorsOrder.push_back("shift");
+    mapOperators["inversion"] = new dim::variation::InversionMutation<EOT>;
+    operatorsOrder.push_back("inversion");
 
     mapOperators["first_improve_swap"] = new dim::variation::FirstImprovementSwapMutation<EOT>;
     operatorsOrder.push_back("first_improve_swap");
@@ -136,8 +139,8 @@ int main (int argc, char *argv[])
     mapOperators["best_improve_inversion"] = new dim::variation::BestImprovementInversionMutation<EOT>;
     operatorsOrder.push_back("best_improve_inversion");
 
-    mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");
-    mapOperators["2opt"] = new eoTwoOptMutation<EOT>;	operatorsOrder.push_back("2opt");
+    // mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");
+    // mapOperators["2opt"] = new eoTwoOptMutation<EOT>;	operatorsOrder.push_back("2opt");
 
     std::ostringstream ssOrder, ssOrder2;
     ssOrder << "Set an operator between " << operatorsOrder[0];
@@ -212,7 +215,10 @@ int main (int argc, char *argv[])
 	     * Distribution des opérateurs aux iles *
 	     ****************************************/
 
-	    eoMonOp<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ];
+	    dim::variation::Base<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ];
+	    ptMon->monitorPrefix = monitorPrefix;
+	    ptMon->rank = i;
+	    ptMon->firstCall();
 
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon, false );
 	    state_dim.storeFunctor(ptEvolver);
@@ -274,7 +280,7 @@ int main (int argc, char *argv[])
 	    delete islandData[i];
 	}
 
-    for ( std::map< std::string, eoMonOp<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
+    for ( std::map< std::string, dim::variation::Base<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
     	{
     	    delete it->second;
     	}

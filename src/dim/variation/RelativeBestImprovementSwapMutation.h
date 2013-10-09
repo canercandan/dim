@@ -20,28 +20,16 @@
 #ifndef _VARIATION_RELATIVEBESTIMPROVEMENTSWAPMUTATION_H_
 #define _VARIATION_RELATIVEBESTIMPROVEMENTSWAPMUTATION_H_
 
-#include <eoOp.h>
 #include <dim/initialization/TSPLibGraph.h>
-
-#undef D
-#define D(sol, i, j) (initialization::TSPLibGraph::distance((sol)[(i)%(sol).size()], \
-							    (sol)[(j)%(sol).size()]))
+#include "Base.h"
 
 namespace dim
 {
     namespace variation
     {
 
-	// template<typename EOT>
-	// double compute_delta(sol, i, j)
-	// {
-	//     return
-	// 	- (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
-	// 	+ (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
-	// }
-
 	template<typename EOT>
-	class RelativeBestImprovementSwapMutation : public eoMonOp<EOT>
+	class RelativeBestImprovementSwapMutation : public Base<EOT>
 	{
 	public:
 	    /// The class name.

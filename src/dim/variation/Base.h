@@ -17,36 +17,33 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_
-#define _VARIATION_
+#ifndef _VARIATION_BASE_H_
+#define _VARIATION_BASE_H_
 
-/*************************
- * Main variation header file *
- *************************/
+#include <eoOp.h>
 
-#include "OpContainer.h"
-#include "GenOp.h"
-#include "CitySwap.h"
+#undef D
+#define D(sol, i, j) (initialization::TSPLibGraph::distance((sol)[(i)%(sol).size()], \
+							    (sol)[(j)%(sol).size()]))
+namespace dim
+{
+    namespace variation
+    {
 
-#include "Base.h"
+	template<typename EOT>
+	class Base : public eoMonOp<EOT>
+	{
+	public:
+	    Base() : rank(-1), monitorPrefix("result") {}
 
-#include "SwapMutation.h"
-#include "FirstImprovementSwapMutation.h"
-#include "RelativeBestImprovementSwapMutation.h"
-#include "BestImprovementSwapMutation.h"
+	    virtual void firstCall() {}
 
-#include "ShiftMutation.h"
-#include "FirstImprovementShiftMutation.h"
-#include "RelativeBestImprovementShiftMutation.h"
-#include "BestImprovementShiftMutation.h"
+	public:
+	    int rank;
+	    std::string monitorPrefix;
+	};
 
-#include "InversionMutation.h"
-#include "FirstImprovementInversionMutation.h"
-#include "RelativeBestImprovementInversionMutation.h"
-#include "BestImprovementInversionMutation.h"
+    }
+}
 
-#endif // !_VARIATION_
-
-// Local Variables:
-// mode: C++
-// End:
+#endif /* _VARIATION_BASE_H_ */

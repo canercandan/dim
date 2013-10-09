@@ -20,12 +20,8 @@
 #ifndef _VARIATION_FIRSTIMPROVEMENTSHIFTMUTATION_H_
 #define _VARIATION_FIRSTIMPROVEMENTSHIFTMUTATION_H_
 
-#include <eoOp.h>
 #include <dim/initialization/TSPLibGraph.h>
-
-#undef D
-#define D(sol, i, j) (initialization::TSPLibGraph::distance((sol)[(i)%(sol).size()], \
-							    (sol)[(j)%(sol).size()]))
+#include "Base.h"
 
 namespace dim
 {
@@ -33,7 +29,7 @@ namespace dim
     {
 
 	template<typename EOT>
-	class FirstImprovementShiftMutation : public eoMonOp<EOT>
+	class FirstImprovementShiftMutation : public Base<EOT>
 	{
 	public:
 	    /// The class name.

@@ -17,10 +17,9 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_FIRSTIMPROVEMENTSWAPMUTATION_H_
-#define _VARIATION_FIRSTIMPROVEMENTSWAPMUTATION_H_
+#ifndef _VARIATION_SHIFTMUTATION_H_
+#define _VARIATION_SHIFTMUTATION_H_
 
-#include <dim/initialization/TSPLibGraph.h>
 #include "Base.h"
 
 namespace dim
@@ -29,44 +28,48 @@ namespace dim
     {
 
 	template<typename EOT>
-	class FirstImprovementSwapMutation : public Base<EOT>
+	class ShiftMutation : public Base<EOT>
 	{
 	public:
+	    typedef typename EOT::AtomType GeneType;
+
 	    /// The class name.
-	    virtual std::string className() const { return "FirstImprovementSwapMutation"; }
+	    virtual std::string className() const { return "ShiftMutation"; }
 
 	    /**
-	     * Swap two components of the given chromosome.
+	     * Shift two components of the given chromosome.
 	     * @param chrom The cromosome which is going to be changed.
 	     */
 	    bool operator()(EOT& sol)
 	    {
-		for (size_t k = 0; k < sol.size()-1; ++k)
+		unsigned i, j, from, to;
+		GeneType tmp;
+
+		// generate two different indices
+		i=eo::rng.random(sol.size());
+		do j = eo::rng.random(sol.size()); while (i == j);
+
+		// indexes
+		from=std::min(i,j);
+		to=std::max(i,j);
+
+		// keep the first component to change
+		tmp=sol[to];
+
+		// shift
+		for(unsigned k=to ; k > from ; k--)
 		    {
-			unsigned i, j;
-
-			// generate two different indices
-			i=eo::rng.random(sol.size());
-			do { j = eo::rng.random(sol.size()); } while (i == j);
-
-			// incremental eval
-			double delta =
-			    - (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
-			    + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
-
-			if (delta < 0)
-			    {
-				// swap
-				std::swap(sol[i], sol[j]);
-				sol.fitness( sol.fitness() + delta );
-				return true;
-			    }
+			sol[k]=sol[k-1];
 		    }
-		return false;
+
+		// shift the first component
+		sol[from]=tmp;
+
+		return true;
 	    }
 	};
 
     }
 }
 
-#endif /* _VARIATION_FIRSTIMPROVEMENTSWAPMUTATION_H_ */
+#endif /* _VARIATION_SHIFTMUTATION_H_ */

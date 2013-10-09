@@ -20,22 +20,37 @@
 #ifndef _VARIATION_BESTIMPROVEMENTSWAPMUTATION_H_
 #define _VARIATION_BESTIMPROVEMENTSWAPMUTATION_H_
 
-#include <eoOp.h>
 #include <dim/initialization/TSPLibGraph.h>
-
-#undef D
-#define D(sol, i, j) (initialization::TSPLibGraph::distance((sol)[(i)%(sol).size()], \
-							    (sol)[(j)%(sol).size()]))
+#include "Base.h"
+#include <dim/utils/Measure.h>
 
 namespace dim
 {
     namespace variation
     {
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
 
 	template<typename EOT>
-	class BestImprovementSwapMutation : public eoMonOp<EOT>
+	class BestImprovementSwapMutation : public Base<EOT>
 	{
 	public:
+	    virtual void firstCall()
+	    {
+		std::ostringstream ss;
+
+#ifdef MEASURE
+		ss.str(""); ss << this->monitorPrefix << ".best_improvement_swap_total.time." << this->rank;
+		_measureFiles["best_improvement_swap_total"] = new std::ofstream(ss.str().c_str());
+
+		ss.str(""); ss << this->monitorPrefix << ".best_improvement_swap_compute_delta.time." << this->rank;
+		_measureFiles["best_improvement_swap_compute_delta"] = new std::ofstream(ss.str().c_str());
+#endif // !MEASURE
+	    }
+
 	    /// The class name.
 	    virtual std::string className() const { return "BestImprovementSwapMutation"; }
 
@@ -46,7 +61,8 @@ namespace dim
 	    bool operator()(EOT& sol)
 	    {
 		// select two indices from the initial solution
-		size_t i, j;
+		size_t i;
+		size_t j;
 		i = eo::rng.random(sol.size());
 
 		// keep a best solution with its best delta
@@ -54,31 +70,39 @@ namespace dim
 		unsigned best_j = j;
 		double best_delta = 0;
 
-		for (size_t k = 0; k < sol.size()-1; ++k)
-		    {
-			do { j = eo::rng.random(sol.size()); } while (i == j);
+		DO_MEASURE(
 
-			for (size_t l = 0; l < sol.size()-1; ++l)
-			    {
-				// incremental eval
-				double delta =
-				    - (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
-				    + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
+			   for (size_t k = 0; k < sol.size()-1; ++k)
+			       {
+				   do { j = eo::rng.random(sol.size()); } while (i == j);
 
-				if (delta < best_delta)
-				    {
-					best_delta = delta;
-					best_i = i;
-					best_j = j;
-				    }
+				   for (size_t l = 0; l < sol.size()-1; ++l)
+				       {
+					   DO_MEASURE(
 
-				// increment j in order to swap with the other indexes
-				do { j = (j+1) % sol.size(); } while (i == j);
-			    }
+						      // incremental eval
+						      double delta =
+						      - (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
+						      + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
 
-			// increment i in order to swap with the other indexes
-			i = (i+1) % sol.size();
-		    }
+						      if (delta < best_delta)
+							  {
+							      best_delta = delta;
+							      best_i = i;
+							      best_j = j;
+							  }
+
+						      , _measureFiles, "best_improvement_swap_compute_delta" );
+
+					   // increment j in order to swap with the other indexes
+					   do { j = (j+1) % sol.size(); } while (i == j);
+				       }
+
+				   // increment i in order to swap with the other indexes
+				   i = (i+1) % sol.size();
+			       }
+
+			   , _measureFiles, "best_improvement_swap_total" );
 
 		// if the best delta is negative, we swap the solution with the best indicies
 		if ( best_delta < 0 )
@@ -90,6 +114,11 @@ namespace dim
 
 		return false;
 	    }
+
+	private:
+#ifdef MEASURE
+	    std::map<std::string, std::ofstream*> _measureFiles;
+#endif // !MEASURE
 	};
 
     }

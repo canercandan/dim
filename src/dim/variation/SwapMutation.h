@@ -17,36 +17,42 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_
-#define _VARIATION_
-
-/*************************
- * Main variation header file *
- *************************/
-
-#include "OpContainer.h"
-#include "GenOp.h"
-#include "CitySwap.h"
+#ifndef _VARIATION_SWAPMUTATION_H_
+#define _VARIATION_SWAPMUTATION_H_
 
 #include "Base.h"
 
-#include "SwapMutation.h"
-#include "FirstImprovementSwapMutation.h"
-#include "RelativeBestImprovementSwapMutation.h"
-#include "BestImprovementSwapMutation.h"
+namespace dim
+{
+    namespace variation
+    {
 
-#include "ShiftMutation.h"
-#include "FirstImprovementShiftMutation.h"
-#include "RelativeBestImprovementShiftMutation.h"
-#include "BestImprovementShiftMutation.h"
+	template<typename EOT>
+	class SwapMutation : public Base<EOT>
+	{
+	public:
+	    /// The class name.
+	    virtual std::string className() const { return "SwapMutation"; }
 
-#include "InversionMutation.h"
-#include "FirstImprovementInversionMutation.h"
-#include "RelativeBestImprovementInversionMutation.h"
-#include "BestImprovementInversionMutation.h"
+	    /**
+	     * Swap two components of the given chromosome.
+	     * @param chrom The cromosome which is going to be changed.
+	     */
+	    bool operator()(EOT& sol)
+	    {
+		unsigned i, j;
 
-#endif // !_VARIATION_
+		// generate two different indices
+		i=eo::rng.random(sol.size());
+		do { j = eo::rng.random(sol.size()); } while (i == j);
 
-// Local Variables:
-// mode: C++
-// End:
+		// swap
+		std::swap(sol[i],sol[j]);
+		return true;
+	    }
+	};
+
+    }
+}
+
+#endif /* _VARIATION_SWAPMUTATION_H_ */

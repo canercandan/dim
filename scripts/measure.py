@@ -154,7 +154,7 @@ def print_data(args, data):
 
     print("Time unit: %s" % args.time)
 
-    print("%10s " % " ", end=' ')
+    print("%%%ds " % args.tabulation_size % " ", end=' ')
     for i in range(args.islands):
         if args.percent and args.percentMean:
             print("%17d" % i, end=' ')
@@ -168,7 +168,7 @@ def print_data(args, data):
             notpercent += [f]
 
     for f in args.files:
-        print("%10s:" % f, end=' ')
+        print("%%%ds:" % args.tabulation_size % f, end=' ')
         for i in range(args.islands):
             if args.percent and f not in notpercent:
                 if args.percentMean:
@@ -183,12 +183,22 @@ def print_data(args, data):
         print()
 
     for f in args.agregateFiles:
-        print("%10s:" % f, end=' ')
-        for op, op_func in [('+', lambda a,b: a+b), ('-', lambda a,b: a-b)]:
+        print("%%%ds:" % args.tabulation_size % f, end=' ')
+        for op, op_func in [('+', lambda a,b: a+b), ('-', lambda a,b: a-b), ('*', lambda a,b: a*b), ('/', lambda a,b: a/b)]:
             if op in f:
                 op1,op2 = f.split(op)
                 for i in range(args.islands):
-                    print( '%12.2f' % op_func(data[i][op1]['mean'], data[i][op2]['mean']), end=' ' )
+                    try:
+                        op1_value = int(op1)
+                    except ValueError:
+                        op1_value = data[i][op1]['mean']
+
+                    try:
+                        op2_value = int(op2)
+                    except ValueError:
+                        op2_value = data[i][op2]['mean']
+
+                    print( '%12.2f' % op_func(op1_value, op2_value), end=' ' )
         print()
 
 def trace_data(args, data):
@@ -218,6 +228,7 @@ def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
     parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate,feedback_wait,migrate_wait')
+    parser.add_argument('--tabulation_size', '-T', help='tabulation size for file names', type=int, default=10)
     parser.add_argument('--agregateFiles', '-F', help='list of pair of files to compute, separated by comma', default='feedback-feedback_wait,migrate-migrate_wait')
     parser.add_argument('--prefix', help='set the prefix time files', default='result.')
     parser.add_argument('--suffix', help='set the suffix time files', default='.time.')
