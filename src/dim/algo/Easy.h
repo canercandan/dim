@@ -59,7 +59,7 @@ namespace dim
 	    public:
 		Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(__dummyEvolve), _feedback(__dummyFeedback), _update(__dummyUpdate), _memorize(__dummyMemorize), _migrate(__dummyMigrate) {}
 
-		Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
+		Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _islandPop(islandPop), _islandData(islandData) {}
 
 		virtual ~Easy() {}
 
@@ -73,28 +73,28 @@ namespace dim
 #ifdef MEASURE
 		    std::ostringstream ss;
 
-		    ss.str(""); ss << _monitorPrefix << ".total.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".total.time." << this->rank();
 		    measureFiles["total"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".gen.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".gen.time." << this->rank();
 		    measureFiles["gen"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".gen_sync.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".gen_sync.time." << this->rank();
 		    measureFiles["gen_sync"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".evolve.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".evolve.time." << this->rank();
 		    measureFiles["evolve"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".feedback.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".feedback.time." << this->rank();
 		    measureFiles["feedback"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".update.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".update.time." << this->rank();
 		    measureFiles["update"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".memorize.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".memorize.time." << this->rank();
 		    measureFiles["memorize"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".migrate.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".migrate.time." << this->rank();
 		    measureFiles["migrate"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 
@@ -157,8 +157,6 @@ namespace dim
 
 		std::vector< core::Pop<EOT>* >& _islandPop;
 		std::vector< core::IslandData<EOT>* >& _islandData;
-
-		std::string _monitorPrefix;
 	    };
 	} // !smp
 
@@ -168,7 +166,7 @@ namespace dim
 	public:
 	    Easy(utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(__dummyEvolve), _feedback(__dummyFeedback), _update(__dummyUpdate), _memorize(__dummyMemorize), _migrate(__dummyMigrate) {}
 
-	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint, std::string& monitorPrefix = "result") : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator), _monitorPrefix(monitorPrefix) {}
+	    Easy(evolver::Base<EOT>& evolver, feedbacker::Base<EOT>& feedbacker, vectorupdater::Base<EOT>& updater, memorizer::Base<EOT>& memorizer, migrator::Base<EOT>& migrator, utils::CheckPoint<EOT>& checkpoint) : _checkpoint(checkpoint), _evolve(evolver), _feedback(feedbacker), _update(updater), _memorize(memorizer), _migrate(migrator) {}
 
 	    virtual ~Easy() {}
 
@@ -179,25 +177,25 @@ namespace dim
 #ifdef MEASURE
 		std::ostringstream ss;
 
-		ss.str(""); ss << _monitorPrefix << ".total.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".total.time." << this->rank();
 		measureFiles["total"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".gen.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".gen.time." << this->rank();
 		measureFiles["gen"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".evolve.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".evolve.time." << this->rank();
 		measureFiles["evolve"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".feedback.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".feedback.time." << this->rank();
 		measureFiles["feedback"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".update.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".update.time." << this->rank();
 		measureFiles["update"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".memorize.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".memorize.time." << this->rank();
 		measureFiles["memorize"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".migrate.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".migrate.time." << this->rank();
 		measureFiles["migrate"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 
@@ -250,8 +248,6 @@ namespace dim
 	    vectorupdater::Base<EOT>& _update;
 	    memorizer::Base<EOT>& _memorize;
 	    migrator::Base<EOT>& _migrate;
-
-	    std::string _monitorPrefix;
 	};
     } // !algo
 } // !dim

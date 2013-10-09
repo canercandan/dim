@@ -52,9 +52,9 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, double alpha = 0.01, std::string monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _alpha(alpha), _monitorPrefix(monitorPrefix) {}
+		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, double alpha = 0.01) : _islandPop(islandPop), _islandData(islandData), _alpha(alpha) {}
 
-		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+		virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 		{
 		    std::ostringstream ss;
 
@@ -64,19 +64,19 @@ namespace dim
 #endif // !TRACE
 
 #ifdef MEASURE
-		    ss.str(""); ss << _monitorPrefix << ".feedback_total.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".feedback_total.time." << this->rank();
 		    _measureFiles["feedback_total"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".feedback_send.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".feedback_send.time." << this->rank();
 		    _measureFiles["feedback_send"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".feedback_push.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".feedback_push.time." << this->rank();
 		    _measureFiles["feedback_push"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".feedback_update.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".feedback_update.time." << this->rank();
 		    _measureFiles["feedback_update"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".feedback_wait.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".feedback_wait.time." << this->rank();
 		    _measureFiles["feedback_wait"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 		}
@@ -149,8 +149,6 @@ namespace dim
 		std::vector< core::IslandData<EOT>* >& _islandData;
 
 		double _alpha;
-
-		std::string _monitorPrefix;
 
 #ifdef TRACE
 		std::ofstream _of;

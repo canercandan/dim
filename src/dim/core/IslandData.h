@@ -186,7 +186,7 @@ namespace dim
 	    typedef typename EOT::Fitness Fitness;
 #endif
 
-	    IslandData(int __size = -1, int __rank = -1)
+	    IslandData(int __size = -1, int __rank = -1, std::string __monitorPrefix = "result")
 		: ParallelContext(0, __size, __rank),
 		  feedbacks(size()),
 		  feedbackLastUpdatedTimes(size(), std_or_boost::chrono::system_clock::now()),
@@ -195,7 +195,8 @@ namespace dim
  		  feedbackerSendingQueue(size()),
 		  migratorSendingQueue(size()),
 		  toContinue(true),
-		  bar(size())
+		  bar(size()),
+		  monitorPrefix(__monitorPrefix)
 	    {}
 
 	    IslandData(const IslandData& d)
@@ -222,6 +223,7 @@ namespace dim
 			feedbackerReceivingQueue = d.feedbackerReceivingQueue;
 			migratorSendingQueue = d.migratorSendingQueue;
 			migratorReceivingQueue = d.migratorReceivingQueue;
+			monitorPrefix = d.monitorPrefix;
 		    }
 		return *this;
 	    }
@@ -243,6 +245,8 @@ namespace dim
 	    // std_or_boost::condition_variable cv;
 	    // std_or_boost::mutex cv_m;
 	    boost::barrier bar;
+
+	    std::string monitorPrefix;
 	};
 
     } // !core

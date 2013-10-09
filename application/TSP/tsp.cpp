@@ -201,7 +201,7 @@ int main (int argc, char *argv[])
 	    std::cout << "island " << i << std::endl;
 
 	    islandPop[i] = new dim::core::Pop<EOT>(popSize, init);
-	    islandData[i] = new dim::core::IslandData<EOT>(nislands, i);
+	    islandData[i] = new dim::core::IslandData<EOT>(nislands, i, monitorPrefix);
 
 	    std::cout << islandData[i]->size() << " " << islandData[i]->rank() << " " << operatorsVec[ islandData[i]->rank() ] << std::endl;
 
@@ -214,10 +214,10 @@ int main (int argc, char *argv[])
 
 	    eoMonOp<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ];
 
-	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon, false, monitorPrefix );
+	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon, false );
 	    state_dim.storeFunctor(ptEvolver);
 
-	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF, monitorPrefix);
+	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
 	    state_dim.storeFunctor(ptFeedbacker);
 
 	    dim::vectorupdater::Reward<EOT>* ptReward = NULL;
@@ -237,13 +237,13 @@ int main (int argc, char *argv[])
 	    dim::memorizer::Base<EOT>* ptMemorizer = new dim::memorizer::Easy<EOT>();
 	    state_dim.storeFunctor(ptMemorizer);
 
-	    dim::migrator::Base<EOT>* ptMigrator = new dim::migrator::smp::Easy<EOT>(islandPop, islandData, monitorPrefix);
+	    dim::migrator::Base<EOT>* ptMigrator = new dim::migrator::smp::Easy<EOT>(islandPop, islandData);
 	    state_dim.storeFunctor(ptMigrator);
 
 	    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
 	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, *(islandData[i]), 1, stepTimer);
 
-	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData, monitorPrefix );
+	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData );
 	    state_dim.storeFunctor(ptIsland);
 
 	    ptEvolver->size(nislands);
@@ -265,7 +265,7 @@ int main (int argc, char *argv[])
 	    tr.add(*ptIsland);
 	}
 
-    dim::core::IslandData<EOT> data(nislands);
+    dim::core::IslandData<EOT> data(nislands, -1, monitorPrefix);
     tr(pop, data);
 
     for (size_t i = 0; i < nislands; ++i)

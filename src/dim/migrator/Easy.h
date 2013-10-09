@@ -67,7 +67,7 @@ namespace dim
 	    class Easy : public Base<EOT>
 	    {
 	    public:
-		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData, std::string monitorPrefix = "result") : _islandPop(islandPop), _islandData(islandData), _monitorPrefix(monitorPrefix) {}
+		Easy(std::vector< core::Pop<EOT>* >& islandPop, std::vector< core::IslandData<EOT>* >& islandData) : _islandPop(islandPop), _islandData(islandData) {}
 
 		virtual void firstCall(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 		{
@@ -79,19 +79,19 @@ namespace dim
 #endif // !TRACE
 
 #ifdef MEASURE
-		    ss.str(""); ss << _monitorPrefix << ".migrate_total.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".migrate_total.time." << this->rank();
 		    _measureFiles["migrate_total"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".migrate_send.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".migrate_send.time." << this->rank();
 		    _measureFiles["migrate_send"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".migrate_push.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".migrate_push.time." << this->rank();
 		    _measureFiles["migrate_push"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".migrate_update.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".migrate_update.time." << this->rank();
 		    _measureFiles["migrate_update"] = new std::ofstream(ss.str().c_str());
 
-		    ss.str(""); ss << _monitorPrefix << ".migrate_wait.time." << this->rank();
+		    ss.str(""); ss << data.monitorPrefix << ".migrate_wait.time." << this->rank();
 		    _measureFiles["migrate_wait"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 		}
@@ -190,8 +190,6 @@ namespace dim
 	    private:
 		std::vector< core::Pop<EOT>* >& _islandPop;
 		std::vector< core::IslandData<EOT>* >& _islandData;
-
-		std::string _monitorPrefix;
 
 #ifdef TRACE
 		std::ofstream _of;

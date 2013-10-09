@@ -46,20 +46,20 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true, std::string monitorPrefix = "result") : _eval(eval), _op(op), _invalidate(invalidate), _monitorPrefix(monitorPrefix) {}
+	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true) : _eval(eval), _op(op), _invalidate(invalidate) {}
 
-	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& /*data*/)
+	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 	    {
 		std::ostringstream ss;
 
 #ifdef MEASURE
-		ss.str(""); ss << _monitorPrefix << ".evolve_total.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".evolve_total.time." << this->rank();
 		_measureFiles["evolve_total"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".evolve_op.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".evolve_op.time." << this->rank();
 		_measureFiles["evolve_op"] = new std::ofstream(ss.str().c_str());
 
-		ss.str(""); ss << _monitorPrefix << ".evolve_eval.time." << this->rank();
+		ss.str(""); ss << data.monitorPrefix << ".evolve_eval.time." << this->rank();
 		_measureFiles["evolve_eval"] = new std::ofstream(ss.str().c_str());
 #endif // !MEASURE
 	    }
@@ -100,8 +100,6 @@ namespace dim
 	    eoEvalFunc<EOT>& _eval;
 	    eoMonOp<EOT>& _op;
 	    bool _invalidate;
-
-	    std::string _monitorPrefix;
 
 #ifdef MEASURE
 	    std::map<std::string, std::ofstream*> _measureFiles;
