@@ -18,11 +18,10 @@
 # Caner Candan <caner@candan.fr>, http://caner.candan.fr
 #
 
-import logging
+import logging, sys, json
 from parser import Parser
 import numpy as np
 from collections import OrderedDict
-import sys
 
 logger = logging.getLogger("measure")
 timeunits = OrderedDict([('seconds', 10**0), ('milliseconds', 10**3), ('microseconds', 10**6), ('nanoseconds', 10**9),])
@@ -74,16 +73,29 @@ class DataParser:
 
                     data += [island]
 
+        # record mean value of files
         for i in range(self.args.islands):
             for f in self.args.files:
                 d = [int(x)*timeunits[self.args.time]/10**6 for x in data[i][f]]
                 m = np.mean(d) if d else 0;
-                data[i][f] = {'mean': m, 'data': d}
+                data[i][f] = {'value': m, 'data': d}
 
+        # set percent for wished fields
+        for i in range(self.args.islands):
             if self.args.percent:
-                s = sum([data[i][f]['mean'] for f in self.args.percentFiles])
-                for f in self.args.percentFiles:
-                    data[i][f]['percent'] = (data[i][f]['mean']/s) * 100
+                s = sum([data[i][f]['value'] for f in self.args.percentFields])
+                for f in self.args.percentFields:
+                    data[i][f]['percent'] = (data[i][f]['value']/s) * 100
+
+        try:
+            with open(self.args.json_file) as f:
+                new_data = json.load(f)
+                for i in range(self.args.islands):
+                    for key in new_data:
+                        data[i][key] = {'value': new_data[key]}
+                    # data[i].update(new_data)
+        except FileNotFoundError:
+            pass
 
         return data
 
@@ -147,6 +159,8 @@ class DataUpdater:
                     self.lines[i][f].set_ydata(np.append(self.lines[i][f].get_ydata(), d)[-self.args.scale:])
 
 def print_data(args, data):
+    tabular = 17 if args.percent and args.percentValue else 12
+
     if args.clear:
         from os import system
         system('clear')
@@ -156,33 +170,30 @@ def print_data(args, data):
 
     print("%%%ds " % args.tabulation_size % " ", end=' ')
     for i in range(args.islands):
-        if args.percent and args.percentMean:
-            print("%17d" % i, end=' ')
-        else:
-            print("%12d" % i, end=' ')
+        print("%%%dd" % tabular % i, end=' ')
     print()
 
     notpercent = []
-    for f in args.files:
-        if f not in args.percentFiles:
+    for f in args.fields:
+        if f not in args.percentFields:
             notpercent += [f]
 
-    for f in args.files:
+    for f in args.fields:
         print("%%%ds:" % args.tabulation_size % f, end=' ')
-        for i in range(args.islands):
-            if args.percent and f not in notpercent:
-                if args.percentMean:
-                    print( '%(mean)6.2f (%(percent)6.2f %%)' % data[i][f], end=' ' )
+        if f in args.files:
+            for i in range(args.islands):
+                if args.percent and f not in notpercent:
+                    if args.percentValue:
+                        print( '%(value)6.2f (%(percent)6.2f %%)' % data[i][f], end=' ' )
+                    else:
+                        print( '%(percent)10.2f %%' % data[i][f], end=' ' )
                 else:
-                    print( '%(percent)10.2f %%' % data[i][f], end=' ' )
-            else:
-                if args.percent and args.percentMean:
-                    print( '%(mean)17.2f' % data[i][f], end=' ' )
-                else:
-                    print( '%(mean)12.2f' % data[i][f], end=' ' )
+                    print( '%%(value)%d.2f' % tabular % data[i][f], end=' ' )
+        else:
+            print( '%%(value)%ds' % tabular % data[i][f], end=' ' )
         print()
 
-    for f in args.agregateFiles:
+    for f in args.agregateFields:
         print("%%%ds:" % args.tabulation_size % f, end=' ')
         for op, op_func in [('+', lambda a,b: a+b), ('-', lambda a,b: a-b), ('*', lambda a,b: a*b), ('/', lambda a,b: a/b)]:
             if op in f:
@@ -191,12 +202,12 @@ def print_data(args, data):
                     try:
                         op1_value = int(op1)
                     except ValueError:
-                        op1_value = data[i][op1]['mean']
+                        op1_value = float(data[i][op1]['value'])
 
                     try:
                         op2_value = int(op2)
                     except ValueError:
-                        op2_value = data[i][op2]['mean']
+                        op2_value = float(data[i][op2]['value'])
 
                     print( '%12.2f' % op_func(op1_value, op2_value), end=' ' )
         print()
@@ -227,9 +238,11 @@ def trace_data(args, data):
 def main():
     parser = Parser(description='To measure execution time for each part of the algorithm of DIM.', verbose='error')
     parser.add_argument('--islands', '-n', help='number of islands', type=int, default=4)
-    parser.add_argument('--files', '-f', help='list of files prefixes to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate,feedback_wait,migrate_wait')
+    parser.add_argument('--files', '-f', help='list of files prefixes to process, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate,feedback_wait,migrate_wait')
+    parser.add_argument('--fields', '-F', help='list of fields to display, separated by comma', default='gen_sync,evolve,feedback,update,memorize,migrate,feedback_wait,migrate_wait')
+    parser.add_argument('--agregateFields', '-g', help='list of pair of fields to compute, separated by comma', default='feedback-feedback_wait,migrate-migrate_wait')
+    parser.add_argument('--json_file', '-j', help='set a json status file with further data to use with other fields', default='tsp.status.json')
     parser.add_argument('--tabulation_size', '-T', help='tabulation size for file names', type=int, default=10)
-    parser.add_argument('--agregateFiles', '-F', help='list of pair of files to compute, separated by comma', default='feedback-feedback_wait,migrate-migrate_wait')
     parser.add_argument('--prefix', help='set the prefix time files', default='result.')
     parser.add_argument('--suffix', help='set the suffix time files', default='.time.')
     parser.add_argument('--time', '-t', choices=[x for x in timeunits.keys()], help='select a time unit', default='milliseconds')
@@ -238,8 +251,8 @@ def main():
     parser.add_argument('--microseconds', '-u', action='store_const', const='microseconds', dest='time', help='time in microseconds')
     parser.add_argument('--nanoseconds', '-N', action='store_const', const='nanoseconds', dest='time', help='time in nanoseconds')
     parser.add_argument('--percent', '-p', action='store_true', help='use percents')
-    parser.add_argument('--percentMean', action='store_true', help='use percents + means')
-    parser.add_argument('--percentFiles', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
+    parser.add_argument('--percentValue', action='store_true', help='use percents + values')
+    parser.add_argument('--percentFields', default='evolve,feedback,update,memorize,migrate', help='used fields to compute percents')
     parser.add_argument('--trace', '-P', help='plot measures', action='store_true')
     parser.add_argument('--animate', '-A', help='animate measures', action='store_true')
     parser.add_argument('--scale', type=int, default=100, help='scale of animation view (0 means dynamic)')
@@ -260,9 +273,10 @@ def main():
     args = parser()
 
     args.files = args.files.split(',')
-    if args.agregateFiles:
-        args.agregateFiles = args.agregateFiles.split(',')
-    args.percentFiles = args.percentFiles.split(',')
+    args.fields = args.fields.split(',')
+    if args.agregateFields:
+        args.agregateFields = args.agregateFields.split(',')
+    args.percentFields = args.percentFields.split(',')
 
     if args.animate:
         du = DataUpdater(args)

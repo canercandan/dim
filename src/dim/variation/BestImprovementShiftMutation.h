@@ -72,31 +72,39 @@ namespace dim
 		unsigned best_j = j;
 		double best_delta = 0;
 
-		for (size_t k = 0; k < sol.size()-1; ++k)
-		    {
-			do { j = eo::rng.random(sol.size()); } while (i == j);
+		DO_MEASURE(
 
-			for (size_t l = 0; l < sol.size()-1; ++l)
-			    {
-				// incremental eval
-				double delta =
-				    - (D(sol, j-1, j) + D(sol, j, j+1) + D(sol, i-1, i))
-				    + (D(sol, i-1, j) + D(sol, i, j) + D(sol, j-1, j+1));
+			   for (size_t k = 0; k < sol.size()-1; ++k)
+			       {
+				   do { j = eo::rng.random(sol.size()); } while (i == j);
 
-				if (delta < best_delta)
-				    {
-					best_delta = delta;
-					best_i = i;
-					best_j = j;
-				    }
+				   for (size_t l = 0; l < sol.size()-1; ++l)
+				       {
+					   DO_MEASURE(
 
-				// increment j in order to shift with the other indexes
-				do { j = (j+1) % sol.size(); } while (i == j);
-			    }
+						      // incremental eval
+						      double delta =
+						      - (D(sol, j-1, j) + D(sol, j, j+1) + D(sol, i-1, i))
+						      + (D(sol, i-1, j) + D(sol, i, j) + D(sol, j-1, j+1));
 
-			// increment i in order to shift with the other indexes
-			i = (i+1) % sol.size();
-		    }
+						      if (delta < best_delta)
+							  {
+							      best_delta = delta;
+							      best_i = i;
+							      best_j = j;
+							  }
+
+						      , this->_measureFiles, "variation_compute_delta" );
+
+					   // increment j in order to shift with the other indexes
+					   do { j = (j+1) % sol.size(); } while (i == j);
+				       }
+
+				   // increment i in order to shift with the other indexes
+				   i = (i+1) % sol.size();
+			       }
+
+			   , this->_measureFiles, "variation_total" );
 
 		// if the best delta is negative, we shift the solution with the best indicies
 		if ( best_delta < 0 )

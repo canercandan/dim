@@ -22,7 +22,6 @@
 
 #include <dim/initialization/TSPLibGraph.h>
 #include "Base.h"
-#include <dim/utils/Measure.h>
 
 namespace dim
 {
@@ -38,19 +37,6 @@ namespace dim
 	class BestImprovementSwapMutation : public Base<EOT>
 	{
 	public:
-	    virtual void firstCall()
-	    {
-		std::ostringstream ss;
-
-#ifdef MEASURE
-		ss.str(""); ss << this->monitorPrefix << ".best_improvement_swap_total.time." << this->rank;
-		_measureFiles["best_improvement_swap_total"] = new std::ofstream(ss.str().c_str());
-
-		ss.str(""); ss << this->monitorPrefix << ".best_improvement_swap_compute_delta.time." << this->rank;
-		_measureFiles["best_improvement_swap_compute_delta"] = new std::ofstream(ss.str().c_str());
-#endif // !MEASURE
-	    }
-
 	    /// The class name.
 	    virtual std::string className() const { return "BestImprovementSwapMutation"; }
 
@@ -92,7 +78,7 @@ namespace dim
 							      best_j = j;
 							  }
 
-						      , _measureFiles, "best_improvement_swap_compute_delta" );
+						      , this->_measureFiles, "variation_compute_delta" );
 
 					   // increment j in order to swap with the other indexes
 					   do { j = (j+1) % sol.size(); } while (i == j);
@@ -102,7 +88,7 @@ namespace dim
 				   i = (i+1) % sol.size();
 			       }
 
-			   , _measureFiles, "best_improvement_swap_total" );
+			   , this->_measureFiles, "variation_total" );
 
 		// if the best delta is negative, we swap the solution with the best indicies
 		if ( best_delta < 0 )
@@ -114,11 +100,6 @@ namespace dim
 
 		return false;
 	    }
-
-	private:
-#ifdef MEASURE
-	    std::map<std::string, std::ofstream*> _measureFiles;
-#endif // !MEASURE
 	};
 
     }

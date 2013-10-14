@@ -21,6 +21,7 @@
 #define _VARIATION_BASE_H_
 
 #include <eoOp.h>
+#include <dim/utils/Measure.h>
 
 #undef D
 #define D(sol, i, j) (initialization::TSPLibGraph::distance((sol)[(i)%(sol).size()], \
@@ -36,11 +37,27 @@ namespace dim
 	public:
 	    Base() : rank(-1), monitorPrefix("result") {}
 
-	    virtual void firstCall() {}
+	    virtual void firstCall()
+	    {
+		std::ostringstream ss;
+
+#ifdef MEASURE
+		ss.str(""); ss << this->monitorPrefix << ".variation_total.time." << this->rank;
+		_measureFiles["variation_total"] = new std::ofstream(ss.str().c_str());
+
+		ss.str(""); ss << this->monitorPrefix << ".variation_compute_delta.time." << this->rank;
+		_measureFiles["variation_compute_delta"] = new std::ofstream(ss.str().c_str());
+#endif // !MEASURE
+	    }
 
 	public:
 	    int rank;
 	    std::string monitorPrefix;
+
+	protected:
+#ifdef MEASURE
+	    std::map<std::string, std::ofstream*> _measureFiles;
+#endif // !MEASURE
 	};
 
     }
