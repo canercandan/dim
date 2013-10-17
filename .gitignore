@@ -67,3 +67,11 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+notebooks
+scripts
+test
+doc
+experiments
+dim-conf.cmake
+mpi
