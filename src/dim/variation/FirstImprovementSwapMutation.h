@@ -54,7 +54,7 @@ namespace dim
 			    - (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
 			    + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
 
-			if (delta < 0)
+			if (delta <= 0)
 			    {
 				// swap
 				std::swap(sol[i], sol[j]);

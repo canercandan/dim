@@ -71,7 +71,7 @@ namespace dim
 						      - (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
 						      + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
 
-						      if (delta < best_delta)
+						      if (delta <= best_delta)
 							  {
 							      best_delta = delta;
 							      best_i = i;

@@ -72,7 +72,7 @@ namespace dim
 			    - (D(sol, i-1, i) + D(sol, j, j+1))
 			    + (D(sol, i-1, j) + D(sol, i, j+1));
 
-			if (delta < 0)
+			if (delta <= 0)
 			    {
 				// inversion
 				this->inversion(sol, i, j);
