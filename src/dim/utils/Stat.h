@@ -458,24 +458,25 @@ namespace dim
 
 
 
-	/*
-	  template <class EOT>
-	  class StdevStat : public Stat<EOT, double >
-	  {
-	  public :
-	  typedef typename eoSecondMomentStats<EOT>::SquarePair SquarePair;
+	template <class EOT>
+	class StdevStat : public Stat< EOT, typename EOT::Fitness >
+	{
+	public :
+	    using Stat<EOT, typename EOT::Fitness>::value;
+	    typedef typename eoSecondMomentStats<EOT>::SquarePair SquarePair;
 
-	  StdevStat(std::string _description = "Stdev") : Stat<EOT, double>(0.0, _description) {}
+	    StdevStat(std::string _description = "Stdev") : Stat<EOT, double>(0.0, _description) {}
 
-	  virtual void operator()(const core::Pop<EOT>& _pop)
-	  {
-	  SquarePair result = std::accumulate(pop.begin(), pop.end(), std::make_pair(0.0, 0.0), eoSecondMomentStats::sumOfSquares);
+	    virtual void operator()(const core::Pop<EOT>& _pop)
+	    {
+		SquarePair result = std::accumulate(_pop.begin(), _pop.end(), std::make_pair(0.0, 0.0), eoSecondMomentStats<EOT>::sumOfSquares);
 
-	  double n = pop.size();
-	  value() = sqrt( (result.second - (result.first / n)) / (n - 1.0)); // stdev
-	  }
-	  };
-	*/
+		double n = _pop.size();
+		value() = sqrt( (result.second - (result.first / n)) / (n - 1.0)); // stdev
+	    }
+	};
+
+
 
 
 	//! A robust measure of dispersion (also called midspread or middle fifty) that is the difference between the third and the first quartile.
@@ -489,21 +490,28 @@ namespace dim
 
 	    virtual void operator()( const core::Pop<EOT> & _pop )
 	    {
-		if( _pop.size() == 0 ) {
-		    // how to implement value() = 0 ?
+		std::vector<typename EOT::Fitness> fitnesses;
 
-		} else {
-		    core::Pop<EOT> pop = _pop;
+		for ( size_t i = 0; i < _pop.size(); ++i )
+		    {
+			if ( _pop[i].invalid() ) { continue; }
+			fitnesses.push_back( _pop[i].fitness() );
+		    }
 
-		    unsigned int quartile = pop.size()/4;
-		    std::nth_element( pop.begin(), pop.begin()+quartile*1, pop.end() );
-		    typename EOT::Fitness Q1 = pop[quartile].fitness();
+		if (fitnesses.empty())
+		    {
+			eo::log << eo::logging << "InterquartileRangeStat: Valid population empty\n";
+			return;
+		    }
 
-		    std::nth_element( pop.begin(), pop.begin()+quartile*3, pop.end() );
-		    typename EOT::Fitness Q3 = pop[quartile*3].fitness();
+		unsigned int quartile = fitnesses.size()/4;
+		std::nth_element( fitnesses.begin(), fitnesses.begin()+quartile*1, fitnesses.end() );
+		typename EOT::Fitness Q1 = fitnesses[quartile];
 
-		    value() = Q3 - Q1;
-		}
+		std::nth_element( fitnesses.begin(), fitnesses.begin()+quartile*3, fitnesses.end() );
+		typename EOT::Fitness Q3 = fitnesses[quartile*3];
+
+		value() = Q3 - Q1;
 	    }
 
 	    virtual std::string className(void) const { return "InterquartileRangeStat"; }

@@ -122,6 +122,24 @@ namespace dim
 		fileMonitor.add(best);
 		if (printBest) { stdMonitor->add(best); }
 
+		ss.str(""); ss << "std_value_isl" << RANK;
+		utils::StdevStat<EOT>& std = _state.storeFunctor( new utils::StdevStat<EOT>( ss.str() ) );
+		checkpoint.add(std);
+		fileMonitor.add(std);
+		if (printBest) { stdMonitor->add(std); }
+
+		ss.str(""); ss << "distance_value_isl" << RANK;
+		utils::DistanceStat<EOT>& distance = _state.storeFunctor( new utils::DistanceStat<EOT>( ss.str() ) );
+		checkpoint.add(distance);
+		fileMonitor.add(distance);
+		if (printBest) { stdMonitor->add(distance); }
+
+		ss.str(""); ss << "iqr_value_isl" << RANK;
+		utils::InterquartileRangeStat<EOT>& iqr = _state.storeFunctor( new utils::InterquartileRangeStat<EOT>( 0.0, ss.str() ) );
+		checkpoint.add(iqr);
+		fileMonitor.add(iqr);
+		if (printBest) { stdMonitor->add(iqr); }
+
 		ss.str(""); ss << "nb_input_ind_isl" << RANK;
 		utils::FuncPtrStat<EOT, size_t>& inputSizeStat = utils::makeFuncPtrStat( utils::getPopInputSize<EOT>, _state, ss.str() );
 		checkpoint.add(inputSizeStat);
