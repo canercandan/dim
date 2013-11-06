@@ -45,6 +45,7 @@ namespace dim
 	    virtual void operator()()
 	    {
 		value() = _eval.value();
+		_eval.value() = 0;
 	    }
 
 	private:

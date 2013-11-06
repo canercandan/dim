@@ -107,7 +107,7 @@ int main (int argc, char *argv[])
 
     std::string monitorPrefix = parser.getORcreateParam(std::string("result"), "monitorPrefix", "Monitor prefix filenames", '\0', "Output").value();
 
-    std::map< std::string, dim::variation::Base<EOT>* > mapOperators;
+    std::map< std::string, std::pair< dim::variation::Base<EOT>*, dim::variation::IncrementalEvalCounter<EOT>* > > mapOperators;
     std::vector< std::string > operatorsOrder;
 
     dim::variation::SwapPartialOp<EOT> swapOp;
@@ -119,46 +119,47 @@ int main (int argc, char *argv[])
     dim::variation::InversionIncrementalEval<EOT> inversionEval;
     dim::variation::DummyIncrementalEval<EOT> dummyEval;
 
-    dim::variation::IncrementalEvalCounter<EOT> dummyEvalCounter(dummyEval);
-
-    mapOperators["swap"] = new dim::variation::RandMutation<EOT>(swapOp);
+    mapOperators["swap"] = std::make_pair(new dim::variation::RandMutation<EOT>(swapOp),
+					  new dim::variation::IncrementalEvalCounter<EOT>(dummyEval));
     operatorsOrder.push_back("swap");
-    mapOperators["shift"] = new dim::variation::RandMutation<EOT>(shiftOp);
+    mapOperators["shift"] = std::make_pair(new dim::variation::RandMutation<EOT>(shiftOp),
+					   new dim::variation::IncrementalEvalCounter<EOT>(dummyEval));
     operatorsOrder.push_back("shift");
-    mapOperators["inversion"] = new dim::variation::RandMutation<EOT>(inversionOp);
+    mapOperators["inversion"] = std::make_pair(new dim::variation::RandMutation<EOT>(inversionOp),
+					       new dim::variation::IncrementalEvalCounter<EOT>(dummyEval));;
     operatorsOrder.push_back("inversion");
 
-    dim::variation::IncrementalEvalCounter<EOT> firstImprovementSwapEvalCounter(swapEval);
-    dim::variation::IncrementalEvalCounter<EOT> firstImprovementShiftEvalCounter(shiftEval);
-    dim::variation::IncrementalEvalCounter<EOT> firstImprovementInversionEvalCounter(inversionEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptFirstImprovementSwapEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptFirstImprovementShiftEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptFirstImprovementInversionEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(inversionEval);
 
-    mapOperators["first_improve_swap"] = new dim::variation::FirstImprovementMutation<EOT>(swapOp, firstImprovementSwapEvalCounter);
+    mapOperators["first_improve_swap"] = std::make_pair(new dim::variation::FirstImprovementMutation<EOT>(swapOp, *ptFirstImprovementSwapEvalCounter), ptFirstImprovementSwapEvalCounter);
     operatorsOrder.push_back("first_improve_swap");
-    mapOperators["first_improve_shift"] = new dim::variation::FirstImprovementMutation<EOT>(shiftOp, firstImprovementShiftEvalCounter);
+    mapOperators["first_improve_shift"] = std::make_pair(new dim::variation::FirstImprovementMutation<EOT>(shiftOp, *ptFirstImprovementShiftEvalCounter), ptFirstImprovementShiftEvalCounter);
     operatorsOrder.push_back("first_improve_shift");
-    mapOperators["first_improve_inversion"] = new dim::variation::FirstImprovementMutation<EOT>(inversionOp, firstImprovementInversionEvalCounter);
+    mapOperators["first_improve_inversion"] = std::make_pair(new dim::variation::FirstImprovementMutation<EOT>(inversionOp, *ptFirstImprovementInversionEvalCounter), ptFirstImprovementInversionEvalCounter);
     operatorsOrder.push_back("first_improve_inversion");
 
-    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementSwapEvalCounter(swapEval);
-    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementShiftEvalCounter(shiftEval);
-    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementInversionEvalCounter(inversionEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptRelativeBestImprovementSwapEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptRelativeBestImprovementShiftEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptRelativeBestImprovementInversionEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(inversionEval);
 
-    mapOperators["relative_best_improve_swap"] = new dim::variation::RelativeBestImprovementMutation<EOT>(swapOp, relativeBestImprovementSwapEvalCounter);
+    mapOperators["relative_best_improve_swap"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(swapOp, *ptRelativeBestImprovementSwapEvalCounter), ptRelativeBestImprovementSwapEvalCounter);
     operatorsOrder.push_back("relative_best_improve_swap");
-    mapOperators["relative_best_improve_shift"] = new dim::variation::RelativeBestImprovementMutation<EOT>(shiftOp, relativeBestImprovementShiftEvalCounter);
+    mapOperators["relative_best_improve_shift"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(shiftOp, *ptRelativeBestImprovementShiftEvalCounter), ptRelativeBestImprovementShiftEvalCounter);
     operatorsOrder.push_back("relative_best_improve_shift");
-    mapOperators["relative_best_improve_inversion"] = new dim::variation::RelativeBestImprovementMutation<EOT>(inversionOp, relativeBestImprovementInversionEvalCounter);
+    mapOperators["relative_best_improve_inversion"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(inversionOp, *ptRelativeBestImprovementInversionEvalCounter), ptRelativeBestImprovementInversionEvalCounter);
     operatorsOrder.push_back("relative_best_improve_inversion");
 
-    dim::variation::IncrementalEvalCounter<EOT> bestImprovementSwapEvalCounter(swapEval);
-    dim::variation::IncrementalEvalCounter<EOT> bestImprovementShiftEvalCounter(shiftEval);
-    dim::variation::IncrementalEvalCounter<EOT> bestImprovementInversionEvalCounter(inversionEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptBestImprovementSwapEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptBestImprovementShiftEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT>* ptBestImprovementInversionEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(inversionEval);
 
-    mapOperators["best_improve_swap"] = new dim::variation::BestImprovementMutation<EOT>(swapOp, bestImprovementSwapEvalCounter);
+    mapOperators["best_improve_swap"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(swapOp, *ptBestImprovementSwapEvalCounter), ptBestImprovementSwapEvalCounter);
     operatorsOrder.push_back("best_improve_swap");
-    mapOperators["best_improve_shift"] = new dim::variation::BestImprovementMutation<EOT>(shiftOp, bestImprovementShiftEvalCounter);
+    mapOperators["best_improve_shift"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(shiftOp, *ptBestImprovementShiftEvalCounter), ptBestImprovementShiftEvalCounter);
     operatorsOrder.push_back("best_improve_shift");
-    mapOperators["best_improve_inversion"] = new dim::variation::BestImprovementMutation<EOT>(inversionOp, bestImprovementInversionEvalCounter);
+    mapOperators["best_improve_inversion"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(inversionOp, *ptBestImprovementInversionEvalCounter), ptBestImprovementInversionEvalCounter);
     operatorsOrder.push_back("best_improve_inversion");
 
     // mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");
@@ -240,10 +241,12 @@ int main (int argc, char *argv[])
 	     * Distribution des opérateurs aux iles *
 	     ****************************************/
 
-	    dim::variation::Base<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ];
+	    dim::variation::Base<EOT>* ptMon = mapOperators[ operatorsVec[ islandData[i]->rank() ] ].first;
 	    ptMon->monitorPrefix = monitorPrefix;
 	    ptMon->rank = i;
 	    ptMon->firstCall();
+
+	    dim::variation::IncrementalEvalCounter<EOT>* ptIncrementalEvalCounter = mapOperators[ operatorsVec[ islandData[i]->rank() ] ].second;
 
 	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( *ptEval, *ptMon, false );
 	    state_dim.storeFunctor(ptEvolver);
@@ -272,7 +275,7 @@ int main (int argc, char *argv[])
 	    state_dim.storeFunctor(ptMigrator);
 
 	    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, *ptEval);
-	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, *ptEval, *(islandData[i]), 1, stepTimer);
+	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, *ptIncrementalEvalCounter, *(islandData[i]), 1, stepTimer);
 
 	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData );
 	    state_dim.storeFunctor(ptIsland);
@@ -305,9 +308,10 @@ int main (int argc, char *argv[])
 	    delete islandData[i];
 	}
 
-    for ( std::map< std::string, dim::variation::Base<EOT>* >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
+    for ( std::map< std::string, std::pair< dim::variation::Base<EOT>*, dim::variation::IncrementalEvalCounter<EOT>* > >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
     	{
-    	    delete it->second;
+    	    delete it->second.first;
+    	    delete it->second.second;
     	}
 
     return 0;
