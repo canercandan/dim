@@ -17,8 +17,8 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_INVERSIONMUTATION_H_
-#define _VARIATION_INVERSIONMUTATION_H_
+#ifndef _VARIATION_RANDMUTATION_H_
+#define _VARIATION_RANDMUTATION_H_
 
 #include "Base.h"
 
@@ -28,16 +28,14 @@ namespace dim
     {
 
 	template<typename EOT>
-	class InversionMutation : public Base<EOT>
+	class RandMutation : public Base<EOT>
 	{
 	public:
-	    /// The class name.
-	    virtual std::string className() const { return "InversionMutation"; }
+	    RandMutation(PartialOp<EOT>& op) : _op(op) {}
 
-	    /**
-	     * Inversion two components of the given chromosome.
-	     * @param chrom The cromosome which is going to be changed.
-	     */
+	    /// The class name.
+	    virtual std::string className() const { return "RandMutation"; }
+
 	    bool operator()(EOT& sol)
 	    {
 		unsigned i, j;
@@ -46,13 +44,16 @@ namespace dim
 		i=eo::rng.random(sol.size());
 		do j = eo::rng.random(sol.size()); while (i == j);
 
-		inversion(sol, i, j);
+		_op(sol, i, j);
 
 		return true;
 	    }
+
+	private:
+	    PartialOp<EOT>& _op;
 	};
 
     }
 }
 
-#endif /* _VARIATION_INVERSIONMUTATION_H_ */
+#endif /* _VARIATION_RANDMUTATION_H_ */

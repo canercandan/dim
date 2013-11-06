@@ -36,6 +36,10 @@ namespace dim
 	class InversionPartialOp
 	{
 	public:
+	    /**
+	     * Inversion two components of the given chromosome.
+	     * @param sol The cromosome which is going to be changed.
+	     */
 	    virtual bool operator()(EOT& sol, size_t i, size_t j)
 	    {
 		unsigned from, to;
@@ -61,6 +65,10 @@ namespace dim
 	class ShiftPartialOp
 	{
 	public:
+	    /**
+	     * Shift two components of the given chromosome.
+	     * @param sol The cromosome which is going to be changed.
+	     */
 	    virtual bool operator()(EOT& sol, size_t i, size_t j)
 	    {
 		unsigned from, to;
@@ -90,6 +98,10 @@ namespace dim
 	class SwapPartialOp
 	{
 	public:
+	    /**
+	     * Swap two components of the given chromosome.
+	     * @param sol The cromosome which is going to be changed.
+	     */
 	    virtual bool operator()(EOT& sol, size_t i, size_t j)
 	    {
 		std::swap(sol[i], sol[j]);
