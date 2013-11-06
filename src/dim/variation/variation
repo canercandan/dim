@@ -30,20 +30,13 @@
 
 #include "Base.h"
 
-#include "SwapMutation.h"
-#include "FirstImprovementSwapMutation.h"
-#include "RelativeBestImprovementSwapMutation.h"
-#include "BestImprovementSwapMutation.h"
+#include "IncrementalEval.h"
+#include "PartialOp.h"
 
-#include "ShiftMutation.h"
-#include "FirstImprovementShiftMutation.h"
-#include "RelativeBestImprovementShiftMutation.h"
-#include "BestImprovementShiftMutation.h"
-
-#include "InversionMutation.h"
-#include "FirstImprovementInversionMutation.h"
-#include "RelativeBestImprovementInversionMutation.h"
-#include "BestImprovementInversionMutation.h"
+#include "RandMutation.h"
+#include "FirstImprovementMutation.h"
+#include "RelativeBestImprovementMutation.h"
+#include "BestImprovementMutation.h"
 
 #endif // !_VARIATION_
 
