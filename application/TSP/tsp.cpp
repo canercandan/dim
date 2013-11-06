@@ -117,6 +117,9 @@ int main (int argc, char *argv[])
     dim::variation::SwapIncrementalEval<EOT> swapEval;
     dim::variation::ShiftIncrementalEval<EOT> shiftEval;
     dim::variation::InversionIncrementalEval<EOT> inversionEval;
+    dim::variation::DummyIncrementalEval<EOT> dummyEval;
+
+    dim::variation::IncrementalEvalCounter<EOT> dummyEvalCounter(dummyEval);
 
     mapOperators["swap"] = new dim::variation::RandMutation<EOT>(swapOp);
     operatorsOrder.push_back("swap");
@@ -125,25 +128,37 @@ int main (int argc, char *argv[])
     mapOperators["inversion"] = new dim::variation::RandMutation<EOT>(inversionOp);
     operatorsOrder.push_back("inversion");
 
-    mapOperators["first_improve_swap"] = new dim::variation::FirstImprovementMutation<EOT>(swapOp, swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> firstImprovementSwapEvalCounter(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> firstImprovementShiftEvalCounter(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT> firstImprovementInversionEvalCounter(inversionEval);
+
+    mapOperators["first_improve_swap"] = new dim::variation::FirstImprovementMutation<EOT>(swapOp, firstImprovementSwapEvalCounter);
     operatorsOrder.push_back("first_improve_swap");
-    mapOperators["first_improve_shift"] = new dim::variation::FirstImprovementMutation<EOT>(shiftOp, shiftEval);
+    mapOperators["first_improve_shift"] = new dim::variation::FirstImprovementMutation<EOT>(shiftOp, firstImprovementShiftEvalCounter);
     operatorsOrder.push_back("first_improve_shift");
-    mapOperators["first_improve_inversion"] = new dim::variation::FirstImprovementMutation<EOT>(inversionOp, inversionEval);
+    mapOperators["first_improve_inversion"] = new dim::variation::FirstImprovementMutation<EOT>(inversionOp, firstImprovementInversionEvalCounter);
     operatorsOrder.push_back("first_improve_inversion");
 
-    mapOperators["relative_best_improve_swap"] = new dim::variation::RelativeBestImprovementMutation<EOT>(swapOp, swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementSwapEvalCounter(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementShiftEvalCounter(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementInversionEvalCounter(inversionEval);
+
+    mapOperators["relative_best_improve_swap"] = new dim::variation::RelativeBestImprovementMutation<EOT>(swapOp, relativeBestImprovementSwapEvalCounter);
     operatorsOrder.push_back("relative_best_improve_swap");
-    mapOperators["relative_best_improve_shift"] = new dim::variation::RelativeBestImprovementMutation<EOT>(shiftOp, shiftEval);
+    mapOperators["relative_best_improve_shift"] = new dim::variation::RelativeBestImprovementMutation<EOT>(shiftOp, relativeBestImprovementShiftEvalCounter);
     operatorsOrder.push_back("relative_best_improve_shift");
-    mapOperators["relative_best_improve_inversion"] = new dim::variation::RelativeBestImprovementMutation<EOT>(inversionOp, inversionEval);
+    mapOperators["relative_best_improve_inversion"] = new dim::variation::RelativeBestImprovementMutation<EOT>(inversionOp, relativeBestImprovementInversionEvalCounter);
     operatorsOrder.push_back("relative_best_improve_inversion");
 
-    mapOperators["best_improve_swap"] = new dim::variation::BestImprovementMutation<EOT>(swapOp, swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> bestImprovementSwapEvalCounter(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> bestImprovementShiftEvalCounter(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT> bestImprovementInversionEvalCounter(inversionEval);
+
+    mapOperators["best_improve_swap"] = new dim::variation::BestImprovementMutation<EOT>(swapOp, bestImprovementSwapEvalCounter);
     operatorsOrder.push_back("best_improve_swap");
-    mapOperators["best_improve_shift"] = new dim::variation::BestImprovementMutation<EOT>(shiftOp, shiftEval);
+    mapOperators["best_improve_shift"] = new dim::variation::BestImprovementMutation<EOT>(shiftOp, bestImprovementShiftEvalCounter);
     operatorsOrder.push_back("best_improve_shift");
-    mapOperators["best_improve_inversion"] = new dim::variation::BestImprovementMutation<EOT>(inversionOp, inversionEval);
+    mapOperators["best_improve_inversion"] = new dim::variation::BestImprovementMutation<EOT>(inversionOp, bestImprovementInversionEvalCounter);
     operatorsOrder.push_back("best_improve_inversion");
 
     // mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");

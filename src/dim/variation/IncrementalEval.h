@@ -38,6 +38,27 @@ namespace dim
 	    virtual typename EOT::Fitness operator()(EOT& sol, size_t i, size_t j) = 0;
 	};
 
+	/**
+	 * Counts the number of evaluations actually performed.
+	 *
+	 * @ingroup Evaluation
+	 */
+	template <typename EOT>
+	class IncrementalEvalCounter : public IncrementalEval<EOT>, public eoValueParam<unsigned int>
+	{
+	public:
+	    IncrementalEvalCounter(IncrementalEval<EOT>& eval, std::string name = "IncrementalEval. ") : eoValueParam<unsigned int>(0, name), _eval(eval) {}
+
+	    virtual typename EOT::Fitness operator()(EOT& sol, size_t i, size_t j)
+	    {
+		value()++;
+		return _eval(sol, i, j);
+	    }
+
+	private:
+	    IncrementalEval<EOT>& _eval;
+	};
+
 	template<typename EOT>
 	class InversionIncrementalEval : public IncrementalEval<EOT>
 	{
@@ -75,6 +96,13 @@ namespace dim
 		    + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1))
 		    ;
 	    }
+	};
+
+	template <typename EOT>
+	class DummyIncrementalEval : public IncrementalEval<EOT>
+	{
+	public:
+	    virtual typename EOT::Fitness operator()(EOT& sol, size_t i, size_t j) { return 0; }
 	};
 
     }

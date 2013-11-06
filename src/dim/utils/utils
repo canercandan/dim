@@ -39,6 +39,7 @@
 #include "TimeCounter.h"
 #include "GenCounter.h"
 #include "EvalCounter.h"
+#include "IncrementalEvalCounter.h"
 
 #endif // !_UTILS_
 
