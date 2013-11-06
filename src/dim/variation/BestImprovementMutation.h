@@ -38,23 +38,19 @@ namespace dim
 
 	    bool operator()(EOT& sol)
 	    {
-		// select two indices from the initial solution
-		size_t i, j;
-		i = eo::rng.random(sol.size());
-
 		// keep a best solution with its best delta
-		unsigned best_i = i;
-		unsigned best_j = j;
+		size_t best_i = 0;
+		size_t best_j = 0;
 		typename EOT::Fitness best_delta = 0;
 
 		DO_MEASURE(
 
-			   for (size_t k = 0; k < sol.size()-1; ++k)
+			   for (size_t i = 0; i < sol.size()-1; ++i)
 			       {
-				   do { j = eo::rng.random(sol.size()); } while (i == j);
-
-				   for (size_t l = 0; l < sol.size()-1; ++l)
+				   for (size_t j = 0; j < sol.size()-1; ++j)
 				       {
+					   if (i == j) { continue; }
+
 					   DO_MEASURE(
 
 						      typename EOT::Fitness delta = _eval(sol, i, j);
@@ -67,13 +63,7 @@ namespace dim
 							  }
 
 						      , this->_measureFiles, "variation_compute_delta" );
-
-					   // increment j in order to apply the operator with the other indexes
-					   do { j = (j+1) % sol.size(); } while (i == j);
 				       }
-
-				   // increment i in order to apply the operator with the other indexes
-				   i = (i+1) % sol.size();
 			       }
 
 			   , this->_measureFiles, "variation_total" );

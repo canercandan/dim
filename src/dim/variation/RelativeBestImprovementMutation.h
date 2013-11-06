@@ -38,18 +38,19 @@ namespace dim
 
 	    bool operator()(EOT& sol)
 	    {
-		// select two indices from the initial solution
-		size_t i, j;
+		// select one indice from the initial solution
+		size_t i;
 		i = eo::rng.random(sol.size());
-		do { j = eo::rng.random(sol.size()); } while (i == j);
 
 		// keep a best solution with its best delta
-		unsigned best_i = i;
-		unsigned best_j = j;
+		size_t best_i = i;
+		size_t best_j = 0;
 		double best_delta = 0;
 
-		for (size_t k = 0; k < sol.size()-1; ++k)
+		for (size_t j = 0; j < sol.size()-1; ++j)
 		    {
+			if ( i == j ) { continue; }
+
 			// incremental eval
 			double delta = _eval(sol, i, j);
 
@@ -59,9 +60,6 @@ namespace dim
 				best_i = i;
 				best_j = j;
 			    }
-
-			// increment j in order to apply the operator with the other indexes
-			do { j = (j+1) % sol.size(); } while (i == j);
 		    }
 
 		// if the best delta is negative, we apply the operator to the solution with the best indicies
