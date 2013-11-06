@@ -17,10 +17,9 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_RELATIVEBESTIMPROVEMENTSWAPMUTATION_H_
-#define _VARIATION_RELATIVEBESTIMPROVEMENTSWAPMUTATION_H_
+#ifndef _VARIATION_RELATIVEBESTIMPROVEMENTMUTATION_H_
+#define _VARIATION_RELATIVEBESTIMPROVEMENTMUTATION_H_
 
-#include <dim/initialization/TSPLibGraph.h>
 #include "Base.h"
 
 namespace dim
@@ -29,16 +28,12 @@ namespace dim
     {
 
 	template<typename EOT>
-	class RelativeBestImprovementSwapMutation : public Base<EOT>
+	class RelativeBestImprovementMutation : public Base<EOT>
 	{
 	public:
 	    /// The class name.
-	    virtual std::string className() const { return "RelativeBestImprovementSwapMutation"; }
+	    virtual std::string className() const { return "RelativeBestImprovementMutation"; }
 
-	    /**
-	     * Swap two components of the given chromosome.
-	     * @param chrom The cromosome which is going to be changed.
-	     */
 	    bool operator()(EOT& sol)
 	    {
 		// select two indices from the initial solution
@@ -54,9 +49,7 @@ namespace dim
 		for (size_t k = 0; k < sol.size()-1; ++k)
 		    {
 			// incremental eval
-			double delta =
-			    - (D(sol, i-1, i) + D(sol, i, i+1) + D(sol, j-1, j) + D(sol, j, j+1))
-			    + (D(sol, i-1, j) + D(sol, j, i+1) + D(sol, j-1, i) + D(sol, i, j+1));
+			double delta = _eval(sol, i, j);
 
 			if (delta <= best_delta)
 			    {
@@ -65,14 +58,14 @@ namespace dim
 				best_j = j;
 			    }
 
-			// increment j in order to swap with the other indexes
+			// increment j in order to apply the operator with the other indexes
 			do { j = (j+1) % sol.size(); } while (i == j);
 		    }
 
-		// if the best delta is negative, we swap the solution with the best indicies
+		// if the best delta is negative, we apply the operator to the solution with the best indicies
 		if ( best_delta < 0 )
 		    {
-			std::swap(sol[best_i], sol[best_j]);
+			_op(sol, best_i, best_j);
 			sol.fitness( sol.fitness() + best_delta );
 			return true;
 		    }
@@ -84,4 +77,4 @@ namespace dim
     }
 }
 
-#endif /* _VARIATION_RELATIVEBESTIMPROVEMENTSWAPMUTATION_H_ */
+#endif /* _VARIATION_RELATIVEBESTIMPROVEMENTMUTATION_H_ */

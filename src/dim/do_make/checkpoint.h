@@ -40,7 +40,7 @@ namespace dim
 	{
 
 	    template <typename EOT>
-	    utils::CheckPoint<EOT>& checkpoint(eoParser& _parser, eoState& _state, continuator::Base<EOT>& _continue, core::IslandData<EOT>& data, unsigned _frequency = 1, unsigned stepTimer = 1000 )
+	    utils::CheckPoint<EOT>& checkpoint(eoParser& _parser, eoState& _state, continuator::Base<EOT>& _continue, eoEvalFuncCounter<EOT>& _eval, core::IslandData<EOT>& data, unsigned _frequency = 1, unsigned stepTimer = 1000 )
 	    {
 		const size_t ALL = data.size();
 		const size_t RANK = data.rank();
@@ -83,6 +83,13 @@ namespace dim
 		checkpoint.add(genCounter);
 		fileMonitor.add(genCounter);
 		if (printBest) { stdMonitor->add(genCounter); }
+
+		// ss.str(""); ss << "evaluation_isl" << RANK;
+		// utils::EvalCounter& evalCounter = _state.storeFunctor( new utils::EvalCounter( _eval, ss.str() ) );
+		utils::EvalCounter<EOT>& evalCounter = _state.storeFunctor( new utils::EvalCounter<EOT>( _eval, "evaluation" ) );
+		checkpoint.add(evalCounter);
+		fileMonitor.add(evalCounter);
+		if (printBest) { stdMonitor->add(evalCounter); }
 
 		ss.str(""); ss << "nb_individual_isl" << RANK;
 		utils::FuncPtrStat<EOT, size_t>& popSizeStat = utils::makeFuncPtrStat( utils::getPopSize<EOT>, _state, ss.str() );

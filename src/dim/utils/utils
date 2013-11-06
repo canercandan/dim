@@ -38,6 +38,7 @@
 #include "OStreamMonitor.h"
 #include "TimeCounter.h"
 #include "GenCounter.h"
+#include "EvalCounter.h"
 
 #endif // !_UTILS_
 

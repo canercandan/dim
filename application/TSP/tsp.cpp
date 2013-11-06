@@ -99,7 +99,6 @@ int main (int argc, char *argv[])
     std::string tspInstance =  parser.getORcreateParam(std::string("benchs/ali535.xml"), "tspInstance", "filename of the instance for TSP problem", 0, "Problem").value();
 
     dim::evaluation::Route<double> mainEval;
-    eoEvalFuncCounter<EOT> eval(mainEval);
 
     unsigned popSize = parser.getORcreateParam(unsigned(100), "popSize", "Population Size", 'P', "Evolution Engine").value();
 
@@ -208,8 +207,11 @@ int main (int argc, char *argv[])
 
 	    std::cout << islandData[i]->size() << " " << islandData[i]->rank() << " " << operatorsVec[ islandData[i]->rank() ] << std::endl;
 
+	    eoEvalFuncCounter<EOT>* ptEval = new eoEvalFuncCounter<EOT>(mainEval);
+	    state.storeFunctor(ptEval);
+
 	    islandData[i]->proba = probabilities(i);
-	    apply<EOT>(eval, *(islandPop[i]));
+	    apply<EOT>(*ptEval, *(islandPop[i]));
 
 	    /****************************************
 	     * Distribution des opérateurs aux iles *
@@ -220,7 +222,7 @@ int main (int argc, char *argv[])
 	    ptMon->rank = i;
 	    ptMon->firstCall();
 
-	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( /*eval*/mainEval, *ptMon, false );
+	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( *ptEval, *ptMon, false );
 	    state_dim.storeFunctor(ptEvolver);
 
 	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
@@ -246,8 +248,8 @@ int main (int argc, char *argv[])
 	    dim::migrator::Base<EOT>* ptMigrator = new dim::migrator::smp::Easy<EOT>(islandPop, islandData);
 	    state_dim.storeFunctor(ptMigrator);
 
-	    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, eval);
-	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, *(islandData[i]), 1, stepTimer);
+	    dim::continuator::Base<EOT>& continuator = dim::do_make::continuator<EOT>(parser, state, *ptEval);
+	    dim::utils::CheckPoint<EOT>& checkpoint = dim::do_make::checkpoint<EOT>(parser, state, continuator, *ptEval, *(islandData[i]), 1, stepTimer);
 
 	    dim::algo::Base<EOT>* ptIsland = new dim::algo::smp::Easy<EOT>( *ptEvolver, *ptFeedbacker, *ptUpdater, *ptMemorizer, *ptMigrator, checkpoint, islandPop, islandData );
 	    state_dim.storeFunctor(ptIsland);

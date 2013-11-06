@@ -23,15 +23,15 @@
 #include <eoOp.h>
 #include <dim/utils/Measure.h>
 
-#undef D
-#define D(sol, i, j) (initialization::TSPLibGraph::distance((sol)[(i)%(sol).size()], \
-							    (sol)[(j)%(sol).size()]))
+#include "PartialOp.h"
+#include "IncrementalEval.h"
+
 namespace dim
 {
     namespace variation
     {
 
-	template<typename EOT>
+	template <typename EOT>
 	class Base : public eoMonOp<EOT>
 	{
 	public:
