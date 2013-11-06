@@ -22,6 +22,12 @@
 
 #ifdef MEASURE
 
+#if __cplusplus > 199711L
+	namespace std_or_boost = std;
+#else
+	namespace std_or_boost = boost;
+#endif
+
 # define DO_MEASURE(op, measureFiles, name)				\
     {									\
 	std_or_boost::chrono::time_point< std_or_boost::chrono::system_clock > start = std_or_boost::chrono::system_clock::now(); \

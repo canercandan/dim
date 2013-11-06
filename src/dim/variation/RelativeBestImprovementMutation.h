@@ -31,6 +31,8 @@ namespace dim
 	class RelativeBestImprovementMutation : public Base<EOT>
 	{
 	public:
+	    RelativeBestImprovementMutation(PartialOp<EOT>& op, IncrementalEval<EOT>& eval) : _op(op), _eval(eval) {}
+
 	    /// The class name.
 	    virtual std::string className() const { return "RelativeBestImprovementMutation"; }
 
@@ -72,6 +74,10 @@ namespace dim
 
 		return false;
 	    }
+
+	private:
+	    PartialOp<EOT>& _op;
+	    IncrementalEval<EOT>& _eval;
 	};
 
     }

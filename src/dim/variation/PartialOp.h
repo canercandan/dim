@@ -33,7 +33,7 @@ namespace dim
 	};
 
 	template <typename EOT>
-	class InversionPartialOp
+	class InversionPartialOp : public PartialOp<EOT>
 	{
 	public:
 	    /**
@@ -62,7 +62,7 @@ namespace dim
 	};
 
 	template <typename EOT>
-	class ShiftPartialOp
+	class ShiftPartialOp : public PartialOp<EOT>
 	{
 	public:
 	    /**
@@ -95,7 +95,7 @@ namespace dim
 	};
 
 	template <typename EOT>
-	class SwapPartialOp
+	class SwapPartialOp : public PartialOp<EOT>
 	{
 	public:
 	    /**
