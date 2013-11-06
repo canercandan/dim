@@ -47,10 +47,10 @@ namespace dim
 			    do
 				{
 				    // generate two different indices
-				    i=eo::rng.random(sol.size());
+				    i = eo::rng.random(sol.size());
 				    do { j = eo::rng.random(sol.size()); } while (i == j);
 				}
-			    while ( i == j || find( selected.begin(), selected.end(), std::make_pair(i,j) ) != selected.end() );
+			    while ( find( selected.begin(), selected.end(), std::make_pair(i,j) ) != selected.end() );
 			    selected.push_back(std::make_pair(i,j));
 			}
 
