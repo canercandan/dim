@@ -135,6 +135,12 @@ namespace dim
 		fileMonitor.add(std);
 		if (printBest) { stdMonitor->add(std); }
 
+		ss.str(""); ss << "sumofsquares_value_isl" << RANK;
+		utils::SumOfSquares<EOT>& sumOfSquares = _state.storeFunctor( new utils::SumOfSquares<EOT>( ss.str() ) );
+		checkpoint.add(sumOfSquares);
+		fileMonitor.add(sumOfSquares);
+		if (printBest) { stdMonitor->add(sumOfSquares); }
+
 		ss.str(""); ss << "distance_value_isl" << RANK;
 		utils::DistanceStat<EOT>& distance = _state.storeFunctor( new utils::DistanceStat<EOT>( ss.str() ) );
 		checkpoint.add(distance);

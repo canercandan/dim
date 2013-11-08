@@ -190,6 +190,34 @@ namespace dim
 
 	};
 
+	template <class EOT>
+	class SumOfSquares : public Stat<EOT, double>
+	{
+	public:
+	    using Stat<EOT, double>::value;
+
+	    typedef typename EOT::Fitness fitness_type;
+
+	    SumOfSquares(std::string _description = "SumOfSquares")
+		: Stat<EOT, double>(fitness_type(0.0), _description)
+	    {}
+
+	    static double sumOfSquares(double _sq, const EOT& _eo)
+	    {
+		double fitness = _eo.fitness();
+		_sq += fitness * fitness;
+		return _sq;
+	    }
+
+	    virtual void operator()(const core::Pop<EOT>& _pop)
+	    {
+		value() = std::accumulate(_pop.begin(), _pop.end(), fitness_type(0.0), SumOfSquares::sumOfSquares);
+	    }
+
+	    virtual std::string className(void) const { return "SumOfSquares"; }
+	};
+
+
 	/**
 	   Average fitness + Std. dev. of a population, fitness needs to be scalar.
 	*/
@@ -475,8 +503,6 @@ namespace dim
 		value() = sqrt( (result.second - (result.first / n)) / (n - 1.0)); // stdev
 	    }
 	};
-
-
 
 
 	//! A robust measure of dispersion (also called midspread or middle fifty) that is the difference between the third and the first quartile.
