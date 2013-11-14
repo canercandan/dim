@@ -91,6 +91,7 @@ int main (int argc, char *argv[])
     bool deltaFeedback = parser.createParam(bool(true), "deltaFeedback", "deltaFeedback", 0, "Islands Model").value();
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
     std::string rewardStrategy = parser.createParam(std::string("best"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
+    std::string comparisonStrategy = parser.createParam(std::string("neutral"), "comparisonStrategy", "Operator comparison strategy: neutral or strict", 0, "Islands Model").value();
 
     /*********************************
      * Déclaration des composants EO *
@@ -129,37 +130,48 @@ int main (int argc, char *argv[])
 					       new dim::variation::IncrementalEvalCounter<EOT>(dummyEval));;
     operatorsOrder.push_back("inversion");
 
-    dim::variation::IncrementalEvalCounter<EOT>* ptFirstImprovementSwapEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(swapEval);
-    dim::variation::IncrementalEvalCounter<EOT>* ptFirstImprovementShiftEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(shiftEval);
-    dim::variation::IncrementalEvalCounter<EOT>* ptFirstImprovementInversionEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(inversionEval);
+    dim::variation::ComparisonOp<EOT>* ptComparisonOp = NULL;
 
-    mapOperators["first_improve_swap"] = std::make_pair(new dim::variation::FirstImprovementSingleMutation<EOT>(swapOp, *ptFirstImprovementSwapEvalCounter), ptFirstImprovementSwapEvalCounter);
+    if ( comparisonStrategy == "neutral" )
+	{
+	    ptComparisonOp = new dim::variation::NeutralComparisonOp<EOT>;
+	}
+    else
+	{
+	    ptComparisonOp = new dim::variation::StrictComparisonOp<EOT>;
+	}
+
+    dim::variation::IncrementalEvalCounter<EOT> firstImprovementSwapEvalCounter(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> firstImprovementShiftEvalCounter(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT> firstImprovementInversionEvalCounter(inversionEval);
+
+    mapOperators["first_improve_swap"] = std::make_pair(new dim::variation::FirstImprovementSingleMutation<EOT>(swapOp, firstImprovementSwapEvalCounter, *ptComparisonOp), &firstImprovementSwapEvalCounter);
     operatorsOrder.push_back("first_improve_swap");
-    mapOperators["first_improve_shift"] = std::make_pair(new dim::variation::FirstImprovementSingleMutation<EOT>(shiftOp, *ptFirstImprovementShiftEvalCounter), ptFirstImprovementShiftEvalCounter);
+    mapOperators["first_improve_shift"] = std::make_pair(new dim::variation::FirstImprovementSingleMutation<EOT>(shiftOp, firstImprovementShiftEvalCounter, *ptComparisonOp), &firstImprovementShiftEvalCounter);
     operatorsOrder.push_back("first_improve_shift");
-    mapOperators["first_improve_inversion"] = std::make_pair(new dim::variation::FirstImprovementSingleMutation<EOT>(inversionOp, *ptFirstImprovementInversionEvalCounter), ptFirstImprovementInversionEvalCounter);
+    mapOperators["first_improve_inversion"] = std::make_pair(new dim::variation::FirstImprovementSingleMutation<EOT>(inversionOp, firstImprovementInversionEvalCounter, *ptComparisonOp), &firstImprovementInversionEvalCounter);
     operatorsOrder.push_back("first_improve_inversion");
 
-    dim::variation::IncrementalEvalCounter<EOT>* ptRelativeBestImprovementSwapEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(swapEval);
-    dim::variation::IncrementalEvalCounter<EOT>* ptRelativeBestImprovementShiftEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(shiftEval);
-    dim::variation::IncrementalEvalCounter<EOT>* ptRelativeBestImprovementInversionEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(inversionEval);
+    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementSwapEvalCounter(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementShiftEvalCounter(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT> relativeBestImprovementInversionEvalCounter(inversionEval);
 
-    mapOperators["relative_best_improve_swap"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(swapOp, *ptRelativeBestImprovementSwapEvalCounter), ptRelativeBestImprovementSwapEvalCounter);
+    mapOperators["relative_best_improve_swap"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(swapOp, relativeBestImprovementSwapEvalCounter, *ptComparisonOp), &relativeBestImprovementSwapEvalCounter);
     operatorsOrder.push_back("relative_best_improve_swap");
-    mapOperators["relative_best_improve_shift"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(shiftOp, *ptRelativeBestImprovementShiftEvalCounter), ptRelativeBestImprovementShiftEvalCounter);
+    mapOperators["relative_best_improve_shift"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(shiftOp, relativeBestImprovementShiftEvalCounter, *ptComparisonOp), &relativeBestImprovementShiftEvalCounter);
     operatorsOrder.push_back("relative_best_improve_shift");
-    mapOperators["relative_best_improve_inversion"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(inversionOp, *ptRelativeBestImprovementInversionEvalCounter), ptRelativeBestImprovementInversionEvalCounter);
+    mapOperators["relative_best_improve_inversion"] = std::make_pair(new dim::variation::RelativeBestImprovementMutation<EOT>(inversionOp, relativeBestImprovementInversionEvalCounter, *ptComparisonOp), &relativeBestImprovementInversionEvalCounter);
     operatorsOrder.push_back("relative_best_improve_inversion");
 
-    dim::variation::IncrementalEvalCounter<EOT>* ptBestImprovementSwapEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(swapEval);
-    dim::variation::IncrementalEvalCounter<EOT>* ptBestImprovementShiftEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(shiftEval);
-    dim::variation::IncrementalEvalCounter<EOT>* ptBestImprovementInversionEvalCounter = new dim::variation::IncrementalEvalCounter<EOT>(inversionEval);
+    dim::variation::IncrementalEvalCounter<EOT> bestImprovementSwapEvalCounter(swapEval);
+    dim::variation::IncrementalEvalCounter<EOT> bestImprovementShiftEvalCounter(shiftEval);
+    dim::variation::IncrementalEvalCounter<EOT> bestImprovementInversionEvalCounter(inversionEval);
 
-    mapOperators["best_improve_swap"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(swapOp, *ptBestImprovementSwapEvalCounter), ptBestImprovementSwapEvalCounter);
+    mapOperators["best_improve_swap"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(swapOp, bestImprovementSwapEvalCounter, *ptComparisonOp), &bestImprovementSwapEvalCounter);
     operatorsOrder.push_back("best_improve_swap");
-    mapOperators["best_improve_shift"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(shiftOp, *ptBestImprovementShiftEvalCounter), ptBestImprovementShiftEvalCounter);
+    mapOperators["best_improve_shift"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(shiftOp, bestImprovementShiftEvalCounter, *ptComparisonOp), &bestImprovementShiftEvalCounter);
     operatorsOrder.push_back("best_improve_shift");
-    mapOperators["best_improve_inversion"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(inversionOp, *ptBestImprovementInversionEvalCounter), ptBestImprovementInversionEvalCounter);
+    mapOperators["best_improve_inversion"] = std::make_pair(new dim::variation::BestImprovementMutation<EOT>(inversionOp, bestImprovementInversionEvalCounter, *ptComparisonOp), &bestImprovementInversionEvalCounter);
     operatorsOrder.push_back("best_improve_inversion");
 
     // mapOperators["2swap"] = new eoSwapMutation<EOT>(2);	operatorsOrder.push_back("2swap");
@@ -311,7 +323,6 @@ int main (int argc, char *argv[])
     for ( std::map< std::string, std::pair< dim::variation::Base<EOT>*, dim::variation::IncrementalEvalCounter<EOT>* > >::iterator it = mapOperators.begin(); it != mapOperators.end(); ++it )
     	{
     	    delete it->second.first;
-    	    delete it->second.second;
     	}
 
     return 0;

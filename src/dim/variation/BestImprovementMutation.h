@@ -31,7 +31,7 @@ namespace dim
 	class BestImprovementMutation : public Base<EOT>
 	{
 	public:
-	    BestImprovementMutation(PartialOp<EOT>& op, IncrementalEval<EOT>& eval) : _op(op), _eval(eval) {}
+	    BestImprovementMutation(PartialOp<EOT>& op, IncrementalEval<EOT>& eval, ComparisonOp<EOT>& comp) : _op(op), _eval(eval), _comp(comp) {}
 
 	    /// The class name.
 	    virtual std::string className() const { return "BestImprovementMutation"; }
@@ -55,7 +55,7 @@ namespace dim
 
 						      typename EOT::Fitness delta = _eval(sol, i, j);
 
-						      if (delta <= best_delta)
+						      if (_comp(delta, best_delta))
 							  {
 							      best_delta = delta;
 							      best_i = i;
@@ -82,6 +82,7 @@ namespace dim
 	private:
 	    PartialOp<EOT>& _op;
 	    IncrementalEval<EOT>& _eval;
+	    ComparisonOp<EOT>& _comp;
 	};
 
     }

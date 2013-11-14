@@ -28,54 +28,55 @@ namespace dim
     {
 
 	template<typename EOT>
-	    class FirstImprovementSingleMutation : public Base<EOT>
+	class FirstImprovementSingleMutation : public Base<EOT>
+	{
+	public:
+	    FirstImprovementSingleMutation(PartialOp<EOT>& op, IncrementalEval<EOT>& eval, ComparisonOp<EOT>& comp) : _op(op), _eval(eval), _comp(comp) {}
+
+	    /// The class name.
+	    virtual std::string className() const { return "FirstImprovementSingleMutation"; }
+
+	    bool operator()(EOT& sol)
 	    {
-	    public:
-	    FirstImprovementSingleMutation(PartialOp<EOT>& op, IncrementalEval<EOT>& eval) : _op(op), _eval(eval) {}
+		std::vector< std::pair< size_t, size_t > > selected;
 
-		/// The class name.
-		virtual std::string className() const { return "FirstImprovementSingleMutation"; }
+		// check for duplicate
+		for (size_t k = 0; k < sol.size()-1; ++k)
+		    {
+			size_t i, j;
+			do
+			    {
+				// generate two different indices
+				i = eo::rng.random(sol.size());
+				do { j = eo::rng.random(sol.size()); } while (i == j);
+			    }
+			while ( find( selected.begin(), selected.end(), std::make_pair(i,j) ) != selected.end() );
+			selected.push_back(std::make_pair(i,j));
+		    }
 
-		bool operator()(EOT& sol)
-		{
-		    std::vector< std::pair< size_t, size_t > > selected;
+		for (size_t k = 0; k < sol.size()-1; ++k)
+		    {
+			size_t i = selected[k].first;
+			size_t j = selected[k].second;
 
-		    // check for duplicate
-		    for (size_t k = 0; k < sol.size()-1; ++k)
-			{
-			    size_t i, j;
-			    do
-				{
-				    // generate two different indices
-				    i = eo::rng.random(sol.size());
-				    do { j = eo::rng.random(sol.size()); } while (i == j);
-				}
-			    while ( find( selected.begin(), selected.end(), std::make_pair(i,j) ) != selected.end() );
-			    selected.push_back(std::make_pair(i,j));
-			}
+			// incremental eval
+			typename EOT::Fitness delta = _eval(sol, i, j);
 
-		    for (size_t k = 0; k < sol.size()-1; ++k)
-			{
-			    size_t i = selected[k].first;
-			    size_t j = selected[k].second;
+			if (_comp(delta, 0))
+			    {
+				_op(sol, i, j);
+				sol.fitness( sol.fitness() + delta );
+				return true;
+			    }
+		    }
+		return false;
+	    }
 
-			    // incremental eval
-			    typename EOT::Fitness delta = _eval(sol, i, j);
-
-			    if (delta <= 0)
-				{
-				    _op(sol, i, j);
-				    sol.fitness( sol.fitness() + delta );
-				    return true;
-				}
-			}
-		    return false;
-		}
-
-	    private:
-		PartialOp<EOT>& _op;
-		IncrementalEval<EOT>& _eval;
-	    };
+	private:
+	    PartialOp<EOT>& _op;
+	    IncrementalEval<EOT>& _eval;
+	    ComparisonOp<EOT>& _comp;
+	};
 
     }
 }

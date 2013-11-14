@@ -17,15 +17,8 @@
  * Caner Candan <caner.candan@univ-angers.fr>
  */
 
-#ifndef _VARIATION_BASE_H_
-#define _VARIATION_BASE_H_
-
-#include <eoOp.h>
-#include <dim/utils/Measure.h>
-
-#include "PartialOp.h"
-#include "IncrementalEval.h"
-#include "ComparisonOp.h"
+#ifndef _VARIATION_COMPARISONOP_H_
+#define _VARIATION_COMPARISONOP_H_
 
 namespace dim
 {
@@ -33,35 +26,26 @@ namespace dim
     {
 
 	template <typename EOT>
-	class Base : public eoMonOp<EOT>
+	class ComparisonOp
 	{
 	public:
-	    Base() : rank(-1), monitorPrefix("result") {}
-
-	    virtual void firstCall()
-	    {
-		std::ostringstream ss;
-
-#ifdef MEASURE
-		ss.str(""); ss << this->monitorPrefix << ".variation_total.time." << this->rank;
-		_measureFiles["variation_total"] = new std::ofstream(ss.str().c_str());
-
-		ss.str(""); ss << this->monitorPrefix << ".variation_compute_delta.time." << this->rank;
-		_measureFiles["variation_compute_delta"] = new std::ofstream(ss.str().c_str());
-#endif // !MEASURE
-	    }
-
-	public:
-	    int rank;
-	    std::string monitorPrefix;
-
-	protected:
-#ifdef MEASURE
-	    std::map<std::string, std::ofstream*> _measureFiles;
-#endif // !MEASURE
+	    virtual bool operator()(typename EOT::Fitness delta, typename EOT::Fitness fit) = 0;
 	};
 
+	template <typename EOT>
+	class NeutralComparisonOp : public ComparisonOp<EOT>
+	{
+	public:
+	    virtual bool operator()(typename EOT::Fitness delta, typename EOT::Fitness fit) { return delta <= fit; }
+	};
+
+	template <typename EOT>
+	class StrictComparisonOp : public ComparisonOp<EOT>
+	{
+	public:
+	    virtual bool operator()(typename EOT::Fitness delta, typename EOT::Fitness fit) { return delta < fit; }
+	};
     }
 }
 
-#endif /* _VARIATION_BASE_H_ */
+#endif /* _VARIATION_COMPARISONOP_H_ */
