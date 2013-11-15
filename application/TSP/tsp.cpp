@@ -260,7 +260,7 @@ int main (int argc, char *argv[])
 
 	    dim::variation::IncrementalEvalCounter<EOT>* ptIncrementalEvalCounter = mapOperators[ operatorsVec[ islandData[i]->rank() ] ].second;
 
-	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( *ptEval, *ptMon, false );
+	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( *ptEval, *ptMon, true );
 	    state_dim.storeFunctor(ptEvolver);
 
 	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
