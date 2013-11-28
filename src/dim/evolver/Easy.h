@@ -46,7 +46,7 @@ namespace dim
 	class Easy : public Base<EOT>
 	{
 	public:
-	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true) : _eval(eval), _op(op), _invalidate(invalidate) {}
+	    Easy(eoEvalFunc<EOT>& eval, eoMonOp<EOT>& op, bool invalidate = true, size_t nbmove = 1) : _eval(eval), _op(op), _invalidate(invalidate), _nbmove(nbmove) {}
 
 	    virtual void firstCall(core::Pop<EOT>& /*pop*/, core::IslandData<EOT>& data)
 	    {
@@ -72,24 +72,27 @@ namespace dim
 			       {
 				   EOT& ind = pop[i];
 
-				   EOT candidate = ind;
-
-				   DO_MEASURE(
-					      _op( candidate );
-					      , _measureFiles, "evolve_op" );
-
-				   if (_invalidate)
+				   for (size_t k = 0; k < _nbmove; ++k)
 				       {
-					   candidate.invalidate();
-				       }
+					   EOT candidate = ind;
 
-				   DO_MEASURE(
-					      _eval( candidate );
-					      , _measureFiles, "evolve_eval" );
+					   DO_MEASURE(
+						      _op( candidate );
+						      , _measureFiles, "evolve_op" );
 
-				   if ( candidate.fitness() > ind.fitness() )
-				       {
-					   ind = MOVE(candidate);
+					   if (_invalidate)
+					       {
+						   candidate.invalidate();
+					       }
+
+					   DO_MEASURE(
+						      _eval( candidate );
+						      , _measureFiles, "evolve_eval" );
+
+					   if ( candidate.fitness() > ind.fitness() )
+					       {
+						   ind = MOVE(candidate);
+					       }
 				       }
 			       }
 
@@ -100,6 +103,7 @@ namespace dim
 	    eoEvalFunc<EOT>& _eval;
 	    eoMonOp<EOT>& _op;
 	    bool _invalidate;
+	    size_t _nbmove;
 
 #ifdef MEASURE
 	    std::map<std::string, std::ofstream*> _measureFiles;
