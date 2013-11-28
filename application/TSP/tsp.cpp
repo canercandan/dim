@@ -92,6 +92,7 @@ int main (int argc, char *argv[])
     double sensitivity = 1 / parser.createParam(double(1.), "sensitivity", "sensitivity of delta{t} (1/sensitivity)", 0, "Islands Model").value();
     std::string rewardStrategy = parser.createParam(std::string("best"), "rewardStrategy", "Strategy of rewarding: best or avg", 0, "Islands Model").value();
     std::string comparisonStrategy = parser.createParam(std::string("neutral"), "comparisonStrategy", "Operator comparison strategy: neutral or strict", 0, "Islands Model").value();
+    unsigned nbmove = parser.createParam(unsigned(1), "nbmove", "Number of movement of the operator per generation", 'm', "Islands Model").value();
 
     /*********************************
      * Déclaration des composants EO *
@@ -260,7 +261,7 @@ int main (int argc, char *argv[])
 
 	    dim::variation::IncrementalEvalCounter<EOT>* ptIncrementalEvalCounter = mapOperators[ operatorsVec[ islandData[i]->rank() ] ].second;
 
-	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( *ptEval, *ptMon, true );
+	    dim::evolver::Base<EOT>* ptEvolver = new dim::evolver::Easy<EOT>( *ptEval, *ptMon, true, nbmove );
 	    state_dim.storeFunctor(ptEvolver);
 
 	    dim::feedbacker::Base<EOT>* ptFeedbacker = new dim::feedbacker::smp::Easy<EOT>(islandPop, islandData, alphaF);
