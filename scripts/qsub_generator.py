@@ -18,7 +18,7 @@ TEMPLATE = """\
 #$ -pe threaded %(nb_threads)d
 
 echo "$NSLOTS $JOB_ID $HOSTNAME"
-CMD="%(cmd_path)s -N=%(nislands)d -P=%(popsize)d %(instance)s -G=%(genmax)d %(proba_same)s -a=%(alpha)s -b=%(beta)s %(operators)s"
+CMD="%(cmd_path)s -N=%(nislands)d -P=%(popsize)d %(instance)s -G=%(genmax)d %(proba_same)s -a=%(alpha)s -b=%(beta)s %(operators)s --nbmove=%(nbmove)d"
 echo $CMD > $JOB_ID/CMD && echo $CMD && $CMD
 exit 0\
 """
@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     'proba_same': None,
     'alpha': 0.2,
     'beta': 0.01,
+    'nbmove': 1,
 }
 
 def generate(**kwargs):
@@ -71,6 +72,7 @@ parser.add_argument('--instance', '-I', help='tsp instance', default='')
 parser.add_argument('--operators', '-O', help='list of operators separated by comma', default='')
 parser.add_argument('--cmd_path', '-C', help='cmd path', default='./tsp')
 parser.add_argument('--nb_threads', '-T', help='number of threads', type=int, default=1)
+parser.add_argument('--nbmove', '-m', help='number of movements', type=int, default=1)
 args = parser()
 
 print(generate(**args.__dict__))
