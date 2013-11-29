@@ -55,7 +55,7 @@ def generate(**kwargs):
     config['current_directory'] = '#$ -cwd' if config.get('current_directory', True) else ''
     config['current_environment'] = '#$ -V' if config.get('current_environment', True) else ''
     config['proba_same'] = '-d=%(proba_same)s' % config if 'proba_same' in config and config['proba_same'] else ''
-    config['instance'] = '--tspInstance=%(instance)s' % config if 'instance' and config['instance'] in config else ''
+    config['instance'] = '--tspInstance=%(instance)s' % config if 'instance' in config and config['instance'] else ''
     config['operators'] = '--operators=%(operators)s' % config if 'operators' in config and config['operators'] else ''
 
     return TEMPLATE % config
