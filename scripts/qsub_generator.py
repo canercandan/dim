@@ -19,7 +19,7 @@ TEMPLATE = """\
 
 echo "$NSLOTS $JOB_ID $HOSTNAME"
 CMD="%(cmd_path)s -N=%(nislands)d -P=%(popsize)d %(instance)s -G=%(genmax)d %(proba_same)s -a=%(alpha)s -b=%(beta)s %(operators)s --nbmove=%(nbmove)d"
-echo $CMD > $JOB_ID/CMD && echo $CMD && $CMD
+echo $CMD > CMD && echo $CMD && $CMD
 exit 0\
 """
 
