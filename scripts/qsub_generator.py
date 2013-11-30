@@ -17,10 +17,18 @@ TEMPLATE = """\
 #$ -m %(notification)s
 #$ -pe threaded %(nb_threads)d
 
-echo "$NSLOTS $JOB_ID $HOSTNAME"
-CMD="%(cmd_path)s -N=%(nislands)d -P=%(popsize)d %(instance)s -G=%(genmax)d %(proba_same)s -a=%(alpha)s -b=%(beta)s %(operators)s --nbmove=%(nbmove)d"
-echo $CMD > CMD && echo $CMD && $CMD
-exit 0\
+NISLANDS=%(nislands)d
+POPSIZE=%(popsize)d
+GENMAX=%(genmax)d
+INSTANCE="%(instance)s"
+PROBASAME="%(proba_same)s"
+OPERATORS="%(operators)s"
+ALPHA=%(alpha)s
+BETA=%(beta)s
+NBMOVE=%(nbmove)d
+
+CMD="%(cmd_path)s --status=$JOB_ID/tsp.status --monitorPrefix=$JOB_ID/result_$SGE_TASK_ID -N=$NISLANDS -P=$POPSIZE $INSTANCE -G=$GENMAX $PROBASAME -a=$ALPHA -b=$BETA $OPERATORS --nbmove=$NBMOVE"
+echo "$NSLOTS $JOB_ID $HOSTNAME" && mkdir $JOB_ID && echo $CMD > $JOB_ID/CMD && echo $CMD && $CMD && exit 0\
 """
 
 DEFAULT_CONFIG = {
