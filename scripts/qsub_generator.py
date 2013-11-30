@@ -34,7 +34,7 @@ BETA=%(beta)s
 NBMOVE=%(nbmove)d
 
 CMD="%(cmd_path)s --status=$JOB_ID/tsp.status --monitorPrefix=$JOB_ID/result_$SGE_TASK_ID -N=$NISLANDS -P=$POPSIZE $INSTANCE -G=$GENMAX $PROBASAME -a=$ALPHA -b=$BETA $OPERATORS --nbmove=$NBMOVE"
-echo "$NSLOTS $JOB_ID $HOSTNAME" && mkdir $JOB_ID && echo $CMD > $JOB_ID/CMD && echo $CMD && $CMD && exit 0\
+echo "$NSLOTS $JOB_ID $HOSTNAME" && mkdir -p $JOB_ID && echo $CMD > $JOB_ID/CMD && echo $CMD && $CMD && exit 0\
 """
 
 DEFAULT_CONFIG = {
