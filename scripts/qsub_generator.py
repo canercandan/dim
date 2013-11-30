@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
 from parser import Parser
+import sys
 
 TEMPLATE = """\
 #!/bin/bash
+##
+## automagically generated thanks to the command line:
+## %(generator_cmd)s
+##
 #$ -N %(name)s
 #$ -e %(error_file)s
 #$ -o %(out_file)s
@@ -32,6 +37,7 @@ echo "$NSLOTS $JOB_ID $HOSTNAME" && mkdir $JOB_ID && echo $CMD > $JOB_ID/CMD && 
 """
 
 DEFAULT_CONFIG = {
+    'generator_cmd': '',
     'name': 'test',
     'error_file': 'err.dat',
     'out_file': 'out.dat',
@@ -65,6 +71,7 @@ def generate(**kwargs):
     config['proba_same'] = '-d=%(proba_same)s' % config if 'proba_same' in config and config['proba_same'] else ''
     config['instance'] = '--tspInstance=%(instance)s' % config if 'instance' in config and config['instance'] else ''
     config['operators'] = '--operators=%(operators)s' % config if 'operators' in config and config['operators'] else ''
+    config['generator_cmd'] = ' '.join(sys.argv)
 
     return TEMPLATE % config
 
@@ -82,5 +89,7 @@ parser.add_argument('--cmd_path', '-C', help='cmd path', default='./tsp')
 parser.add_argument('--nb_threads', '-T', help='number of threads', type=int, default=1)
 parser.add_argument('--nbmove', '-m', help='number of movements', type=int, default=1)
 args = parser()
+
+# print(args[0])
 
 print(generate(**args.__dict__))
