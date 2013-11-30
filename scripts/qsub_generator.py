@@ -94,6 +94,4 @@ parser.add_argument('--nbmove', '-m', help='number of movements', type=int, defa
 parser.add_argument('--array', '-A', help='number of jobs in job array', type=int, default=0)
 args = parser()
 
-# print(args[0])
-
 print(generate(**args.__dict__))
