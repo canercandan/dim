@@ -21,6 +21,7 @@ TEMPLATE = """\
 #$ -l h_vmem=%(h_vmem)s
 #$ -m %(notification)s
 #$ -pe threaded %(nb_threads)d
+%(array)s
 
 NISLANDS=%(nislands)d
 POPSIZE=%(popsize)d
@@ -58,6 +59,7 @@ DEFAULT_CONFIG = {
     'alpha': 0.2,
     'beta': 0.01,
     'nbmove': 1,
+    'array': None,
 }
 
 def generate(**kwargs):
@@ -68,9 +70,10 @@ def generate(**kwargs):
     config['error_in_out_file'] = 'y' if config.get('error_in_out_file', True) else 'n'
     config['current_directory'] = '#$ -cwd' if config.get('current_directory', True) else ''
     config['current_environment'] = '#$ -V' if config.get('current_environment', True) else ''
-    config['proba_same'] = '-d=%(proba_same)s' % config if 'proba_same' in config and config['proba_same'] else ''
-    config['instance'] = '--tspInstance=%(instance)s' % config if 'instance' in config and config['instance'] else ''
-    config['operators'] = '--operators=%(operators)s' % config if 'operators' in config and config['operators'] else ''
+    config['array'] = '#$ -t 1-%(array)d' % config if config.get('array', None) else ''
+    config['proba_same'] = '-d=%(proba_same)s' % config if config.get('proba_same', None) else ''
+    config['instance'] = '--tspInstance=%(instance)s' % config if config.get('instance', None) else ''
+    config['operators'] = '--operators=%(operators)s' % config if config.get('operators', None) else ''
     config['generator_cmd'] = ' '.join(sys.argv)
 
     return TEMPLATE % config
@@ -88,6 +91,7 @@ parser.add_argument('--operators', '-O', help='list of operators separated by co
 parser.add_argument('--cmd_path', '-C', help='cmd path', default='./tsp')
 parser.add_argument('--nb_threads', '-T', help='number of threads', type=int, default=1)
 parser.add_argument('--nbmove', '-m', help='number of movements', type=int, default=1)
+parser.add_argument('--array', '-A', help='number of jobs in job array', type=int, default=0)
 args = parser()
 
 # print(args[0])
