@@ -100,20 +100,20 @@ namespace dim
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
 		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >)))& S = data.feedbacks;
-
-		int best = std::distance(S.begin(), std::max_element(S.begin(), S.end()));
+		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >::iterator))) max_it = std::max_element(S.begin(), S.end());
+		int count = (max_it != S.end()) ? std::count(S.begin(), S.end(), *max_it) : 0;
 		std::vector< double > epsilon = normalize(random_vector(this->size()));
 
 		unsigned sum = 0;
 		for ( size_t i = 0; i < this->size()-1; ++i )
 		    {
-			if (best == -1) // no improvment then rebalancing
+			if (max_it == S.end()) // no improvment then rebalancing
 			    {
 				data.proba[i] = (1-_beta)*data.proba[i] + _beta*epsilon[i];
 			    }
-			else if (best == i)
+			else if (S[i] == *max_it)
 			    {
-				data.proba[i] = (1-_beta)*((1-_alpha)*data.proba[i] + _alpha*1000) + _beta*epsilon[i];
+				data.proba[i] = (1-_beta)*((1-_alpha)*data.proba[i] + _alpha*(1000/count)) + _beta*epsilon[i];
 			    }
 			else
 			    {
