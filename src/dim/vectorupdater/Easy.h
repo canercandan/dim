@@ -100,7 +100,7 @@ namespace dim
 	    void operator()(core::Pop<EOT>& pop, core::IslandData<EOT>& data)
 	    {
 		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >)))& S = data.feedbacks;
-		AUTO(typename BOOST_IDENTITY_TYPE((std::vector< typename EOT::Fitness >::iterator))) max_it = std::max_element(S.begin(), S.end());
+		typename std::vector< typename EOT::Fitness >::iterator max_it = std::max_element(S.begin(), S.end());
 		int count = (max_it != S.end()) ? std::count(S.begin(), S.end(), *max_it) : 0;
 		std::vector< double > epsilon = normalize(random_vector(this->size()));
 
